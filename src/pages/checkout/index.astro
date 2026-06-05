@@ -1,253 +1,42 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { STRIPE_PUBLIC_KEY } from '../../lib/constants'
 ---
 
 <Base title="Checkout">
   <div class="container-page py-8">
-    <h1 class="text-2xl font-bold text-surface-900 mb-8">Checkout</h1>
-    <div id="checkout-app" data-stripe-key={STRIPE_PUBLIC_KEY}>
-      <div class="card p-8 text-center text-surface-500 animate-pulse">
-        <div class="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-        Loading checkout...
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-2xl font-bold text-surface-900 mb-8">Checkout</h1>
+
+      <div id="checkout-contents">
+        <div class="card p-8 text-center text-surface-500">
+          <div class="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          Loading...
+        </div>
       </div>
     </div>
   </div>
 </Base>
 
 <script>
-  import { loadStripe } from '@stripe/stripe-js'
-  import { Elements, PaymentElement, useStripe, useElements, AddressElement } from '@stripe/react-stripe-js'
-  import React, { useState, useEffect } from 'react'
-  import { createRoot } from 'react-dom/client'
-  import { nanoid } from 'nanoid'
-
-  const appEl = document.getElementById('checkout-app')
-  const stripeKey = appEl?.dataset.stripeKey || ''
-
-  function CheckoutForm({ clientSecret, totalCents, subtotalCents, shippingCents, taxCents, items, onBack }: {
-    clientSecret: string
-    totalCents: number
-    subtotalCents: number
-    shippingCents: number
-    taxCents: number
-    items: any[]
-    onBack: () => void
-  }) {
-    const stripe = useStripe()
-    const elements = useElements()
-    const [error, setError] = useState('')
-    const [processing, setProcessing] = useState(false)
-    const [step, setStep] = useState<'shipping' | 'payment' | 'confirm'>('shipping')
-    const [shippingInfo, setShippingInfo] = useState<any>(null)
-    const [email, setEmail] = useState(localStorage.getItem('vkrama_email') || '')
-    const [phone, setPhone] = useState('')
-
-    async function handleShippingSubmit(e: React.FormEvent) {
-      e.preventDefault()
-      if (!email) { setError('Email is required'); return }
-      setError('')
-      setStep('payment')
-      window.scrollTo(0, 0)
-    }
-
-    async function handleSubmit(e: React.FormEvent) {
-      e.preventDefault()
-      if (!stripe || !elements) return
-
-      setProcessing(true)
-      setError('')
-
-      const { error: submitError } = await elements.submit()
-      if (submitError) {
-        setError(submitError.message || 'Payment error')
-        setProcessing(false)
-        return
-      }
-
-      const { error: payError, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        redirect: 'if_required',
-      })
-
-      if (payError) {
-        setError(payError.message || 'Payment failed')
-        setProcessing(false)
-        return
-      }
-
-      if (paymentIntent?.status === 'succeeded') {
-        try {
-          const res = await fetch('/api/checkout/place', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              paymentIntentId: paymentIntent.id,
-              email,
-              phone,
-              shippingInfo,
-              items: items.map((i: any) => ({ slug: i.slug, quantity: i.quantity, variantId: i.variantId, variantName: i.variantName })),
-            }),
-          })
-          const data = await res.json()
-          if (data.orderId) {
-            localStorage.removeItem('vkrama_cart')
-            window.dispatchEvent(new Event('cart-updated'))
-            window.location.href = `/checkout/confirm/${data.orderId}`
-          } else {
-            setError(data.error || 'Order placement failed')
-            setProcessing(false)
-          }
-        } catch {
-          setError('Order placement failed')
-          setProcessing(false)
-        }
-      } else {
-        setError('Payment was not successful')
-        setProcessing(false)
-      }
-    }
-
-    if (step === 'shipping') {
-      return (
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <div className="card p-6">
-              <h2 className="text-lg font-semibold text-surface-900 mb-6">Contact Information</h2>
-              <form onSubmit={handleShippingSubmit} className="space-y-4">
-                <div>
-                  <label className="label">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Phone (optional)</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="input"
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </div>
-                <h3 className="font-semibold text-surface-900 pt-4 border-t border-surface-200">Shipping Address</h3>
-                <AddressElement
-                  options={{
-                    mode: 'shipping',
-                    fields: { phone: 'never' },
-                    validation: { phone: 'optional' },
-                  }}
-                  onChange={(e) => {
-                    if (e.complete) {
-                      const { name, address: { line1, line2, city, state, postal_code, country } } = e.value
-                      setShippingInfo({ name, line1, line2: line2 || '', city, state, postalCode: postal_code, country, phone })
-                    }
-                  }}
-                />
-                {error && <p className="text-sm text-red-600">{error}</p>}
-                <button type="submit" className="btn-primary w-full btn-lg">
-                  Continue to Payment
-                </button>
-              </form>
-            </div>
-          </div>
-          <OrderSummary items={items} subtotalCents={subtotalCents} shippingCents={shippingCents} taxCents={taxCents} totalCents={totalCents} />
-        </div>
-      )
-    }
-
-    return (
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <button onClick={() => { setStep('shipping'); window.scrollTo(0, 0) }} className="btn-ghost btn-sm">
-                  &larr; Shipping
-                </button>
-                <h2 className="text-lg font-semibold text-surface-900">Payment</h2>
-              </div>
-              <span className="chip">Secure</span>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <PaymentElement />
-              {error && <p className="text-sm text-red-600 mt-4">{error}</p>}
-              <button
-                type="submit"
-                disabled={!stripe || processing}
-                className="btn-primary w-full btn-lg mt-6"
-              >
-                {processing ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
-                  </span>
-                ) : `Pay $${(totalCents / 100).toFixed(2)}`}
-              </button>
-              <p className="text-xs text-surface-400 text-center mt-3">
-                Your payment is secured via Stripe. We don't store card details.
-              </p>
-            </form>
-          </div>
-        </div>
-        <OrderSummary items={items} subtotalCents={subtotalCents} shippingCents={shippingCents} taxCents={taxCents} totalCents={totalCents} />
-      </div>
-    )
+  interface CartItem {
+    id: string
+    slug: string
+    name: string
+    priceCents: number
+    quantity: number
+    imageUrl: string
+    variantId?: string
+    variantName?: string
   }
 
-  function OrderSummary({ items, subtotalCents, shippingCents, taxCents, totalCents }: any) {
-    return (
-      <div className="md:col-span-1">
-        <div className="card p-6 sticky top-24">
-          <h2 className="text-lg font-semibold text-surface-900 mb-4">Order Summary</h2>
-          <div className="space-y-3 mb-4">
-            {items.map((item: any, i: number) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-surface-100 rounded-lg overflow-hidden shrink-0">
-                  {item.imageUrl ? <img src={item.imageUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-surface-100" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-surface-900 truncate">{item.name}</p>
-                  <p className="text-xs text-surface-500">Qty: {item.quantity}</p>
-                </div>
-                <p className="text-sm font-medium">${((item.priceCents * item.quantity) / 100).toFixed(2)}</p>
-              </div>
-            ))}
-          </div>
-          <div className="divider" />
-          <div className="space-y-2 text-sm mt-4">
-            <div className="flex justify-between text-surface-600">
-              <span>Subtotal</span>
-              <span>${(subtotalCents / 100).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-surface-600">
-              <span>Shipping</span>
-              <span>{shippingCents === 0 ? 'Free' : `$${(shippingCents / 100).toFixed(2)}`}</span>
-            </div>
-            <div className="flex justify-between text-surface-600">
-              <span>Tax</span>
-              <span>${(taxCents / 100).toFixed(2)}</span>
-            </div>
-            <div className="divider" />
-            <div className="flex justify-between font-bold text-surface-900 text-base pt-2">
-              <span>Total</span>
-              <span>${(totalCents / 100).toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const PAYMENT_QR_IMAGE = '/images/sample-qr.svg'
 
-  async function initCheckout() {
-    const cart: any[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
+  function renderCheckout() {
+    const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
+    const container = document.getElementById('checkout-contents')!
+
     if (cart.length === 0) {
-      document.getElementById('checkout-app')!.innerHTML = `
+      container.innerHTML = `
         <div class="card p-8 text-center">
           <p class="text-surface-500 mb-4">Your cart is empty</p>
           <a href="/products" class="btn-primary">Browse Products</a>
@@ -256,43 +45,200 @@ import { STRIPE_PUBLIC_KEY } from '../../lib/constants'
       return
     }
 
-    try {
-      const res = await fetch('/api/checkout/intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart.map((i) => ({ slug: i.slug, quantity: i.quantity, variantId: i.variantId, variantName: i.variantName })) }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to initialize')
+    const total = cart.reduce((sum, item) => sum + item.priceCents * item.quantity, 0)
+    const subtotal = total
 
-      const stripe = await loadStripe(stripeKey)
-      if (!stripe) throw new Error('Failed to load Stripe')
-
-      const root = createRoot(document.getElementById('checkout-app')!)
-      root.render(
-        React.createElement(
-          Elements,
-          { stripe, options: { clientSecret: data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#0284c7' } } } },
-          React.createElement(CheckoutForm, {
-            clientSecret: data.clientSecret,
-            totalCents: data.totalCents,
-            subtotalCents: data.subtotalCents,
-            shippingCents: data.shippingCents,
-            taxCents: data.taxCents,
-            items: cart,
-            onBack: () => window.location.href = '/cart',
-          })
-        )
-      )
-    } catch (err: any) {
-      document.getElementById('checkout-app')!.innerHTML = `
-        <div class="card p-8 text-center">
-          <p class="text-red-600 mb-2">${err.message || 'Failed to load checkout'}</p>
-          <a href="/cart" class="btn-primary">Back to Cart</a>
+    let itemsHtml = ''
+    for (const item of cart) {
+      itemsHtml += `
+        <div class="flex items-center gap-3 py-3 border-b border-surface-100 last:border-0">
+          <div class="w-14 h-14 bg-surface-100 rounded-lg overflow-hidden shrink-0">
+            ${item.imageUrl
+              ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover" />`
+              : '<div class="w-full h-full bg-surface-100" />'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-surface-900 truncate">${item.name}</p>
+            <p class="text-xs text-surface-500">Qty: ${item.quantity}</p>
+          </div>
+          <p class="text-sm font-semibold">$${((item.priceCents * item.quantity) / 100).toFixed(2)}</p>
         </div>
       `
     }
+
+    container.innerHTML = `
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="md:col-span-2 space-y-6">
+          <div class="card p-6">
+            <h2 class="text-lg font-semibold text-surface-900 mb-4">Contact Information</h2>
+            <div class="space-y-4">
+              <div>
+                <label class="label" for="email">Email</label>
+                <input type="email" id="email" class="input" value="${localStorage.getItem('vkrama_email') || ''}" required />
+              </div>
+              <div>
+                <label class="label" for="phone">Phone (optional)</label>
+                <input type="tel" id="phone" class="input" placeholder="+1 (555) 000-0000" />
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <h2 class="text-lg font-semibold text-surface-900 mb-4">Shipping Address</h2>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="col-span-2 sm:col-span-1">
+                <label class="label" for="ship-name">Full Name</label>
+                <input type="text" id="ship-name" class="input" />
+              </div>
+              <div class="col-span-2 sm:col-span-1">
+                <label class="label" for="ship-phone">Phone</label>
+                <input type="tel" id="ship-phone" class="input" />
+              </div>
+              <div class="col-span-2">
+                <label class="label" for="ship-line1">Address Line 1</label>
+                <input type="text" id="ship-line1" class="input" />
+              </div>
+              <div class="col-span-2">
+                <label class="label" for="ship-line2">Address Line 2 (optional)</label>
+                <input type="text" id="ship-line2" class="input" />
+              </div>
+              <div>
+                <label class="label" for="ship-city">City</label>
+                <input type="text" id="ship-city" class="input" />
+              </div>
+              <div>
+                <label class="label" for="ship-state">State</label>
+                <input type="text" id="ship-state" class="input" />
+              </div>
+              <div>
+                <label class="label" for="ship-zip">ZIP Code</label>
+                <input type="text" id="ship-zip" class="input" />
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <h2 class="text-lg font-semibold text-surface-900 mb-4">Payment Method</h2>
+            <div class="space-y-3">
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-surface-200 cursor-pointer hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 transition-all">
+                <input type="radio" name="payment" value="qr" checked class="accent-brand-600" />
+                <div>
+                  <p class="text-sm font-medium text-surface-900">Scan & Pay (QR)</p>
+                  <p class="text-xs text-surface-500">Pay using your payment app</p>
+                </div>
+              </label>
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-surface-200 cursor-pointer hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 transition-all">
+                <input type="radio" name="payment" value="cod" class="accent-brand-600" />
+                <div>
+                  <p class="text-sm font-medium text-surface-900">Cash on Delivery</p>
+                  <p class="text-xs text-surface-500">Pay when you receive your items</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="md:col-span-1">
+          <div class="card p-6 sticky top-24">
+            <h2 class="text-lg font-semibold text-surface-900 mb-4">Order Summary</h2>
+            <div class="mb-4">${itemsHtml}</div>
+            <div class="border-t border-surface-200 pt-4 space-y-1.5 text-sm">
+              <div class="flex justify-between text-surface-600">
+                <span>Subtotal</span>
+                <span>$${(subtotal / 100).toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between text-surface-600">
+                <span>Shipping</span>
+                <span>Free</span>
+              </div>
+              <div class="border-t border-surface-200 pt-2 flex justify-between font-bold text-surface-900 text-base">
+                <span>Total</span>
+                <span>$${(total / 100).toFixed(2)}</span>
+              </div>
+            </div>
+            <button id="place-order-btn" class="btn-primary w-full btn-lg mt-6">
+              Place Order
+            </button>
+            <p id="checkout-error" class="text-sm text-red-600 mt-3 hidden"></p>
+            <p class="text-xs text-surface-400 text-center mt-3">
+              By placing this order, you agree to our terms and conditions.
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+
+    document.getElementById('place-order-btn')?.addEventListener('click', placeOrder)
   }
 
-  initCheckout()
+  async function placeOrder() {
+    const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
+    if (cart.length === 0) return
+
+    const btn = document.getElementById('place-order-btn') as HTMLButtonElement
+    const errorEl = document.getElementById('checkout-error')!
+
+    const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value
+    const paymentMethodEl = document.querySelector('input[name="payment"]:checked') as HTMLInputElement
+    const paymentMethod = paymentMethodEl?.value || 'qr'
+    const email = getVal('email')
+
+    if (!email) {
+      errorEl.textContent = 'Email is required'
+      errorEl.classList.remove('hidden')
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = 'Placing Order...'
+    errorEl.classList.add('hidden')
+
+    const shippingInfo = {
+      name: getVal('ship-name') || undefined,
+      phone: getVal('ship-phone') || undefined,
+      line1: getVal('ship-line1') || undefined,
+      line2: getVal('ship-line2') || undefined,
+      city: getVal('ship-city') || undefined,
+      state: getVal('ship-state') || undefined,
+      postalCode: getVal('ship-zip') || undefined,
+    }
+
+    try {
+      const res = await fetch('/api/cart/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethod,
+          email,
+          phone: getVal('phone'),
+          shippingInfo: shippingInfo.name ? shippingInfo : undefined,
+          items: cart.map((i) => ({
+            slug: i.slug,
+            quantity: i.quantity,
+            variantId: i.variantId,
+            variantName: i.variantName,
+          })),
+        }),
+      })
+      const data = await res.json()
+
+      if (data.orderId) {
+        localStorage.removeItem('vkrama_cart')
+        window.dispatchEvent(new Event('cart-updated'))
+        window.location.href = `/checkout/confirm/${data.orderId}`
+      } else {
+        errorEl.textContent = data.error || 'Checkout failed. Please try again.'
+        errorEl.classList.remove('hidden')
+        btn.disabled = false
+        btn.textContent = 'Place Order'
+      }
+    } catch {
+      errorEl.textContent = 'Network error. Please try again.'
+      errorEl.classList.remove('hidden')
+      btn.disabled = false
+      btn.textContent = 'Place Order'
+    }
+  }
+
+  renderCheckout()
 </script>
