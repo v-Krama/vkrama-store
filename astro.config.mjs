@@ -16,7 +16,7 @@ export default defineConfig({
   ],
   vite: {
     resolve: {
-      conditions: ['workerd', 'worker'],
+      conditions: ['workerd', 'worker', 'node'],
     },
   },
 })
