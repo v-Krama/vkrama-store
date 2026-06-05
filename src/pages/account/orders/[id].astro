@@ -17,6 +17,8 @@ import Base from '../../../layouts/Base.astro'
 </Base>
 
 <script>
+  const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+
   async function loadOrder() {
     const token = localStorage.getItem('vkrama_token')
     if (!token) { window.location.href = '/auth/login'; return }
@@ -45,9 +47,9 @@ import Base from '../../../layouts/Base.astro'
             <div class="flex-1 min-w-0">
               <p class="font-medium text-surface-900 text-sm">${item.name}</p>
               ${item.variantName ? `<p class="text-xs text-surface-500">${item.variantName}</p>` : ''}
-              <p class="text-xs text-surface-400">Qty: ${item.quantity} &times; $${(item.priceCents / 100).toFixed(2)}</p>
+              <p class="text-xs text-surface-400">Qty: ${item.quantity} &times; ${fp(item.priceCents)}</p>
             </div>
-            <p class="font-semibold text-surface-900 text-sm">$${((item.priceCents * item.quantity) / 100).toFixed(2)}</p>
+            <p class="font-semibold text-surface-900 text-sm">${fp(item.priceCents * item.quantity)}</p>
           </div>
         `
       }
@@ -82,19 +84,19 @@ import Base from '../../../layouts/Base.astro'
           <div class="border-t border-surface-200 pt-4 mt-4 space-y-1.5 text-sm">
             <div class="flex justify-between text-surface-600">
               <span>Subtotal</span>
-              <span>$${(order.subtotalCents / 100).toFixed(2)}</span>
+              <span>${fp(order.subtotalCents)}</span>
             </div>
             <div class="flex justify-between text-surface-600">
               <span>Shipping</span>
-              <span>${order.shippingCents === 0 ? 'Free' : `$${(order.shippingCents / 100).toFixed(2)}`}</span>
+              <span>${order.shippingCents === 0 ? 'Free' : fp(order.shippingCents)}</span>
             </div>
             <div class="flex justify-between text-surface-600">
               <span>Tax</span>
-              <span>$${(order.taxCents / 100).toFixed(2)}</span>
+              <span>${fp(order.taxCents)}</span>
             </div>
             <div class="flex justify-between font-bold text-surface-900 text-base pt-2 border-t border-surface-200 mt-2">
               <span>Total</span>
-              <span>$${(order.totalCents / 100).toFixed(2)}</span>
+              <span>${fp(order.totalCents)}</span>
             </div>
           </div>
 

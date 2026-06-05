@@ -1,4 +1,5 @@
 import { APP_NAME, APP_URL } from './constants'
+import { formatPrice } from './format'
 
 const resendKey = import.meta.env.RESEND_API_KEY || ''
 
@@ -55,7 +56,7 @@ export function sendOrderConfirmationEmail(params: { email: string; orderId: str
             <p style="color: #64748b; margin:0 0 24px;">Your order has been confirmed and is being processed.</p>
             <table style="width:100%; margin-bottom:24px;">
               <tr><td style="color:#64748b; padding:8px 0;">Order</td><td style="font-weight:600; text-align:right;">#${params.orderId.slice(-8)}</td></tr>
-              <tr><td style="color:#64748b; padding:8px 0;">Total</td><td style="font-weight:600; text-align:right;">$${(params.totalCents / 100).toFixed(2)}</td></tr>
+              <tr><td style="color:#64748b; padding:8px 0;">Total</td><td style="font-weight:600; text-align:right;">${formatPrice(params.totalCents)}</td></tr>
             </table>
             <div style="text-align:center;">
               <a href="${APP_URL}/account/orders/${params.orderId}" class="btn">View Order</a>

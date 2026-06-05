@@ -1,5 +1,6 @@
--- Admin user
-INSERT OR IGNORE INTO admins (id, email, name, password_hash, role) VALUES
+-- Admin user (DELETE first to allow re-running)
+DELETE FROM admins WHERE email = 'admin@vkrama.com';
+INSERT INTO admins (id, email, name, password_hash, role) VALUES
   ('admin_01', 'admin@vkrama.com', 'VKrama Admin', '$2b$10$bNBdoMAUG6WBmTnHyezDtOxcIYOeqtX66MQ7zC6ruvZl3URxpFqCy', 'superadmin');
 
 -- Categories

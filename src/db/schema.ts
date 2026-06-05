@@ -92,7 +92,7 @@ export const orders = sqliteTable('orders', {
   shippingCents: integer('shipping_cents').default(0),
   taxCents: integer('tax_cents').default(0),
   totalCents: integer('total_cents').notNull(),
-  currency: text('currency').default('usd'),
+  currency: text('currency').default('npr'),
   paymentMethod: text('payment_method').default('stripe'),
   stripeSessionId: text('stripe_session_id'),
   stripePaymentIntent: text('stripe_payment_intent'),

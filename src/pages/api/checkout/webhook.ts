@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { constructWebhookEvent } from '../../../lib/payment'
+import { CURRENCY } from '../../../lib/constants'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -49,7 +50,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         await env.DB.prepare(
           `INSERT INTO orders (id, email, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, stripe_payment_intent)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(orderId, pi.receipt_email || 'guest@checkout', 'paid', subtotalCents, shippingCents, taxCents, pi.amount_received / 100, 'usd', 'stripe', pi.id).run()
+        ).bind(orderId, pi.receipt_email || 'guest@checkout', 'paid', subtotalCents, shippingCents, taxCents, pi.amount_received / 100, CURRENCY, 'stripe', pi.id).run()
 
         await env.DB.prepare("UPDATE orders SET stripe_payment_intent = ? WHERE id = ?").bind(pi.id, orderId).run()
 

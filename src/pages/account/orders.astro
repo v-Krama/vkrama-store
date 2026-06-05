@@ -27,6 +27,8 @@ import Base from '../../layouts/Base.astro'
 </Base>
 
 <script>
+  const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+
   async function loadOrders() {
     const token = localStorage.getItem('vkrama_token')
     if (!token) {
@@ -76,7 +78,7 @@ import Base from '../../layouts/Base.astro'
                 </div>
                 <div>
                   <p class="font-mono text-xs text-surface-400">#${order.id}</p>
-                  <p class="font-semibold text-surface-900">$${(order.totalCents / 100).toFixed(2)}</p>
+                  <p class="font-semibold text-surface-900">${fp(order.totalCents)}</p>
                   <p class="text-xs text-surface-400">${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                 </div>
               </div>

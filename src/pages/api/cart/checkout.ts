@@ -3,6 +3,7 @@ import { getDb } from '../../../lib/db'
 import { products } from '../../../db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { generateId } from '../../../lib/auth'
+import { CURRENCY } from '../../../lib/constants'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -70,7 +71,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       shippingInfo?.phone || null,
       status,
       subtotalCents, shippingCents, taxCents, totalCents,
-      'usd', paymentMethod || 'qr',
+      CURRENCY, paymentMethod || 'qr',
       shippingInfo?.name || null, shippingInfo?.phone || null,
       shippingInfo?.line1 || null, shippingInfo?.line2 || null,
       shippingInfo?.city || null, shippingInfo?.state || null,

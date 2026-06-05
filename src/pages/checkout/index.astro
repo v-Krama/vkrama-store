@@ -18,6 +18,8 @@ import Base from '../../layouts/Base.astro'
 </Base>
 
 <script>
+  const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+
   interface CartItem {
     id: string
     slug: string
@@ -61,7 +63,7 @@ import Base from '../../layouts/Base.astro'
             <p class="text-sm font-medium text-surface-900 truncate">${item.name}</p>
             <p class="text-xs text-surface-500">Qty: ${item.quantity}</p>
           </div>
-          <p class="text-sm font-semibold">$${((item.priceCents * item.quantity) / 100).toFixed(2)}</p>
+          <p class="text-sm font-semibold">${fp(item.priceCents * item.quantity)}</p>
         </div>
       `
     }
@@ -145,7 +147,7 @@ import Base from '../../layouts/Base.astro'
             <div class="border-t border-surface-200 pt-4 space-y-1.5 text-sm">
               <div class="flex justify-between text-surface-600">
                 <span>Subtotal</span>
-                <span>$${(subtotal / 100).toFixed(2)}</span>
+                <span>${fp(subtotal)}</span>
               </div>
               <div class="flex justify-between text-surface-600">
                 <span>Shipping</span>
@@ -153,7 +155,7 @@ import Base from '../../layouts/Base.astro'
               </div>
               <div class="border-t border-surface-200 pt-2 flex justify-between font-bold text-surface-900 text-base">
                 <span>Total</span>
-                <span>$${(total / 100).toFixed(2)}</span>
+                <span>${fp(total)}</span>
               </div>
             </div>
             <button id="place-order-btn" class="btn-primary w-full btn-lg mt-6">

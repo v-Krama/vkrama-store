@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { generateId } from '../../../lib/auth'
 import { retrievePaymentIntent } from '../../../lib/payment'
+import { CURRENCY } from '../../../lib/constants'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -59,7 +60,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       orderId, email || paymentIntent.receipt_email || 'guest@checkout', phone || null,
-      'paid', subtotalCents, shippingCents, taxCents, totalCents, 'usd', 'stripe',
+      'paid', subtotalCents, shippingCents, taxCents, totalCents, CURRENCY, 'stripe',
       paymentIntentId,
       shippingInfo?.name || null, shippingInfo?.phone || null,
       shippingInfo?.line1 || null, shippingInfo?.line2 || null,

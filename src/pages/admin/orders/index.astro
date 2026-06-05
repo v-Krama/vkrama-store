@@ -22,6 +22,8 @@ import Admin from '../../../layouts/Admin.astro'
 </Admin>
 
 <script>
+  const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+
   async function loadOrders() {
     const token = localStorage.getItem('vkrama_admin_token')
     if (!token) { window.location.href = '/admin/login'; return }
@@ -54,7 +56,7 @@ import Admin from '../../../layouts/Admin.astro'
         html += `<tr class="hover:bg-surface-50 cursor-pointer transition-colors" onclick="window.location='/admin/orders/${o.id}'">
           <td class="px-4 py-3 font-mono text-xs text-surface-500">#${o.id.slice(-8)}</td>
           <td class="px-4 py-3 text-surface-700">${o.email}</td>
-          <td class="px-4 py-3 font-semibold text-surface-900">$${(o.totalCents / 100).toFixed(2)}</td>
+          <td class="px-4 py-3 font-semibold text-surface-900">${fp(o.totalCents)}</td>
           <td class="px-4 py-3 text-xs text-surface-500">${o.paymentMethod || '—'}</td>
           <td class="px-4 py-3">${statusBadge(o.status)}</td>
           <td class="px-4 py-3 text-sm text-surface-500">${new Date(o.createdAt).toLocaleDateString()}</td>

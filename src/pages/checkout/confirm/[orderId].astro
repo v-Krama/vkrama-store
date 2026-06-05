@@ -85,13 +85,13 @@ const isQr = order?.payment_method === 'qr' || (!order?.payment_method || order?
                     <span class="text-surface-600">
                       {item.name} &times; {item.quantity}
                     </span>
-                    <span class="font-medium text-surface-900">${((item.price_cents * item.quantity) / 100).toFixed(2)}</span>
+                    <span class="font-medium text-surface-900">Rs. ${((item.price_cents * item.quantity) / 100).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <div class="border-t border-surface-200 mt-4 pt-4 flex justify-between font-bold text-lg text-surface-900">
                 <span>Total</span>
-                <span>${(order.total_cents / 100).toFixed(2)}</span>
+                <span>Rs. ${(order.total_cents / 100).toFixed(2)}</span>
               </div>
             </div>
 

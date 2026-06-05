@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as generateId } from '../../../chunks/auth_DQG_9vYb.mjs';
+import { g as generateId, C as CURRENCY } from '../../../chunks/auth_BKtXvTES.mjs';
 import { r as retrievePaymentIntent } from '../../../chunks/payment_hs3NJwIU.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
@@ -56,7 +56,7 @@ const POST = async ({ request, locals }) => {
       shippingCents,
       taxCents,
       totalCents,
-      "usd",
+      CURRENCY,
       "stripe",
       paymentIntentId,
       shippingInfo?.name || null,
