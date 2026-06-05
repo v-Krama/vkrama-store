@@ -1,6 +1,6 @@
 -- Admin user
 INSERT OR IGNORE INTO admins (id, email, name, password_hash, role) VALUES
-  ('admin_01', 'admin@vkrama.com', 'VKrama Admin', '$2a$10$PLACEHOLDER', 'superadmin');
+  ('admin_01', 'admin@vkrama.com', 'VKrama Admin', '$2b$10$djYbs.Xj9nxI/e8udozD7OFyhehR7nMD97Pde9gujsCsASl.kuE5S', 'superadmin');
 
 -- Categories
 INSERT OR IGNORE INTO categories (id, name, slug, description, sort_order) VALUES
