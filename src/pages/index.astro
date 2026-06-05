@@ -9,6 +9,7 @@ const products = await (async () => {
   } catch {}
   return []
 })()
+const hasProducts = products.length > 0
 ---
 
 <Base title="Home">
@@ -36,23 +37,17 @@ const products = await (async () => {
       <h2 class="text-2xl font-bold text-gray-900">Featured Products</h2>
       <a href="/products" class="text-brand-600 hover:text-brand-700 font-medium text-sm">View All &rarr;</a>
     </div>
-    {products.length > 0 ? (
+    {hasProducts ?
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {products.map((p: any) => (
-          <ProductCard
-            slug={p.slug}
-            name={p.name}
-            priceCents={p.priceCents}
-            imageUrl={p.imageUrl}
-            status={p.status}
-          />
-        ))}
+        {products.map((p) =>
+          <ProductCard slug={p.slug} name={p.name} priceCents={p.priceCents} imageUrl={p.imageUrl} status={p.status} />
+        )}
       </div>
-    ) : (
+    :
       <div class="text-center py-12 text-gray-500">
         <p>No products yet. Check back soon!</p>
       </div>
-    )}
+    }
   </section>
 
   <section class="bg-white border-t border-gray-200">

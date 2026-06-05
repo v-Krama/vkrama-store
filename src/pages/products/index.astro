@@ -4,6 +4,7 @@ import ProductCard from '../../components/product/ProductCard.astro'
 
 const category = Astro.url.searchParams.get('category')
 const search = Astro.url.searchParams.get('q')
+const hasProducts = Array.isArray(products) && products.length > 0
 
 const products = await (async () => {
   try {
@@ -52,25 +53,19 @@ const categories = await (async () => {
           <h1 class="text-2xl font-bold text-gray-900">
             {category ? `Category: ${category}` : search ? `Search: "${search}"` : 'All Products'}
           </h1>
-          <p class="text-sm text-gray-500 mt-1">{Array.isArray(products) ? products.length : 0} products</p>
+          <p class="text-sm text-gray-500 mt-1">{hasProducts ? products.length : 0} products</p>
         </header>
-        {Array.isArray(products) && products.length > 0 ? (
+        {hasProducts ?
           <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {products.map((p: any) => (
-              <ProductCard
-                slug={p.slug}
-                name={p.name}
-                priceCents={p.priceCents}
-                imageUrl={p.imageUrl}
-                status={p.status}
-              />
-            ))}
+            {products.map((p) =>
+              <ProductCard slug={p.slug} name={p.name} priceCents={p.priceCents} imageUrl={p.imageUrl} status={p.status} />
+            )}
           </div>
-        ) : (
+        :
           <div class="text-center py-16 text-gray-500">
             <p>No products found.</p>
           </div>
-        )}
+        }
       </div>
     </div>
   </div>
