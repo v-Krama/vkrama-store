@@ -122,7 +122,7 @@ export default function CartDrawer() {
                     <p className="text-xs text-surface-500">{item.variantName}</p>
                   )}
                   <p className="text-sm font-semibold text-surface-900 mt-1">
-                    ${(item.priceCents / 100).toFixed(2)}
+                    Rs. {(item.priceCents / 100).toFixed(2)}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <button
@@ -155,7 +155,7 @@ export default function CartDrawer() {
           <div className="border-t border-surface-200 px-4 py-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-surface-600">Subtotal</span>
-              <span className="text-lg font-bold text-surface-900">${(total / 100).toFixed(2)}</span>
+              <span className="text-lg font-bold text-surface-900">Rs. {(total / 100).toFixed(2)}</span>
             </div>
             <p className="text-xs text-surface-400">Shipping & taxes calculated at checkout</p>
             <a

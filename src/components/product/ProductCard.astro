@@ -38,9 +38,9 @@ const discountPercent = hasDiscount ? Math.round((1 - priceCents / compareAtPric
       {name}
     </h3>
     <div class="flex items-baseline gap-2 mt-1.5">
-      <p class="text-lg font-bold text-surface-900">${(priceCents / 100).toFixed(2)}</p>
+      <p class="text-lg font-bold text-surface-900">Rs. {(priceCents / 100).toFixed(2)}</p>
       {hasDiscount && (
-        <p class="text-sm text-surface-400 line-through">${(compareAtPriceCents! / 100).toFixed(2)}</p>
+        <p class="text-sm text-surface-400 line-through">Rs. {(compareAtPriceCents! / 100).toFixed(2)}</p>
       )}
     </div>
   </div>
