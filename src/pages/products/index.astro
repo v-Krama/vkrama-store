@@ -56,13 +56,13 @@ const categories = await (async () => {
         </header>
         {Array.isArray(products) && products.length > 0 ? (
           <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {products.map((p: Record<string, unknown>) => (
+            {products.map((p: any) => (
               <ProductCard
-                slug={p.slug as string}
-                name={p.name as string}
-                priceCents={p.priceCents as number}
-                imageUrl={p.imageUrl as string}
-                status={p.status as string}
+                slug={p.slug}
+                name={p.name}
+                priceCents={p.priceCents}
+                imageUrl={p.imageUrl}
+                status={p.status}
               />
             ))}
           </div>
