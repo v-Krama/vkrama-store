@@ -3,5 +3,11 @@ compatibility_date = "2025-02-04"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-# D1 and R2 bindings configured in Cloudflare Pages Dashboard:
-# Settings → Functions → D1/R2 database bindings
+[[d1_databases]]
+binding = "DB"
+database_name = "vkrama-db"
+database_id = "b8665214-d54a-41e3-a392-ea536c4d1188"
+
+[[r2_buckets]]
+binding = "R2_STORE"
+bucket_name = "vkrama-assets"
