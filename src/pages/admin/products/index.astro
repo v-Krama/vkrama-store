@@ -1,0 +1,66 @@
+---
+import Admin from '../../../layouts/Admin.astro'
+---
+
+<Admin title="Products">
+  <div class="mb-6 flex items-center justify-between">
+    <p id="product-count" class="text-sm text-gray-500">Loading...</p>
+    <a href="/admin/products/new" class="btn-primary">Add Product</a>
+  </div>
+  <div id="products-table"></div>
+</Admin>
+
+<script>
+  async function loadProducts() {
+    const token = localStorage.getItem('vkrama_admin_token')
+    if (!token) { window.location.href = '/admin/login'; return }
+
+    try {
+      const res = await fetch('/api/admin/products', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 401) { window.location.href = '/admin/login'; return }
+      const products = await res.json()
+      document.getElementById('product-count')!.textContent = `${products.length} products`
+
+      const container = document.getElementById('products-table')!
+      if (!Array.isArray(products) || products.length === 0) {
+        container.innerHTML = '<div class="card p-8 text-center text-gray-500">No products yet. <a href="/admin/products/new" class="text-brand-600">Add one</a></div>'
+        return
+      }
+
+      const root = document.createElement('div')
+      const statusBadge = (status: string) => {
+        const map: Record<string, string> = { active: 'badge-green', draft: 'badge-yellow', archived: 'badge-gray' }
+        return `<span class="${map[status] || 'badge-gray'}">${status}</span>`
+      }
+
+      const columns = [
+        { key: 'name', header: 'Name', sortable: true, render: (p: any) => `<span class="font-medium">${p.name}</span>` },
+        { key: 'priceCents', header: 'Price', sortable: true, render: (p: any) => `$${(p.priceCents / 100).toFixed(2)}` },
+        { key: 'stock', header: 'Stock', sortable: true },
+        { key: 'status', header: 'Status', sortable: true, render: (p: any) => statusBadge(p.status) },
+      ]
+
+      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-gray-50 border-b border-gray-200">'
+      for (const col of columns) {
+        html += `<th class="px-4 py-3 text-left font-medium text-gray-600">${col.header}</th>`
+      }
+      html += '<th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th></tr></thead><tbody class="divide-y divide-gray-200">'
+
+      for (const p of products) {
+        html += `<tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/admin/products/${p.id}'">
+          ${columns.map((col) => `<td class="px-4 py-3 text-gray-700">${col.render ? col.render(p) : p[col.key] ?? ''}</td>`).join('')}
+          <td class="px-4 py-3">
+            <a href="/admin/products/${p.id}" class="text-brand-600 hover:text-brand-700 text-sm">Edit</a>
+          </td>
+        </tr>`
+      }
+      html += '</tbody></table></div>'
+      container.innerHTML = html
+    } catch {
+      document.getElementById('products-table')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load products.</div>'
+    }
+  }
+  loadProducts()
+</script>

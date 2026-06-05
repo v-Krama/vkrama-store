@@ -1,0 +1,135 @@
+---
+import Base from '../../layouts/Base.astro'
+import VariantSelector from '../../components/product/VariantSelector.tsx'
+
+export async function getStaticPaths() {
+  return []
+}
+
+const { slug } = Astro.params
+
+const product = await (async () => {
+  try {
+    const res = await fetch(`${Astro.url.origin}/api/products/${slug}`)
+    if (res.ok) return await res.json()
+  } catch {}
+  return null
+})()
+
+if (!product) {
+  return Astro.redirect('/404')
+}
+---
+
+<Base title={product.name}>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <nav class="text-sm text-gray-500 mb-6">
+      <a href="/" class="hover:text-brand-600">Home</a>
+      <span class="mx-2">/</span>
+      <a href="/products" class="hover:text-brand-600">Products</a>
+      <span class="mx-2">/</span>
+      <span class="text-gray-900">{product.name}</span>
+    </nav>
+
+    <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
+      <div class="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} class="w-full h-full object-cover" />
+        ) : (
+          <div class="w-full h-full flex items-center justify-center text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">{product.name}</h1>
+        <div class="mt-4">
+          <VariantSelector
+            client:load
+            options={product.variantOptions || []}
+            variants={product.variants || []}
+            basePriceCents={product.priceCents}
+          />
+        </div>
+        <div class="mt-6">
+          <p class="text-gray-600 leading-relaxed">{product.description}</p>
+        </div>
+        <button
+          id="add-to-cart"
+          data-slug={product.slug}
+          data-name={product.name}
+          data-price={product.priceCents}
+          data-image={product.imageUrl || ''}
+          class="btn-primary btn-lg w-full mt-8"
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { nanoid } from 'nanoid'
+
+  interface CartItem {
+    id: string
+    slug: string
+    name: string
+    priceCents: number
+    quantity: number
+    imageUrl: string
+    variantId?: string
+    variantName?: string
+  }
+
+  function generateCartId(): string {
+    const arr = new Uint8Array(8)
+    crypto.getRandomValues(arr)
+    return Array.from(arr, (b) => b.toString(36).padStart(2, '0')).join('')
+  }
+
+  const btn = document.getElementById('add-to-cart') as HTMLButtonElement
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const variantData = document.getElementById('variant-data')
+      const hasVariants = variantData?.dataset.hasVariants === 'true'
+      const variantId = variantData?.dataset.variantId
+      const variantName = variantData?.dataset.variantName
+      const variantPrice = variantData?.dataset.variantPrice
+
+      const priceCents = variantPrice ? parseInt(variantPrice) : parseInt(btn.dataset.price!)
+      const name = variantName
+        ? `${btn.dataset.name!} (${variantName})`
+        : btn.dataset.name!
+      const idSuffix = variantId ? `-${variantId}` : ''
+
+      const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
+      const existingIdx = cart.findIndex(
+        (item) => item.slug === btn.dataset.slug! && item.variantId === variantId
+      )
+
+      if (existingIdx >= 0) {
+        cart[existingIdx].quantity += 1
+      } else {
+        cart.push({
+          id: generateCartId(),
+          slug: btn.dataset.slug!,
+          name,
+          priceCents,
+          quantity: 1,
+          imageUrl: btn.dataset.image || '',
+          variantId: variantId || undefined,
+          variantName: variantName || undefined,
+        })
+      }
+
+      localStorage.setItem('vkrama_cart', JSON.stringify(cart))
+      window.dispatchEvent(new Event('cart-updated'))
+      alert('Added to cart!')
+    })
+  }
+</script>

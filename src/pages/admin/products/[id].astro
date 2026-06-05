@@ -1,0 +1,126 @@
+---
+import Admin from '../../../layouts/Admin.astro'
+---
+
+<Admin title="Edit Product">
+  <div class="max-w-2xl">
+    <div id="form-loading" class="card p-8 text-center text-gray-500">Loading product...</div>
+    <form id="product-form" class="card p-6 space-y-6 hidden">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="label" for="name">Name</label>
+          <input type="text" id="name" class="input" required />
+        </div>
+        <div class="col-span-2">
+          <label class="label" for="description">Description</label>
+          <textarea id="description" rows={4} class="input"></textarea>
+        </div>
+        <div>
+          <label class="label" for="price">Price ($)</label>
+          <input type="number" id="price" step="0.01" min="0" class="input" required />
+        </div>
+        <div>
+          <label class="label" for="compare_price">Compare at Price ($)</label>
+          <input type="number" id="compare_price" step="0.01" min="0" class="input" />
+        </div>
+        <div>
+          <label class="label" for="stock">Stock</label>
+          <input type="number" id="stock" min="0" class="input" value="0" />
+        </div>
+        <div>
+          <label class="label" for="status">Status</label>
+          <select id="status" class="input">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="error-msg" class="text-sm text-red-600 hidden"></p>
+      <div class="flex gap-3">
+        <button type="submit" class="btn-primary">Update Product</button>
+        <button type="button" id="delete-btn" class="btn-danger">Delete</button>
+        <a href="/admin/products" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</Admin>
+
+<script>
+  const productId = window.location.pathname.split('/').pop()
+
+  async function loadProduct() {
+    const token = localStorage.getItem('vkrama_admin_token')
+    try {
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 401) { window.location.href = '/admin/login'; return }
+      const p = await res.json()
+
+      document.getElementById('form-loading')!.classList.add('hidden')
+      document.getElementById('product-form')!.classList.remove('hidden')
+      ;(document.getElementById('name') as HTMLInputElement).value = p.name
+      ;(document.getElementById('description') as HTMLTextAreaElement).value = p.description || ''
+      ;(document.getElementById('price') as HTMLInputElement).value = (p.priceCents / 100).toFixed(2)
+      ;(document.getElementById('compare_price') as HTMLInputElement).value = p.compareAtPriceCents ? (p.compareAtPriceCents / 100).toFixed(2) : ''
+      ;(document.getElementById('stock') as HTMLInputElement).value = p.stock
+      ;(document.getElementById('status') as HTMLSelectElement).value = p.status
+    } catch {
+      document.getElementById('form-loading')!.textContent = 'Failed to load product.'
+    }
+  }
+
+  loadProduct()
+
+  document.getElementById('product-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const token = localStorage.getItem('vkrama_admin_token')
+    const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value
+
+    const payload = {
+      name: getVal('name'),
+      description: getVal('description'),
+      price: parseFloat(getVal('price')),
+      compareAtPrice: getVal('compare_price') ? parseFloat(getVal('compare_price')) : null,
+      stock: parseInt(getVal('stock')),
+      status: getVal('status'),
+    }
+
+    try {
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        window.location.href = '/admin/products'
+      } else {
+        const data = await res.json()
+        const errorEl = document.getElementById('error-msg')!
+        errorEl.textContent = data.error || 'Update failed'
+        errorEl.classList.remove('hidden')
+      }
+    } catch {
+      const errorEl = document.getElementById('error-msg')!
+      errorEl.textContent = 'Network error'
+      errorEl.classList.remove('hidden')
+    }
+  })
+
+  document.getElementById('delete-btn')?.addEventListener('click', async () => {
+    if (!confirm('Delete this product? This cannot be undone.')) return
+    const token = localStorage.getItem('vkrama_admin_token')
+    try {
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) window.location.href = '/admin/products'
+      else alert('Delete failed')
+    } catch {
+      alert('Delete failed')
+    }
+  })
+</script>

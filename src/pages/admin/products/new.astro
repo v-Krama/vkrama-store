@@ -1,0 +1,126 @@
+---
+import Admin from '../../../layouts/Admin.astro'
+---
+
+<Admin title="Add Product">
+  <div class="max-w-2xl">
+    <form id="product-form" class="card p-6 space-y-6">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="label" for="name">Name</label>
+          <input type="text" id="name" class="input" required />
+        </div>
+        <div class="col-span-2">
+          <label class="label" for="description">Description</label>
+          <textarea id="description" rows={4} class="input"></textarea>
+        </div>
+        <div>
+          <label class="label" for="price">Price ($)</label>
+          <input type="number" id="price" step="0.01" min="0" class="input" required />
+        </div>
+        <div>
+          <label class="label" for="compare_price">Compare at Price ($)</label>
+          <input type="number" id="compare_price" step="0.01" min="0" class="input" />
+        </div>
+        <div>
+          <label class="label" for="stock">Stock</label>
+          <input type="number" id="stock" min="0" class="input" value="0" />
+        </div>
+        <div>
+          <label class="label" for="status">Status</label>
+          <select id="status" class="input">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="variant-section">
+        <h3 class="font-semibold text-gray-900 mb-3">Variants</h3>
+        <div id="variant-options">
+          <div class="flex gap-2 mb-2">
+            <input type="text" placeholder="Group (e.g. Size)" class="input flex-1 variant-group" />
+            <input type="text" placeholder="Value (e.g. Medium)" class="input flex-1 variant-value" />
+            <button type="button" class="btn-secondary btn-sm add-option">+</button>
+          </div>
+        </div>
+        <div id="variant-list" class="space-y-2 mt-4">
+          <p class="text-sm text-gray-500">Add variant options above (e.g. Size: Small, Color: Red)</p>
+        </div>
+      </div>
+
+      <p id="error-msg" class="text-sm text-red-600 hidden"></p>
+      <div class="flex gap-3">
+        <button type="submit" class="btn-primary">Save Product</button>
+        <a href="/admin/products" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</Admin>
+
+<script>
+  const options: Array<{ group: string; value: string }> = []
+
+  document.querySelector('.add-option')?.addEventListener('click', () => {
+    const group = document.querySelector('.variant-group') as HTMLInputElement
+    const value = document.querySelector('.variant-value') as HTMLInputElement
+    if (!group.value || !value.value) return
+    options.push({ group: group.value, value: value.value })
+    group.value = ''
+    value.value = ''
+    renderVariants()
+  })
+
+  function renderVariants() {
+    const el = document.getElementById('variant-list')!
+    if (options.length === 0) {
+      el.innerHTML = '<p class="text-sm text-gray-500">No variants added yet.</p>'
+      return
+    }
+    const groups = [...new Set(options.map((o) => o.group))]
+    let html = '<div class="space-y-2">'
+    for (const group of groups) {
+      const vals = options.filter((o) => o.group === group).map((o) => o.value).join(', ')
+      html += `<div class="text-sm bg-gray-50 rounded-lg px-3 py-2"><span class="font-medium">${group}:</span> ${vals}</div>`
+    }
+    html += '</div>'
+    el.innerHTML = html
+  }
+
+  document.getElementById('product-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const token = localStorage.getItem('vkrama_admin_token')
+    const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value
+
+    const payload = {
+      name: getVal('name'),
+      description: getVal('description'),
+      price: parseFloat(getVal('price')),
+      compareAtPrice: getVal('compare_price') ? parseFloat(getVal('compare_price')) : null,
+      stock: parseInt(getVal('stock')),
+      status: getVal('status'),
+      variantOptions: options,
+    }
+
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        window.location.href = '/admin/products'
+      } else {
+        const errorEl = document.getElementById('error-msg')!
+        errorEl.textContent = data.error || 'Failed to create product'
+        errorEl.classList.remove('hidden')
+      }
+    } catch {
+      const errorEl = document.getElementById('error-msg')!
+      errorEl.textContent = 'Network error'
+      errorEl.classList.remove('hidden')
+    }
+  })
+</script>

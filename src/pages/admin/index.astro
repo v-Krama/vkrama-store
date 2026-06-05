@@ -1,0 +1,79 @@
+---
+import Admin from '../../layouts/Admin.astro'
+---
+
+<Admin title="Dashboard">
+  <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="card p-6">
+      <p class="text-sm text-gray-500">Total Revenue</p>
+      <p id="stat-revenue" class="text-2xl font-bold text-gray-900 mt-1">$0</p>
+    </div>
+    <div class="card p-6">
+      <p class="text-sm text-gray-500">Orders</p>
+      <p id="stat-orders" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+    </div>
+    <div class="card p-6">
+      <p class="text-sm text-gray-500">Products</p>
+      <p id="stat-products" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+    </div>
+    <div class="card p-6">
+      <p class="text-sm text-gray-500">Customers</p>
+      <p id="stat-customers" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="font-semibold text-gray-900">Recent Orders</h2>
+    </div>
+    <div id="recent-orders" class="p-6 text-center text-gray-500">Loading...</div>
+  </div>
+</Admin>
+
+<script>
+  async function loadStats() {
+    const token = localStorage.getItem('vkrama_admin_token')
+    if (!token) { window.location.href = '/admin/login'; return }
+
+    try {
+      const res = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 401) { window.location.href = '/admin/login'; return }
+      const stats = await res.json()
+
+      document.getElementById('stat-revenue')!.textContent = `$${(stats.totalRevenueCents / 100).toFixed(2)}`
+      document.getElementById('stat-orders')!.textContent = stats.totalOrders
+      document.getElementById('stat-products')!.textContent = stats.totalProducts
+      document.getElementById('stat-customers')!.textContent = stats.totalCustomers
+
+      const ordersEl = document.getElementById('recent-orders')!
+      if (stats.recentOrders?.length > 0) {
+        let html = '<div class="divide-y divide-gray-100">'
+        for (const o of stats.recentOrders) {
+          const statusClass = o.status === 'delivered' ? 'badge-green' :
+                             o.status === 'cancelled' ? 'badge-red' : 'badge-yellow'
+          html += `
+            <a href="/admin/orders/${o.id}" class="flex items-center justify-between px-6 py-3 hover:bg-gray-50">
+              <div>
+                <p class="font-mono text-sm">#${o.id}</p>
+                <p class="text-xs text-gray-500">${new Date(o.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div class="text-right">
+                <p class="font-semibold">$${(o.totalCents / 100).toFixed(2)}</p>
+                <span class="${statusClass}">${o.status}</span>
+              </div>
+            </a>
+          `
+        }
+        html += '</div>'
+        ordersEl.innerHTML = html
+      } else {
+        ordersEl.innerHTML = '<p class="text-gray-500 py-4">No recent orders.</p>'
+      }
+    } catch {
+      document.getElementById('stat-revenue')!.textContent = 'Error'
+    }
+  }
+  loadStats()
+</script>

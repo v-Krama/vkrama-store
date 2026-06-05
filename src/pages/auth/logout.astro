@@ -1,0 +1,9 @@
+---
+return Astro.redirect('/')
+---
+
+<script>
+  localStorage.removeItem('vkrama_token')
+  localStorage.removeItem('vkrama_email')
+  window.location.href = '/'
+</script>

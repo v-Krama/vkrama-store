@@ -1,0 +1,73 @@
+---
+import Admin from '../../layouts/Admin.astro'
+---
+
+<Admin title="Categories">
+  <div class="mb-6 flex items-center justify-between">
+    <p id="category-count" class="text-sm text-gray-500">Loading...</p>
+    <button id="add-cat-btn" class="btn-primary">Add Category</button>
+  </div>
+  <div id="categories-list">
+    <div class="card p-8 text-center text-gray-500">Loading...</div>
+  </div>
+</Admin>
+
+<script>
+  const token = () => localStorage.getItem('vkrama_admin_token')
+
+  async function loadCategories() {
+    try {
+      const res = await fetch('/api/admin/categories?all=1', {
+        headers: { Authorization: `Bearer ${token()}` },
+      })
+      if (res.status === 401) { window.location.href = '/admin/login'; return }
+      const cats = await res.json()
+      document.getElementById('category-count')!.textContent = `${cats.length} categories`
+      const container = document.getElementById('categories-list')!
+      if (!Array.isArray(cats) || cats.length === 0) {
+        container.innerHTML = '<div class="card p-8 text-center text-gray-500">No categories.</div>'
+        return
+      }
+      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-gray-50 border-b border-gray-200"><th class="px-4 py-3 text-left font-medium text-gray-600">Name</th><th class="px-4 py-3 text-left font-medium text-gray-600">Slug</th><th class="px-4 py-3 text-left font-medium text-gray-600">Products</th><th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th></tr></thead><tbody class="divide-y divide-gray-200">'
+      for (const cat of cats) {
+        html += `<tr>
+          <td class="px-4 py-3 font-medium">${cat.name}</td>
+          <td class="px-4 py-3 text-gray-500">${cat.slug}</td>
+          <td class="px-4 py-3">${cat.productCount || 0}</td>
+          <td class="px-4 py-3">
+            <button class="text-red-600 hover:text-red-700 text-sm delete-cat" data-id="${cat.id}">Delete</button>
+          </td>
+        </tr>`
+      }
+      html += '</tbody></table></div>'
+      container.innerHTML = html
+
+      container.querySelectorAll('.delete-cat').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this category?')) return
+          const id = (btn as HTMLElement).dataset.id
+          await fetch(`/api/admin/categories/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+          loadCategories()
+        })
+      })
+    } catch {
+      document.getElementById('categories-list')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load.</div>'
+    }
+  }
+
+  document.getElementById('add-cat-btn')?.addEventListener('click', async () => {
+    const name = prompt('Category name:')
+    if (!name) return
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ name }),
+      })
+      if (res.ok) loadCategories()
+      else alert('Failed to create category')
+    } catch { alert('Failed') }
+  })
+
+  loadCategories()
+</script>

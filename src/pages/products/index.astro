@@ -1,0 +1,77 @@
+---
+import Base from '../../layouts/Base.astro'
+import ProductCard from '../../components/product/ProductCard.astro'
+
+const category = Astro.url.searchParams.get('category')
+const search = Astro.url.searchParams.get('q')
+
+const products = await (async () => {
+  try {
+    const params = new URLSearchParams()
+    if (category) params.set('category', category)
+    if (search) params.set('q', search)
+    const res = await fetch(`${Astro.url.origin}/api/products?${params}`)
+    if (res.ok) return await res.json()
+  } catch {}
+  return []
+})()
+
+const categories = await (async () => {
+  try {
+    const res = await fetch(`${Astro.url.origin}/api/categories`)
+    if (res.ok) return await res.json()
+  } catch {}
+  return []
+})()
+---
+
+<Base title="Products">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row gap-8">
+      <aside class="w-full md:w-56 shrink-0">
+        <h2 class="font-semibold text-gray-900 mb-3">Categories</h2>
+        <nav class="space-y-1">
+          <a
+            href="/products"
+            class={`block px-3 py-2 rounded-lg text-sm ${!category ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+          >
+            All Products
+          </a>
+          {Array.isArray(categories) && categories.map((cat: Record<string, unknown>) => (
+            <a
+              href={`/products?category=${cat.slug}`}
+              class={`block px-3 py-2 rounded-lg text-sm ${category === cat.slug ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              {cat.name as string}
+            </a>
+          ))}
+        </nav>
+      </aside>
+      <div class="flex-1">
+        <header class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-900">
+            {category ? `Category: ${category}` : search ? `Search: "${search}"` : 'All Products'}
+          </h1>
+          <p class="text-sm text-gray-500 mt-1">{Array.isArray(products) ? products.length : 0} products</p>
+        </header>
+        {Array.isArray(products) && products.length > 0 ? (
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {products.map((p: Record<string, unknown>) => (
+              <ProductCard
+                slug={p.slug as string}
+                name={p.name as string}
+                priceCents={p.priceCents as number}
+                imageUrl={p.imageUrl as string}
+                status={p.status as string}
+              />
+            ))}
+          </div>
+        ) : (
+          <div class="text-center py-16 text-gray-500">
+            <p>No products found.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</Base>

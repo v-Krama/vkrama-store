@@ -1,0 +1,40 @@
+---
+import Admin from '../../layouts/Admin.astro'
+---
+
+<Admin title="Customers">
+  <div id="customers-table">
+    <div class="card p-8 text-center text-gray-500">Loading...</div>
+  </div>
+</Admin>
+
+<script>
+  async function loadCustomers() {
+    const token = localStorage.getItem('vkrama_admin_token')
+    if (!token) { window.location.href = '/admin/login'; return }
+    try {
+      const res = await fetch('/api/admin/customers', { headers: { Authorization: `Bearer ${token}` } })
+      if (res.status === 401) { window.location.href = '/admin/login'; return }
+      const customers = await res.json()
+      const container = document.getElementById('customers-table')!
+      if (!Array.isArray(customers) || customers.length === 0) {
+        container.innerHTML = '<div class="card p-8 text-center text-gray-500">No customers yet.</div>'
+        return
+      }
+      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-gray-50 border-b border-gray-200"><th class="px-4 py-3 text-left font-medium text-gray-600">Name</th><th class="px-4 py-3 text-left font-medium text-gray-600">Email</th><th class="px-4 py-3 text-left font-medium text-gray-600">Orders</th><th class="px-4 py-3 text-left font-medium text-gray-600">Joined</th></tr></thead><tbody class="divide-y divide-gray-200">'
+      for (const c of customers) {
+        html += `<tr>
+          <td class="px-4 py-3 font-medium">${c.name || '—'}</td>
+          <td class="px-4 py-3">${c.email}</td>
+          <td class="px-4 py-3">${c.orderCount || 0}</td>
+          <td class="px-4 py-3 text-sm text-gray-500">${c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}</td>
+        </tr>`
+      }
+      html += '</tbody></table></div>'
+      container.innerHTML = html
+    } catch {
+      document.getElementById('customers-table')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load.</div>'
+    }
+  }
+  loadCustomers()
+</script>
