@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro'
 import VariantSelector from '../../components/product/VariantSelector.tsx'
+import ProductGallery from '../../components/product/ProductGallery.tsx'
 
 export async function getStaticPaths() {
   return []
@@ -19,34 +20,54 @@ const product = await (async () => {
 if (!product) {
   return Astro.redirect('/404')
 }
+
+const images = [product.imageUrl, ...(JSON.parse(product.images || '[]') as string[])].filter(Boolean)
+const seoTitle = product.seoTitle || product.name
+const seoDesc = product.seoDescription || product.description?.slice(0, 160) || `Shop ${product.name} at vkrama`
+const hasDiscount = product.compareAtPriceCents && product.compareAtPriceCents > product.priceCents
+const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / product.compareAtPriceCents) * 100) : 0
 ---
 
-<Base title={product.name}>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <nav class="text-sm text-gray-500 mb-6">
-      <a href="/" class="hover:text-brand-600">Home</a>
-      <span class="mx-2">/</span>
-      <a href="/products" class="hover:text-brand-600">Products</a>
-      <span class="mx-2">/</span>
-      <span class="text-gray-900">{product.name}</span>
+<Base title={product.name} description={seoDesc} image={product.imageUrl || '/og-image.png'}>
+  <div class="container-page py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-surface-500 mb-6">
+      <a href="/" class="hover:text-brand-600 transition-colors">Home</a>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <a href="/products" class="hover:text-brand-600 transition-colors">Products</a>
+      {product.categories?.length > 0 && (
+        <>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <a href={`/products?category=${product.categories[0].slug}`} class="hover:text-brand-600 transition-colors">
+            {product.categories[0].name}
+          </a>
+        </>
+      )}
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <span class="text-surface-900 truncate max-w-[200px]">{product.name}</span>
     </nav>
 
     <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
-      <div class="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} class="w-full h-full object-cover" />
-        ) : (
-          <div class="w-full h-full flex items-center justify-center text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        )}
-      </div>
+      <!-- Left: Gallery -->
+      <ProductGallery client:load images={images} name={product.name} />
 
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">{product.name}</h1>
-        <div class="mt-4">
+      <!-- Right: Details -->
+      <div class="md:sticky md:top-24 md:self-start">
+        {hasDiscount && (
+          <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 mb-4">
+            Save {discountPercent}% — Limited time offer
+          </span>
+        )}
+
+        <h1 class="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">{product.name}</h1>
+
+        <div class="mt-6">
           <VariantSelector
             client:load
             options={product.variantOptions || []}
@@ -54,38 +75,59 @@ if (!product) {
             basePriceCents={product.priceCents}
           />
         </div>
-        <div class="mt-6">
-          <p class="text-gray-600 leading-relaxed">{product.description}</p>
+
+        <div class="mt-6 prose-custom text-sm">
+          <p>{product.description || 'No description available.'}</p>
         </div>
+
+        <div class="mt-6 flex items-center gap-3 text-sm text-surface-500">
+          <span class="flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+          </span>
+          {hasDiscount && (
+            <span class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Compare at ${(product.compareAtPriceCents / 100).toFixed(2)}
+            </span>
+          )}
+        </div>
+
         <button
           id="add-to-cart"
           data-slug={product.slug}
           data-name={product.name}
           data-price={product.priceCents}
           data-image={product.imageUrl || ''}
-          class="btn-primary btn-lg w-full mt-8"
+          class="btn-primary btn-lg w-full mt-8 text-base"
         >
           Add to Cart
         </button>
+
+        <div class="mt-6 grid grid-cols-2 gap-3 text-center text-xs text-surface-500">
+          <div class="p-3 rounded-lg bg-surface-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            Free shipping over $50
+          </div>
+          <div class="p-3 rounded-lg bg-surface-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            30-day returns
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </Base>
 
 <script>
-  import { nanoid } from 'nanoid'
-
-  interface CartItem {
-    id: string
-    slug: string
-    name: string
-    priceCents: number
-    quantity: number
-    imageUrl: string
-    variantId?: string
-    variantName?: string
-  }
-
   function generateCartId(): string {
     const arr = new Uint8Array(8)
     crypto.getRandomValues(arr)
@@ -100,14 +142,24 @@ if (!product) {
       const variantId = variantData?.dataset.variantId
       const variantName = variantData?.dataset.variantName
       const variantPrice = variantData?.dataset.variantPrice
+      const variantInStock = variantData?.dataset.variantInStock
+
+      if (hasVariants && !variantId) {
+        alert('Please select all variant options')
+        return
+      }
+
+      if (variantInStock === 'false') {
+        alert('This variant is out of stock')
+        return
+      }
 
       const priceCents = variantPrice ? parseInt(variantPrice) : parseInt(btn.dataset.price!)
       const name = variantName
         ? `${btn.dataset.name!} (${variantName})`
         : btn.dataset.name!
-      const idSuffix = variantId ? `-${variantId}` : ''
 
-      const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
+      const cart: any[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
       const existingIdx = cart.findIndex(
         (item) => item.slug === btn.dataset.slug! && item.variantId === variantId
       )
@@ -129,7 +181,7 @@ if (!product) {
 
       localStorage.setItem('vkrama_cart', JSON.stringify(cart))
       window.dispatchEvent(new Event('cart-updated'))
-      alert('Added to cart!')
+      window.dispatchEvent(new CustomEvent('open-cart'))
     })
   }
 </script>

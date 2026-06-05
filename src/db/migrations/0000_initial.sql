@@ -1,18 +1,23 @@
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   description TEXT,
   price_cents INTEGER NOT NULL,
   compare_at_price_cents INTEGER,
+  cost_cents INTEGER,
   stock INTEGER DEFAULT 0,
   status TEXT DEFAULT 'draft',
   image_url TEXT,
+  images TEXT,
+  seo_title TEXT,
+  seo_description TEXT,
+  weight REAL,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE product_variants (
+CREATE TABLE IF NOT EXISTS product_variants (
   id TEXT PRIMARY KEY,
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -24,7 +29,7 @@ CREATE TABLE product_variants (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE variant_options (
+CREATE TABLE IF NOT EXISTS variant_options (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   group_name TEXT NOT NULL,
@@ -32,7 +37,7 @@ CREATE TABLE variant_options (
   sort_order INTEGER DEFAULT 0
 );
 
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -43,39 +48,66 @@ CREATE TABLE categories (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE product_categories (
+CREATE TABLE IF NOT EXISTS product_categories (
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-  PRIMARY KEY (product_id, category_id)
+  category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE
 );
 
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
+  phone TEXT,
   password_hash TEXT NOT NULL,
   stripe_customer_id TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS addresses (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  label TEXT DEFAULT 'Home',
+  name TEXT NOT NULL,
+  phone TEXT,
+  line1 TEXT NOT NULL,
+  line2 TEXT,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  postal_code TEXT NOT NULL,
+  country TEXT DEFAULT 'US',
+  is_default INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
   customer_id TEXT REFERENCES customers(id),
   email TEXT NOT NULL,
+  phone TEXT,
   status TEXT DEFAULT 'pending',
   subtotal_cents INTEGER NOT NULL,
   shipping_cents INTEGER DEFAULT 0,
   tax_cents INTEGER DEFAULT 0,
   total_cents INTEGER NOT NULL,
   currency TEXT DEFAULT 'usd',
+  payment_method TEXT DEFAULT 'stripe',
   stripe_session_id TEXT,
   stripe_payment_intent TEXT,
-  shipping_address TEXT,
+  shipping_address_id TEXT REFERENCES addresses(id),
+  shipping_name TEXT,
+  shipping_phone TEXT,
+  shipping_line1 TEXT,
+  shipping_line2 TEXT,
+  shipping_city TEXT,
+  shipping_state TEXT,
+  shipping_postal_code TEXT,
+  shipping_country TEXT DEFAULT 'US',
+  notes TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
   id TEXT PRIMARY KEY,
   order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   product_id TEXT NOT NULL,
@@ -87,7 +119,7 @@ CREATE TABLE order_items (
   image_url TEXT
 );
 
-CREATE TABLE admins (
+CREATE TABLE IF NOT EXISTS admins (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
@@ -96,20 +128,10 @@ CREATE TABLE admins (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   user_type TEXT NOT NULL,
   expires_at TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
-
-CREATE INDEX idx_products_slug ON products(slug);
-CREATE INDEX idx_products_status ON products(status);
-CREATE INDEX idx_product_variants_product ON product_variants(product_id);
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_stripe_session ON orders(stripe_session_id);
-CREATE INDEX idx_categories_slug ON categories(slug);
-CREATE INDEX idx_categories_parent ON categories(parent_id);
-CREATE INDEX idx_sessions_expires ON sessions(expires_at);

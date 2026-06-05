@@ -3,27 +3,45 @@ export interface Props {
   slug: string
   name: string
   priceCents: number
+  compareAtPriceCents?: number | null
   imageUrl?: string | null
-  status: string
+  status?: string
 }
 
-const { slug, name, priceCents, imageUrl } = Astro.props
+const { slug, name, priceCents, compareAtPriceCents, imageUrl } = Astro.props
+const hasDiscount = compareAtPriceCents && compareAtPriceCents > priceCents
+const discountPercent = hasDiscount ? Math.round((1 - priceCents / compareAtPriceCents!) * 100) : 0
 ---
 
-<a href={`/products/${slug}`} class="card group overflow-hidden hover:shadow-md transition-shadow">
-  <div class="aspect-square bg-gray-100 overflow-hidden">
+<a href={`/products/${slug}`} class="group card-hover overflow-hidden flex flex-col">
+  <div class="aspect-[4/5] bg-surface-100 overflow-hidden relative">
     {imageUrl ? (
-      <img src={imageUrl} alt={name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+      <img
+        src={imageUrl}
+        alt={name}
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        loading="lazy"
+      />
     ) : (
-      <div class="w-full h-full flex items-center justify-center text-gray-400">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="w-full h-full flex items-center justify-center text-surface-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
     )}
+    {hasDiscount && (
+      <span class="absolute top-2 left-2 badge-red text-xs font-bold">{discountPercent}% OFF</span>
+    )}
   </div>
-  <div class="p-4">
-    <h3 class="font-medium text-gray-900 group-hover:text-brand-600 transition-colors truncate">{name}</h3>
-    <p class="text-lg font-bold text-gray-900 mt-1">${(priceCents / 100).toFixed(2)}</p>
+  <div class="p-4 flex-1 flex flex-col">
+    <h3 class="font-medium text-surface-900 group-hover:text-brand-600 transition-colors truncate text-sm">
+      {name}
+    </h3>
+    <div class="flex items-baseline gap-2 mt-1.5">
+      <p class="text-lg font-bold text-surface-900">${(priceCents / 100).toFixed(2)}</p>
+      {hasDiscount && (
+        <p class="text-sm text-surface-400 line-through">${(compareAtPriceCents! / 100).toFixed(2)}</p>
+      )}
+    </div>
   </div>
 </a>

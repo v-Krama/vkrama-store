@@ -5,6 +5,7 @@ import Admin from '../../../layouts/Admin.astro'
 <Admin title="Orders">
   <div class="flex gap-2 mb-6 flex-wrap" id="status-filters">
     <a href="/admin/orders" class="btn-secondary btn-sm">All</a>
+    <a href="/admin/orders?status=pending" class="btn-secondary btn-sm">Pending</a>
     <a href="/admin/orders?status=awaiting_payment" class="btn-secondary btn-sm">Awaiting Payment</a>
     <a href="/admin/orders?status=paid" class="btn-secondary btn-sm">Paid</a>
     <a href="/admin/orders?status=processing" class="btn-secondary btn-sm">Processing</a>
@@ -13,7 +14,10 @@ import Admin from '../../../layouts/Admin.astro'
     <a href="/admin/orders?status=cancelled" class="btn-secondary btn-sm">Cancelled</a>
   </div>
   <div id="orders-table">
-    <div class="card p-8 text-center text-gray-500">Loading...</div>
+    <div class="card p-8 text-center text-surface-500">
+      <div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+      Loading...
+    </div>
   </div>
 </Admin>
 
@@ -31,24 +35,29 @@ import Admin from '../../../layouts/Admin.astro'
       const container = document.getElementById('orders-table')!
 
       if (!Array.isArray(orders) || orders.length === 0) {
-        container.innerHTML = '<div class="card p-8 text-center text-gray-500">No orders found.</div>'
+        container.innerHTML = '<div class="card p-8 text-center text-surface-500">No orders found.</div>'
         return
       }
 
       const statusBadge = (s: string) => {
-        const map: Record<string, string> = { delivered: 'badge-green', cancelled: 'badge-red', paid: 'badge-blue', processing: 'badge-blue', shipped: 'badge-blue', pending: 'badge-yellow', awaiting_payment: 'badge-yellow' }
-        return `<span class="${map[s] || 'badge-gray'}">${s}</span>`
+        const map: Record<string, string> = {
+          delivered: 'badge-green', cancelled: 'badge-red', paid: 'badge-blue',
+          processing: 'badge-purple', shipped: 'badge-blue',
+          pending: 'badge-yellow', awaiting_payment: 'badge-yellow',
+        }
+        return `<span class="${map[s] || 'badge-gray'}">${s.replace('_', ' ')}</span>`
       }
 
-      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-gray-50 border-b border-gray-200"><th class="px-4 py-3 text-left font-medium text-gray-600">Order</th><th class="px-4 py-3 text-left font-medium text-gray-600">Customer</th><th class="px-4 py-3 text-left font-medium text-gray-600">Total</th><th class="px-4 py-3 text-left font-medium text-gray-600">Status</th><th class="px-4 py-3 text-left font-medium text-gray-600">Date</th></tr></thead><tbody class="divide-y divide-gray-200">'
+      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-surface-50 border-b border-surface-200"><th class="px-4 py-3 text-left font-medium text-surface-600">Order</th><th class="px-4 py-3 text-left font-medium text-surface-600">Customer</th><th class="px-4 py-3 text-left font-medium text-surface-600">Total</th><th class="px-4 py-3 text-left font-medium text-surface-600">Payment</th><th class="px-4 py-3 text-left font-medium text-surface-600">Status</th><th class="px-4 py-3 text-left font-medium text-surface-600">Date</th></tr></thead><tbody class="divide-y divide-surface-200">'
 
       for (const o of orders) {
-        html += `<tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/admin/orders/${o.id}'">
-          <td class="px-4 py-3 font-mono text-sm">#${o.id}</td>
-          <td class="px-4 py-3">${o.email}</td>
-          <td class="px-4 py-3 font-semibold">$${(o.totalCents / 100).toFixed(2)}</td>
+        html += `<tr class="hover:bg-surface-50 cursor-pointer transition-colors" onclick="window.location='/admin/orders/${o.id}'">
+          <td class="px-4 py-3 font-mono text-xs text-surface-500">#${o.id.slice(-8)}</td>
+          <td class="px-4 py-3 text-surface-700">${o.email}</td>
+          <td class="px-4 py-3 font-semibold text-surface-900">$${(o.totalCents / 100).toFixed(2)}</td>
+          <td class="px-4 py-3 text-xs text-surface-500">${o.paymentMethod || '—'}</td>
           <td class="px-4 py-3">${statusBadge(o.status)}</td>
-          <td class="px-4 py-3 text-sm text-gray-500">${new Date(o.createdAt).toLocaleDateString()}</td>
+          <td class="px-4 py-3 text-sm text-surface-500">${new Date(o.createdAt).toLocaleDateString()}</td>
         </tr>`
       }
       html += '</tbody></table></div>'

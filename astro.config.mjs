@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config'
 import cloudflare from '@astrojs/cloudflare'
 import tailwind from '@astrojs/tailwind'
 import react from '@astrojs/react'
+import sitemap from '@astrojs/sitemap'
 
 const messageChannelPolyfill = `if (typeof globalThis.MessageChannel === 'undefined') {
   globalThis.MessageChannel = class {
@@ -15,8 +16,8 @@ const messageChannelPolyfill = `if (typeof globalThis.MessageChannel === 'undefi
         start() {},
       };
       this.port2 = {
-        postMessage: function(...args) {
-          queueMicrotask(function() {
+        postMessage(...args) {
+          queueMicrotask(() => {
             if (typeof onmessage === 'function') onmessage({ data: args[0] });
           });
         },
@@ -25,10 +26,10 @@ const messageChannelPolyfill = `if (typeof globalThis.MessageChannel === 'undefi
       };
     }
   };
-}
-`
+}`
 
 export default defineConfig({
+  site: 'https://vkrama.com',
   output: 'server',
   adapter: cloudflare({
     platformProxy: {
@@ -38,6 +39,9 @@ export default defineConfig({
   integrations: [
     tailwind(),
     react(),
+    sitemap({
+      filter: (page) => !page.includes('/admin/') && !page.includes('/api/') && !page.includes('/auth/'),
+    }),
   ],
   vite: {
     plugins: [

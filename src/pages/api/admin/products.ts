@@ -33,12 +33,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const slug = (body.name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + id.slice(-6)
 
     await env.DB.prepare(
-      'INSERT INTO products (id, name, slug, description, price_cents, compare_at_price_cents, stock, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      `INSERT INTO products (id, name, slug, description, price_cents, compare_at_price_cents, stock, status, image_url, seo_title, seo_description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id, body.name, slug, body.description || null,
       Math.round(body.price * 100),
       body.compareAtPrice ? Math.round(body.compareAtPrice * 100) : null,
-      body.stock || 0, body.status || 'draft'
+      body.stock || 0, body.status || 'draft',
+      body.imageUrl || null,
+      body.seoTitle || null, body.seoDescription || null
     ).run()
 
     if (body.variantOptions && body.variantOptions.length > 0) {
@@ -62,10 +65,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       for (const combo of combinations) {
         const variantName = combo.join(' / ')
         const variantId = generateId('var')
-        const variantPrice = body.price ? Math.round(body.price * 100) : null
         await env.DB.prepare(
           'INSERT INTO product_variants (id, product_id, name, stock, price_cents) VALUES (?, ?, ?, ?, ?)'
-        ).bind(variantId, id, variantName, body.stock || 0, variantPrice).run()
+        ).bind(variantId, id, variantName, body.stock || 0, body.price ? Math.round(body.price * 100) : null).run()
       }
     }
 

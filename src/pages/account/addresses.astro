@@ -1,0 +1,230 @@
+---
+import Base from '../../layouts/Base.astro'
+---
+
+<Base title="My Addresses">
+  <div class="container-page py-8">
+    <div class="max-w-3xl mx-auto">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-surface-900">My Addresses</h1>
+          <p class="text-sm text-surface-500 mt-1">Manage your shipping addresses</p>
+        </div>
+        <div class="flex gap-3">
+          <a href="/account/orders" class="btn-secondary btn-sm">&larr; Orders</a>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <button id="add-address-btn" class="btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Add Address
+        </button>
+      </div>
+
+      <div id="addresses-list">
+        <div class="card p-8 text-center text-surface-500">
+          <div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          Loading addresses...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="address-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-surface-900/50 backdrop-blur-sm" onclick="closeAddressModal()"></div>
+    <div class="relative max-w-lg mx-auto mt-20 px-4">
+      <div class="bg-white rounded-xl shadow-2xl p-6 animate-slide-up">
+        <div class="flex items-center justify-between mb-6">
+          <h2 id="modal-title" class="text-lg font-semibold text-surface-900">Add Address</h2>
+          <button onclick="closeAddressModal()" class="btn-ghost btn-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form id="address-form" class="space-y-3">
+          <input type="hidden" id="address-id" />
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label class="label">Address Label</label>
+              <select id="addr-label" class="select">
+                <option value="Home">Home</option>
+                <option value="Work">Work</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="label">Full Name *</label>
+              <input type="text" id="addr-name" class="input" required />
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="label">Phone</label>
+              <input type="tel" id="addr-phone" class="input" />
+            </div>
+            <div class="col-span-2">
+              <label class="label">Address Line 1 *</label>
+              <input type="text" id="addr-line1" class="input" required />
+            </div>
+            <div class="col-span-2">
+              <label class="label">Address Line 2</label>
+              <input type="text" id="addr-line2" class="input" />
+            </div>
+            <div>
+              <label class="label">City *</label>
+              <input type="text" id="addr-city" class="input" required />
+            </div>
+            <div>
+              <label class="label">State *</label>
+              <input type="text" id="addr-state" class="input" required />
+            </div>
+            <div>
+              <label class="label">ZIP Code *</label>
+              <input type="text" id="addr-zip" class="input" required />
+            </div>
+            <div>
+              <label class="label">Country</label>
+              <input type="text" id="addr-country" class="input" value="US" />
+            </div>
+            <div class="col-span-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="addr-default" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+                <span class="text-sm text-surface-700">Set as default address</span>
+              </label>
+            </div>
+          </div>
+          <p id="addr-msg" class="text-sm hidden"></p>
+          <div class="flex gap-3 pt-2">
+            <button type="submit" class="btn-primary flex-1">Save Address</button>
+            <button type="button" onclick="closeAddressModal()" class="btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  let editingId: string | null = null
+
+  function openAddressModal(address?: any) {
+    document.getElementById('address-modal')!.classList.remove('hidden')
+    document.getElementById('modal-title')!.textContent = address ? 'Edit Address' : 'Add Address'
+    if (address) {
+      editingId = address.id
+      ;(document.getElementById('addr-label') as HTMLSelectElement).value = address.label || 'Home'
+      ;(document.getElementById('addr-name') as HTMLInputElement).value = address.name
+      ;(document.getElementById('addr-phone') as HTMLInputElement).value = address.phone || ''
+      ;(document.getElementById('addr-line1') as HTMLInputElement).value = address.line1
+      ;(document.getElementById('addr-line2') as HTMLInputElement).value = address.line2 || ''
+      ;(document.getElementById('addr-city') as HTMLInputElement).value = address.city
+      ;(document.getElementById('addr-state') as HTMLInputElement).value = address.state
+      ;(document.getElementById('addr-zip') as HTMLInputElement).value = address.postalCode
+      ;(document.getElementById('addr-country') as HTMLInputElement).value = address.country || 'US'
+      ;(document.getElementById('addr-default') as HTMLInputElement).checked = address.isDefault === 1
+    }
+  }
+
+  function closeAddressModal() {
+    document.getElementById('address-modal')!.classList.add('hidden')
+    editingId = null;
+    (document.getElementById('address-form') as HTMLFormElement).reset()
+    document.getElementById('addr-msg')!.classList.add('hidden')
+  }
+
+  const token = () => localStorage.getItem('vkrama_token')
+
+  async function loadAddresses() {
+    if (!token()) { window.location.href = '/auth/login'; return }
+    try {
+      const res = await fetch('/api/addresses', { headers: { Authorization: `Bearer ${token()}` } })
+      if (res.status === 401) { localStorage.removeItem('vkrama_token'); window.location.href = '/auth/login'; return }
+      const addresses = await res.json()
+      const container = document.getElementById('addresses-list')!
+
+      if (!Array.isArray(addresses) || addresses.length === 0) {
+        container.innerHTML = '<div class="card p-12 text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-surface-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg><p class="text-surface-900 font-semibold mb-1">No addresses saved</p><p class="text-surface-500 text-sm">Add an address for faster checkout</p></div>'
+        return
+      }
+
+      let html = '<div class="grid sm:grid-cols-2 gap-4">'
+      for (const addr of addresses) {
+        html += `
+          <div class="card p-5 ${addr.isDefault ? 'ring-2 ring-brand-600' : ''}">
+            ${addr.isDefault ? '<span class="badge-blue mb-2 inline-block">Default</span>' : ''}
+            <h3 class="font-medium text-surface-900">${addr.label || 'Address'}</h3>
+            <div class="text-sm text-surface-600 mt-1 space-y-0.5">
+              <p>${addr.name}</p>
+              ${addr.phone ? `<p>${addr.phone}</p>` : ''}
+              <p>${addr.line1}${addr.line2 ? ', ' + addr.line2 : ''}</p>
+              <p>${addr.city}, ${addr.state} ${addr.postalCode}</p>
+            </div>
+            <div class="flex gap-2 mt-4">
+              <button onclick='openAddressModal(${JSON.stringify({ ...addr, isDefault: addr.isDefault, postalCode: addr.postalCode })})' class="btn-secondary btn-sm">Edit</button>
+              <button onclick="deleteAddress('${addr.id}')" class="btn-ghost btn-sm text-red-600 hover:text-red-700">Delete</button>
+            </div>
+          </div>
+        `
+      }
+      html += '</div>'
+      container.innerHTML = html
+    } catch {
+      document.getElementById('addresses-list')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load addresses.</div>'
+    }
+  }
+
+  async function deleteAddress(id: string) {
+    if (!confirm('Delete this address?')) return
+    try {
+      await fetch(`/api/addresses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+      loadAddresses()
+    } catch { alert('Delete failed') }
+  }
+
+  document.getElementById('add-address-btn')?.addEventListener('click', () => openAddressModal())
+
+  document.getElementById('address-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value
+    const payload = {
+      label: getVal('addr-label'),
+      name: getVal('addr-name'),
+      phone: getVal('addr-phone'),
+      line1: getVal('addr-line1'),
+      line2: getVal('addr-line2'),
+      city: getVal('addr-city'),
+      state: getVal('addr-state'),
+      postalCode: getVal('addr-zip'),
+      country: getVal('addr-country'),
+      isDefault: (document.getElementById('addr-default') as HTMLInputElement).checked,
+    }
+
+    const msg = document.getElementById('addr-msg')!
+    try {
+      const url = editingId ? `/api/addresses/${editingId}` : '/api/addresses'
+      const method = editingId ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        closeAddressModal()
+        loadAddresses()
+      } else {
+        const data = await res.json()
+        msg.className = 'text-sm text-red-600'
+        msg.textContent = data.error || 'Failed to save'
+        msg.classList.remove('hidden')
+      }
+    } catch {
+      msg.className = 'text-sm text-red-600'
+      msg.textContent = 'Network error'
+      msg.classList.remove('hidden')
+    }
+  })
+
+  loadAddresses()
+</script>

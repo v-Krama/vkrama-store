@@ -3,11 +3,11 @@ import Admin from '../../../layouts/Admin.astro'
 ---
 
 <Admin title="Add Product">
-  <div class="max-w-2xl">
+  <div class="max-w-3xl">
     <form id="product-form" class="card p-6 space-y-6">
       <div class="grid grid-cols-2 gap-4">
         <div class="col-span-2">
-          <label class="label" for="name">Name</label>
+          <label class="label" for="name">Name *</label>
           <input type="text" id="name" class="input" required />
         </div>
         <div class="col-span-2">
@@ -15,7 +15,7 @@ import Admin from '../../../layouts/Admin.astro'
           <textarea id="description" rows={4} class="input"></textarea>
         </div>
         <div>
-          <label class="label" for="price">Price ($)</label>
+          <label class="label" for="price">Price ($) *</label>
           <input type="number" id="price" step="0.01" min="0" class="input" required />
         </div>
         <div>
@@ -28,25 +28,48 @@ import Admin from '../../../layouts/Admin.astro'
         </div>
         <div>
           <label class="label" for="status">Status</label>
-          <select id="status" class="input">
+          <select id="status" class="select">
             <option value="draft">Draft</option>
             <option value="active">Active</option>
             <option value="archived">Archived</option>
           </select>
         </div>
-      </div>
-
-      <div id="variant-section">
-        <h3 class="font-semibold text-gray-900 mb-3">Variants</h3>
-        <div id="variant-options">
-          <div class="flex gap-2 mb-2">
-            <input type="text" placeholder="Group (e.g. Size)" class="input flex-1 variant-group" />
-            <input type="text" placeholder="Value (e.g. Medium)" class="input flex-1 variant-value" />
-            <button type="button" class="btn-secondary btn-sm add-option">+</button>
+        <div class="col-span-2">
+          <label class="label">Image URL</label>
+          <div class="flex gap-2">
+            <input type="url" id="image_url" class="input flex-1" placeholder="https://..." />
+            <button type="button" id="upload-btn" class="btn-secondary btn-sm">Upload</button>
+          </div>
+          <div id="image-preview" class="hidden mt-2">
+            <img src="" alt="Preview" class="h-32 rounded-lg object-cover" id="preview-img" />
           </div>
         </div>
-        <div id="variant-list" class="space-y-2 mt-4">
-          <p class="text-sm text-gray-500">Add variant options above (e.g. Size: Small, Color: Red)</p>
+        <div class="col-span-2">
+          <div class="border-t border-surface-200 pt-4">
+            <h3 class="font-semibold text-surface-900 mb-3">SEO</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="col-span-2">
+                <label class="label">SEO Title</label>
+                <input type="text" id="seo_title" class="input" placeholder="Product Name | vkrama" />
+              </div>
+              <div class="col-span-2">
+                <label class="label">SEO Description</label>
+                <textarea id="seo_description" rows={2} class="input" placeholder="Brief description for search engines"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-surface-200 pt-4">
+        <h3 class="font-semibold text-surface-900 mb-3">Variants</h3>
+        <div class="flex gap-2 mb-3">
+          <input type="text" placeholder="Group (e.g. Size)" class="input flex-1 variant-group" />
+          <input type="text" placeholder="Value (e.g. Medium)" class="input flex-1 variant-value" />
+          <button type="button" class="btn-secondary btn-sm add-option" id="add-option-btn">+ Add</button>
+        </div>
+        <div id="variant-list" class="space-y-2">
+          <p class="text-sm text-surface-400">Add variant options (e.g. Size: Small, Color: Red)</p>
         </div>
       </div>
 
@@ -62,7 +85,7 @@ import Admin from '../../../layouts/Admin.astro'
 <script>
   const options: Array<{ group: string; value: string }> = []
 
-  document.querySelector('.add-option')?.addEventListener('click', () => {
+  document.getElementById('add-option-btn')?.addEventListener('click', () => {
     const group = document.querySelector('.variant-group') as HTMLInputElement
     const value = document.querySelector('.variant-value') as HTMLInputElement
     if (!group.value || !value.value) return
@@ -75,18 +98,31 @@ import Admin from '../../../layouts/Admin.astro'
   function renderVariants() {
     const el = document.getElementById('variant-list')!
     if (options.length === 0) {
-      el.innerHTML = '<p class="text-sm text-gray-500">No variants added yet.</p>'
+      el.innerHTML = '<p class="text-sm text-surface-400">No variants added yet.</p>'
       return
     }
-    const groups = [...new Set(options.map((o) => o.group))]
-    let html = '<div class="space-y-2">'
+    const groups = [...new Set(options.map((o: any) => o.group))]
+    let html = '<div class="space-y-1.5">'
     for (const group of groups) {
-      const vals = options.filter((o) => o.group === group).map((o) => o.value).join(', ')
-      html += `<div class="text-sm bg-gray-50 rounded-lg px-3 py-2"><span class="font-medium">${group}:</span> ${vals}</div>`
+      const vals = options.filter((o: any) => o.group === group).map((o: any) => o.value).join(', ')
+      html += `<div class="text-sm bg-surface-50 rounded-lg px-3 py-2 flex items-center justify-between">
+        <span><span class="font-medium">${group}:</span> ${vals}</span>
+      </div>`
     }
     html += '</div>'
     el.innerHTML = html
   }
+
+  document.getElementById('upload-btn')?.addEventListener('click', () => {
+    const url = prompt('Enter image URL:')
+    if (url) {
+      document.getElementById('image_url')!.setAttribute('value', url);
+      (document.getElementById('image_url') as HTMLInputElement).value = url
+      const preview = document.getElementById('image-preview')!
+      preview.classList.remove('hidden')
+      ;(document.getElementById('preview-img') as HTMLImageElement).src = url
+    }
+  })
 
   document.getElementById('product-form')?.addEventListener('submit', async (e) => {
     e.preventDefault()
@@ -100,6 +136,9 @@ import Admin from '../../../layouts/Admin.astro'
       compareAtPrice: getVal('compare_price') ? parseFloat(getVal('compare_price')) : null,
       stock: parseInt(getVal('stock')),
       status: getVal('status'),
+      imageUrl: getVal('image_url') || null,
+      seoTitle: getVal('seo_title') || null,
+      seoDescription: getVal('seo_description') || null,
       variantOptions: options,
     }
 

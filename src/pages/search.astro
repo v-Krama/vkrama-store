@@ -1,0 +1,96 @@
+---
+import Base from '../layouts/Base.astro'
+---
+
+<Base title="Search Products">
+  <div class="container-page py-8">
+    <div class="max-w-4xl mx-auto">
+      <div class="mb-8">
+        <h1 class="text-2xl font-bold text-surface-900 mb-4">Search Products</h1>
+        <div class="relative">
+          <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Search products..."
+            class="w-full pl-11 pr-4 py-3.5 text-base border border-surface-300 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+            autofocus
+          />
+        </div>
+      </div>
+      <div id="search-results">
+        <div class="text-center py-16 text-surface-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p>Start typing to find products</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  let timeout: ReturnType<typeof setTimeout>
+  const input = document.getElementById('search-input') as HTMLInputElement
+  const results = document.getElementById('search-results')!
+
+  input?.addEventListener('input', () => {
+    clearTimeout(timeout)
+    const q = input.value.trim()
+    if (q.length < 2) {
+      results.innerHTML = '<div class="text-center py-16 text-surface-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg><p>Start typing to find products</p></div>'
+      return
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('q') !== q) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('q', q)
+      window.history.replaceState({}, '', url.toString())
+    }
+
+    timeout = setTimeout(async () => {
+      results.innerHTML = '<div class="text-center py-8 text-surface-400"><div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>'
+      try {
+        const res = await fetch(`/api/products?q=${encodeURIComponent(q)}&limit=20`)
+        const data = await res.json()
+
+        if (data.length === 0) {
+          results.innerHTML = '<div class="text-center py-16"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><p class="text-surface-500 font-medium">No products found</p><p class="text-surface-400 text-sm mt-1">Try different search terms</p></div>'
+          return
+        }
+
+        let html = `<p class="text-sm text-surface-500 mb-4">${data.length} result${data.length !== 1 ? 's' : ''}</p><div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">`
+        for (const p of data) {
+          html += `
+            <a href="/products/${p.slug}" class="group card-hover overflow-hidden">
+              <div class="aspect-square bg-surface-100 overflow-hidden">
+                ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />` :
+                  `<div class="w-full h-full flex items-center justify-center text-surface-300"><svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>`}
+              </div>
+              <div class="p-3">
+                <h3 class="font-medium text-surface-900 text-sm truncate group-hover:text-brand-600 transition-colors">${p.name}</h3>
+                <p class="font-bold text-surface-900 mt-0.5">$${(p.priceCents / 100).toFixed(2)}</p>
+              </div>
+            </a>`
+        }
+        html += '</div>'
+        results.innerHTML = html
+      } catch {
+        results.innerHTML = '<div class="text-center py-8 text-red-500">Failed to search. Please try again.</div>'
+      }
+    }, 300)
+  })
+
+  if (input) {
+    const urlParams = new URLSearchParams(window.location.search)
+    const q = urlParams.get('q')
+    if (q) {
+      input.value = q
+      input.dispatchEvent(new Event('input'))
+    }
+  }
+</script>
