@@ -12,6 +12,19 @@ import Base from '../layouts/Base.astro'
 
     <div id="checkout-section" class="hidden mt-6">
       <div class="card p-6">
+        <div class="mb-4">
+          <label class="font-semibold text-gray-900 block mb-2">Payment Method</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="payment" value="qr" checked class="accent-brand-600" />
+              <span class="text-sm">Scan & Pay (QR)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="payment" value="cod" class="accent-brand-600" />
+              <span class="text-sm">Cash on Delivery</span>
+            </label>
+          </div>
+        </div>
         <div class="flex items-center justify-between mb-4">
           <span class="text-lg font-semibold text-gray-900">Total</span>
           <span id="cart-total" class="text-2xl font-bold text-gray-900">$0.00</span>
@@ -140,13 +153,16 @@ import Base from '../layouts/Base.astro'
 
     const btn = document.getElementById('checkout-btn') as HTMLButtonElement
     btn.disabled = true
-    btn.textContent = 'Redirecting...'
+    btn.textContent = 'Placing Order...'
 
     try {
       const res = await fetch('/api/cart/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart.map((i) => ({ slug: i.slug, quantity: i.quantity, variantId: i.variantId, variantName: i.variantName })) }),
+        body: JSON.stringify({
+          paymentMethod: (document.querySelector('input[name="payment"]:checked') as HTMLInputElement)?.value || 'qr',
+          items: cart.map((i) => ({ slug: i.slug, quantity: i.quantity, variantId: i.variantId, variantName: i.variantName })),
+        }),
       })
       const data = await res.json()
       if (data.orderId) {

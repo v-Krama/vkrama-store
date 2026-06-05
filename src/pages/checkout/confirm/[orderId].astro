@@ -1,7 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro'
 import OrderQR from '../../../components/payment/OrderQR.tsx'
-import { buildUpiLink } from '../../../lib/payment'
+import { PAYMENT_QR_IMAGE_URL } from '../../../lib/payment'
 
 export async function getStaticPaths() {
   return []
@@ -23,28 +23,44 @@ try {
   }
 } catch {}
 
-const upiLink = order ? buildUpiLink({ amountCents: order.total_cents, orderId }) : ''
+const isCod = order?.status === 'pending'
+const qrImageUrl = PAYMENT_QR_IMAGE_URL
 ---
 
-<Base title="Payment">
+<Base title={isCod ? 'Order Placed' : 'Payment'}>
   <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     {order ? (
       <>
         <div class="text-center mb-8">
-          <h1 class="text-2xl font-bold text-gray-900">Complete Your Payment</h1>
+          <div class={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isCod ? 'bg-green-100' : 'bg-brand-100'}`}>
+            {isCod ? (
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+            )}
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900">
+            {isCod ? 'Order Placed!' : 'Complete Your Payment'}
+          </h1>
           <p class="text-gray-500 mt-1">Order #{order.id}</p>
         </div>
 
         <div class="grid gap-6 md:grid-cols-2">
-          <div class="card p-6">
-            <h2 class="font-semibold text-gray-900 mb-4">Scan & Pay</h2>
-            <OrderQR
-              client:load
-              upiLink={upiLink}
-              orderId={order.id}
-              totalCents={order.total_cents}
-            />
-          </div>
+          {isCod ? (
+            <div class="card p-8 text-center flex flex-col items-center justify-center">
+              <p class="text-gray-600 text-lg mb-2">Your order has been placed!</p>
+              <p class="text-gray-500 text-sm">Pay when you receive your items.</p>
+            </div>
+          ) : (
+            <div class="card p-6">
+              <h2 class="font-semibold text-gray-900 mb-4 text-center">Scan & Pay</h2>
+              <OrderQR client:load imageUrl={qrImageUrl} />
+            </div>
+          )}
 
           <div class="space-y-4">
             <div class="card p-6">
@@ -65,15 +81,17 @@ const upiLink = order ? buildUpiLink({ amountCents: order.total_cents, orderId }
               </div>
             </div>
 
-            <div class="card p-6 bg-amber-50 border-amber-200">
-              <h3 class="font-semibold text-amber-800 mb-2">Instructions</h3>
-              <ol class="text-sm text-amber-700 space-y-2 list-decimal list-inside">
-                <li>Open any UPI app on your phone</li>
-                <li>Scan the QR code</li>
-                <li>Complete the payment</li>
-                <li>Your order will be processed once payment is confirmed by our team</li>
-              </ol>
-            </div>
+            {!isCod && (
+              <div class="card p-6 bg-amber-50 border-amber-200">
+                <h3 class="font-semibold text-amber-800 mb-2">Instructions</h3>
+                <ol class="text-sm text-amber-700 space-y-2 list-decimal list-inside">
+                  <li>Open your payment app on your phone</li>
+                  <li>Scan the QR code</li>
+                  <li>Complete the payment</li>
+                  <li>Your order will be processed once payment is confirmed</li>
+                </ol>
+              </div>
+            )}
           </div>
         </div>
 
@@ -84,7 +102,7 @@ const upiLink = order ? buildUpiLink({ amountCents: order.total_cents, orderId }
     ) : (
       <div class="card p-8 text-center">
         <h1 class="text-xl font-bold text-gray-900 mb-2">Order Not Found</h1>
-        <p class="text-gray-500 mb-4">We couldn't find this order. It may not exist or has been removed.</p>
+        <p class="text-gray-500 mb-4">We couldn't find this order.</p>
         <a href="/cart" class="btn-primary">Back to Cart</a>
       </div>
     )}

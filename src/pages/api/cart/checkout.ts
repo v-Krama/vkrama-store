@@ -12,10 +12,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const db = getDb(env.DB)
 
   try {
-    const { items } = await request.json()
+    const { items, paymentMethod } = await request.json()
     if (!items || items.length === 0) {
       return new Response(JSON.stringify({ error: 'Cart is empty' }), { status: 400 })
     }
+    const status = paymentMethod === 'cod' ? 'pending' : 'awaiting_payment'
 
     const slugs = items.map((i: any) => i.slug)
     const productRows = await db
@@ -56,7 +57,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     await env.DB.prepare(
       'INSERT INTO orders (id, email, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(orderId, 'guest@checkout', 'awaiting_payment', subtotalCents, shippingCents, taxCents, totalCents, 'inr').run()
+    ).bind(orderId, 'guest@checkout', status, subtotalCents, shippingCents, taxCents, totalCents, 'inr').run()
 
     for (const item of lineItems) {
       const p = productMap.get(item.slug)
@@ -69,7 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
-    return new Response(JSON.stringify({ orderId, totalCents }), {
+    return new Response(JSON.stringify({ orderId, totalCents, paymentMethod: paymentMethod || 'qr' }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err: any) {
