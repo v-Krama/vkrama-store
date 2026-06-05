@@ -2,13 +2,13 @@ import type { APIRoute } from 'astro'
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const env = (locals as any).runtime?.env
-  if (!env?.ASSETS) return new Response('Not found', { status: 404 })
+  if (!env?.R2_STORE) return new Response('Not found', { status: 404 })
 
   const key = params.key
   if (!key) return new Response('Not found', { status: 404 })
 
   try {
-    const object = await env.ASSETS.get(key)
+    const object = await env.R2_STORE.get(key)
     if (!object) return new Response('Not found', { status: 404 })
 
     const headers: Record<string, string> = {

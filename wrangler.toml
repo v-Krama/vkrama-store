@@ -9,5 +9,5 @@ database_name = "vkrama-db"
 database_id = ""
 
 [[r2_buckets]]
-binding = "ASSETS"
+binding = "R2_STORE"
 bucket_name = "vkrama-assets"

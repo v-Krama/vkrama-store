@@ -9,7 +9,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!payload || payload.userType !== 'admin') return new Response('Unauthorized', { status: 401 })
 
   const env = (locals as any).runtime?.env
-  if (!env?.ASSETS) return new Response(JSON.stringify({ error: 'Storage not configured' }), { status: 500 })
+  if (!env?.R2_STORE) return new Response(JSON.stringify({ error: 'Storage not configured' }), { status: 500 })
 
   try {
     const formData = await request.formData()
@@ -22,11 +22,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const key = `${folder}/${nanoid(16)}.${ext}`
     const buffer = await file.arrayBuffer()
 
-    await env.ASSETS.put(key, buffer, {
+    await env.R2_STORE.put(key, buffer, {
       httpMetadata: { contentType: file.type },
     })
 
-    const url = `https://pub-${env.ASSETS_BUCKET_ID || 'unknown'}.r2.dev/${key}`
+    const url = `https://pub-${env.R2_STORE_BUCKET_ID || 'unknown'}.r2.dev/${key}`
 
     return new Response(JSON.stringify({ url: `/api/image/${key}` }), {
       headers: { 'Content-Type': 'application/json' },
