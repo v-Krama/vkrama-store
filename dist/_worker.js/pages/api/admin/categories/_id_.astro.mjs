@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { v as verifyToken } from '../../../../chunks/auth_B3dqqjmA.mjs';
+import { v as verifyToken } from '../../../../chunks/auth_DQG_9vYb.mjs';
 export { r as renderers } from '../../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 const DELETE = async ({ params, request, locals }) => {

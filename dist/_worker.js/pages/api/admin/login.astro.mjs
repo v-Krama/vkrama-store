@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { a as verifyPassword, g as generateId, b as getAdminSessionExpiry, c as createToken } from '../../../chunks/auth_B3dqqjmA.mjs';
+import { a as verifyPassword, g as generateId, b as getAdminSessionExpiry, c as createToken } from '../../../chunks/auth_DQG_9vYb.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 const POST = async ({ request, locals }) => {
@@ -28,8 +28,10 @@ const POST = async ({ request, locals }) => {
     return new Response(JSON.stringify({ token, email: admin.email, name: admin.name }), {
       headers: { "Content-Type": "application/json" }
     });
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Admin login error:", message);
+    return new Response(JSON.stringify({ error: message }), { status: 400 });
   }
 };
 

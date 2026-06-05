@@ -1,6 +1,6 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, p as products, i as inArray } from '../../../chunks/db_BrnEeMLF.mjs';
-import { g as generateId } from '../../../chunks/auth_B3dqqjmA.mjs';
+import { g as generateId } from '../../../chunks/auth_DQG_9vYb.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 const POST = async ({ request, locals }) => {

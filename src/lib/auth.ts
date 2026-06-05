@@ -56,13 +56,12 @@ export function getCustomerSessionExpiry(): string {
   return date.toISOString()
 }
 
+import bcrypt from 'bcryptjs'
+
 export async function hashPassword(password: string): Promise<string> {
-  const { bcrypt } = await import('hash-wasm')
-  const salt = nanoid(16)
-  return bcrypt({ password, salt, costFactor: 10 })
+  return bcrypt.hash(password, 10)
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const { bcryptVerify } = await import('hash-wasm')
-  return bcryptVerify({ password, hash })
+  return bcrypt.compare(password, hash)
 }
