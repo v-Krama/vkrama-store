@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as generateId, v as verifyToken } from '../../../chunks/auth_Dk9B6Mq6.mjs';
+import { g as generateId, v as verifyToken } from '../../../chunks/auth_B3dqqjmA.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 async function checkAdmin(request) {

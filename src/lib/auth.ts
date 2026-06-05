@@ -59,10 +59,10 @@ export function getCustomerSessionExpiry(): string {
 export async function hashPassword(password: string): Promise<string> {
   const { bcrypt } = await import('hash-wasm')
   const salt = nanoid(16)
-  return bcrypt.hash({ password, salt, costFactor: 10 })
+  return bcrypt({ password, salt, costFactor: 10 })
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const { bcrypt } = await import('hash-wasm')
-  return bcrypt.verify({ password, hash })
+  const { bcryptVerify } = await import('hash-wasm')
+  return bcryptVerify({ password, hash })
 }
