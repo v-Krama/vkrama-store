@@ -2,14 +2,26 @@
 import Base from '../../layouts/Base.astro'
 ---
 
-<Base title="My Orders">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">My Orders</h1>
-      <a href="/auth/logout" class="text-sm text-gray-500 hover:text-red-600">Sign Out</a>
-    </div>
-    <div id="orders-list">
-      <div class="card p-8 text-center text-gray-500">Loading orders...</div>
+<Base title="My Orders" description="View your order history at vkrama.">
+  <div class="container-page py-8">
+    <div class="max-w-4xl mx-auto">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-surface-900">My Orders</h1>
+          <p class="text-sm text-surface-500 mt-1">View and track your orders</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/account/profile" class="btn-secondary btn-sm">Profile</a>
+          <a href="/auth/logout" class="btn-ghost btn-sm text-red-600 hover:text-red-700">Sign Out</a>
+        </div>
+      </div>
+
+      <div id="orders-list">
+        <div class="card p-8 text-center text-surface-500">
+          <div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          Loading orders...
+        </div>
+      </div>
     </div>
   </div>
 </Base>
@@ -32,26 +44,47 @@ import Base from '../../layouts/Base.astro'
       }
       const data = await res.json()
       const container = document.getElementById('orders-list')!
+
       if (!Array.isArray(data) || data.length === 0) {
-        container.innerHTML = '<div class="card p-8 text-center text-gray-500">No orders yet.</div>'
+        container.innerHTML = `
+          <div class="card p-12 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <p class="text-surface-900 font-semibold mb-1">No orders yet</p>
+            <p class="text-surface-500 text-sm mb-4">Start shopping to see your orders here</p>
+            <a href="/products" class="btn-primary">Browse Products</a>
+          </div>
+        `
         return
       }
-      let html = '<div class="space-y-4">'
+
+      let html = '<div class="space-y-3">'
       for (const order of data) {
         const statusClass = order.status === 'delivered' ? 'badge-green' :
                            order.status === 'cancelled' ? 'badge-red' :
-                           order.status === 'awaiting_payment' ? 'badge-yellow' :
-                           order.status === 'paid' || order.status === 'processing' ? 'badge-blue' : 'badge-yellow'
+                           order.status === 'paid' || order.status === 'processing' ? 'badge-blue' :
+                           order.status === 'shipped' ? 'badge-purple' : 'badge-yellow'
         html += `
-          <a href="/account/orders/${order.id}" class="card p-4 block hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-mono text-sm text-gray-500">#${order.id}</p>
-                <p class="font-medium text-gray-900">$${(order.totalCents / 100).toFixed(2)}</p>
+          <a href="/account/orders/${order.id}" class="card-hover p-4 sm:p-5 block">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-surface-100 flex items-center justify-center shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="font-mono text-xs text-surface-400">#${order.id}</p>
+                  <p class="font-semibold text-surface-900">$${(order.totalCents / 100).toFixed(2)}</p>
+                  <p class="text-xs text-surface-400">${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
               </div>
-              <div class="text-right">
-                <span class="${statusClass}">${order.status}</span>
-                <p class="text-xs text-gray-400 mt-1">${new Date(order.createdAt).toLocaleDateString()}</p>
+              <div class="flex items-center gap-3 sm:flex-col sm:items-end">
+                <span class="${statusClass}">${order.status.replace('_', ' ')}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-surface-300 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </div>
           </a>
@@ -61,7 +94,7 @@ import Base from '../../layouts/Base.astro'
       container.innerHTML = html
     } catch {
       document.getElementById('orders-list')!.innerHTML =
-        '<div class="card p-8 text-center text-red-500">Failed to load orders.</div>'
+        '<div class="card p-8 text-center text-red-500">Failed to load orders. Please try again.</div>'
     }
   }
   loadOrders()

@@ -3,44 +3,48 @@ import Base from '../layouts/Base.astro'
 ---
 
 <Base title="Shopping Cart">
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+  <div class="container-page py-8">
+    <div class="max-w-4xl mx-auto">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-surface-900">Shopping Cart</h1>
+          <p id="cart-count-label" class="text-sm text-surface-500 mt-1">Loading...</p>
+        </div>
+        <a href="/products" class="text-sm text-brand-600 hover:text-brand-700 font-medium">
+          Continue Shopping &rarr;
+        </a>
+      </div>
 
-    <div id="cart-contents">
-      <div class="card p-8 text-center text-gray-500">Loading cart...</div>
-    </div>
+      <div id="cart-contents">
+        <div class="card p-8 text-center text-surface-500">
+          <div class="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          Loading cart...
+        </div>
+      </div>
 
-    <div id="checkout-section" class="hidden mt-6">
-      <div class="card p-6">
-        <div class="mb-4">
-          <label class="font-semibold text-gray-900 block mb-2">Payment Method</label>
-          <div class="flex gap-4">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="payment" value="qr" checked class="accent-brand-600" />
-              <span class="text-sm">Scan & Pay (QR)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="payment" value="cod" class="accent-brand-600" />
-              <span class="text-sm">Cash on Delivery</span>
-            </label>
+      <div id="checkout-block" class="hidden mt-6">
+        <div class="card p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p class="text-sm text-surface-500">Subtotal</p>
+              <p id="cart-total" class="text-2xl font-bold text-surface-900">$0.00</p>
+              <p class="text-xs text-surface-400 mt-0.5">Shipping & taxes calculated at checkout</p>
+            </div>
+            <a href="/checkout" class="btn-primary btn-lg">
+              Checkout &rarr;
+            </a>
           </div>
         </div>
-        <div class="flex items-center justify-between mb-4">
-          <span class="text-lg font-semibold text-gray-900">Total</span>
-          <span id="cart-total" class="text-2xl font-bold text-gray-900">$0.00</span>
-        </div>
-        <button id="checkout-btn" class="btn-primary btn-lg w-full">
-          Proceed to Checkout
-        </button>
       </div>
-    </div>
 
-    <div id="empty-cart" class="hidden text-center py-16">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
-      </svg>
-      <p class="text-gray-500 text-lg mb-4">Your cart is empty</p>
-      <a href="/products" class="btn-primary">Continue Shopping</a>
+      <div id="empty-cart" class="hidden text-center py-20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        <h2 class="text-xl font-semibold text-surface-900 mb-2">Your cart is empty</h2>
+        <p class="text-surface-500 mb-6">Looks like you haven't added anything yet</p>
+        <a href="/products" class="btn-primary btn-lg">Browse Products</a>
+      </div>
     </div>
   </div>
 </Base>
@@ -61,18 +65,23 @@ import Base from '../layouts/Base.astro'
     const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
     const container = document.getElementById('cart-contents')!
     const totalEl = document.getElementById('cart-total')!
-    const checkoutSection = document.getElementById('checkout-section')!
+    const countLabel = document.getElementById('cart-count-label')!
+    const checkoutSection = document.getElementById('checkout-block')!
     const emptyCart = document.getElementById('empty-cart')!
 
     if (cart.length === 0) {
       container.innerHTML = ''
       checkoutSection.classList.add('hidden')
       emptyCart.classList.remove('hidden')
+      countLabel.textContent = '0 items'
       return
     }
 
     emptyCart.classList.add('hidden')
     checkoutSection.classList.remove('hidden')
+
+    const totalItemCount = cart.reduce((s, i) => s + i.quantity, 0)
+    countLabel.textContent = `${totalItemCount} item${totalItemCount !== 1 ? 's' : ''}`
 
     let total = 0
     let html = '<div class="space-y-4">'
@@ -81,26 +90,26 @@ import Base from '../layouts/Base.astro'
       const itemTotal = item.priceCents * item.quantity
       total += itemTotal
       html += `
-        <div class="card p-4 flex items-center gap-4" data-id="${item.id}">
-          <div class="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+        <div class="card p-4 flex flex-col sm:flex-row sm:items-center gap-4 animate-fade-in" data-id="${item.id}">
+          <div class="w-full sm:w-24 h-24 bg-surface-100 rounded-xl overflow-hidden shrink-0">
             ${item.imageUrl
-              ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover" />`
-              : `<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">No img</div>`
+              ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy" />`
+              : `<div class="w-full h-full flex items-center justify-center text-surface-300"><svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>`
             }
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="font-medium text-gray-900 truncate">${item.name}</h3>
-            ${item.variantName ? `<p class="text-sm text-gray-500">${item.variantName}</p>` : ''}
-            <p class="text-sm text-gray-500">$${(item.priceCents / 100).toFixed(2)} each</p>
+            <h3 class="font-medium text-surface-900 truncate">${item.name}</h3>
+            ${item.variantName ? `<p class="text-sm text-surface-500">${item.variantName}</p>` : ''}
+            <p class="text-sm text-surface-900 font-semibold mt-1">$${(item.priceCents / 100).toFixed(2)}</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <button class="btn-secondary btn-sm qty-minus" data-id="${item.id}">-</button>
-            <span class="w-8 text-center font-medium">${item.quantity}</span>
+            <span class="w-8 text-center font-medium text-surface-900">${item.quantity}</span>
             <button class="btn-secondary btn-sm qty-plus" data-id="${item.id}">+</button>
           </div>
-          <div class="text-right w-24">
-            <p class="font-semibold text-gray-900">$${(itemTotal / 100).toFixed(2)}</p>
-            <button class="text-xs text-red-600 hover:text-red-700 remove-item" data-id="${item.id}">Remove</button>
+          <div class="text-right sm:w-28">
+            <p class="font-bold text-surface-900">$${(itemTotal / 100).toFixed(2)}</p>
+            <button class="text-xs text-red-500 hover:text-red-600 font-medium remove-item mt-1" data-id="${item.id}">Remove</button>
           </div>
         </div>
       `
@@ -110,15 +119,14 @@ import Base from '../layouts/Base.astro'
     container.innerHTML = html
     totalEl.textContent = `$${(total / 100).toFixed(2)}`
 
-    // Event handlers
     container.querySelectorAll('.qty-plus').forEach((btn) => {
-      btn.addEventListener('click', () => updateQty(btn.getAttribute('data-id')!, 1))
+      btn.addEventListener('click', () => updateQty((btn as HTMLElement).dataset.id!, 1))
     })
     container.querySelectorAll('.qty-minus').forEach((btn) => {
-      btn.addEventListener('click', () => updateQty(btn.getAttribute('data-id')!, -1))
+      btn.addEventListener('click', () => updateQty((btn as HTMLElement).dataset.id!, -1))
     })
     container.querySelectorAll('.remove-item').forEach((btn) => {
-      btn.addEventListener('click', () => removeItem(btn.getAttribute('data-id')!))
+      btn.addEventListener('click', () => removeItem((btn as HTMLElement).dataset.id!))
     })
   }
 
@@ -145,39 +153,4 @@ import Base from '../layouts/Base.astro'
   }
 
   renderCart()
-
-  // Checkout
-  document.getElementById('checkout-btn')?.addEventListener('click', async () => {
-    const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
-    if (cart.length === 0) return
-
-    const btn = document.getElementById('checkout-btn') as HTMLButtonElement
-    btn.disabled = true
-    btn.textContent = 'Placing Order...'
-
-    try {
-      const res = await fetch('/api/cart/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentMethod: (document.querySelector('input[name="payment"]:checked') as HTMLInputElement)?.value || 'qr',
-          items: cart.map((i) => ({ slug: i.slug, quantity: i.quantity, variantId: i.variantId, variantName: i.variantName })),
-        }),
-      })
-      const data = await res.json()
-      if (data.orderId) {
-        localStorage.removeItem('vkrama_cart')
-        window.dispatchEvent(new Event('cart-updated'))
-        window.location.href = `/checkout/confirm/${data.orderId}`
-      } else {
-        alert('Checkout failed. Please try again.')
-        btn.disabled = false
-        btn.textContent = 'Proceed to Checkout'
-      }
-    } catch {
-      alert('Checkout failed. Please try again.')
-      btn.disabled = false
-      btn.textContent = 'Proceed to Checkout'
-    }
-  })
 </script>

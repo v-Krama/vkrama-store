@@ -18,7 +18,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${APP_NAME} <orders@${APP_NAME}.com>`,
+        from: `${APP_NAME} <orders@${import.meta.env.PUBLIC_APP_DOMAIN || 'vkrama.com'}>`,
         to,
         subject,
         html,
@@ -30,24 +30,73 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
   }
 }
 
+const baseStyles = `
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f8fafc; }
+  .container { max-width: 600px; margin: 0 auto; padding: 32px 24px; }
+  .header { text-align: center; padding: 32px 0; }
+  .logo { font-size: 28px; font-weight: 800; color: #0284c7; letter-spacing: -0.5px; }
+  .card { background: white; border-radius: 16px; padding: 32px; border: 1px solid #e2e8f0; }
+  .btn { display: inline-block; background: #0284c7; color: white; padding: 12px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 15px; }
+  .footer { text-align: center; padding: 24px; color: #94a3b8; font-size: 13px; }
+`
+
 export function sendOrderConfirmationEmail(params: { email: string; orderId: string; totalCents: number }) {
   return sendEmail({
     to: params.email,
-    subject: `Order Confirmed — ${params.orderId}`,
+    subject: `Order Confirmed #${params.orderId.slice(-8)} — ${APP_NAME}`,
     html: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #4c6ef5;">${APP_NAME}</h1>
-        <h2>Thank you for your order!</h2>
-        <p>Order <strong>#${params.orderId}</strong> has been confirmed.</p>
-        <p>Total: $${(params.totalCents / 100).toFixed(2)}</p>
-        <p>
-          <a href="${APP_URL}/account/orders/${params.orderId}"
-             style="background: #4c6ef5; color: white; padding: 12px 24px;
-                    text-decoration: none; border-radius: 6px; display: inline-block;">
-            View Order
-          </a>
-        </p>
-      </div>
+      <html><head><style>${baseStyles}</style></head><body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">${APP_NAME}</div>
+          </div>
+          <div class="card">
+            <h1 style="margin:0 0 8px; font-size:24px; color: #0f172a;">Thank you for your order!</h1>
+            <p style="color: #64748b; margin:0 0 24px;">Your order has been confirmed and is being processed.</p>
+            <table style="width:100%; margin-bottom:24px;">
+              <tr><td style="color:#64748b; padding:8px 0;">Order</td><td style="font-weight:600; text-align:right;">#${params.orderId.slice(-8)}</td></tr>
+              <tr><td style="color:#64748b; padding:8px 0;">Total</td><td style="font-weight:600; text-align:right;">$${(params.totalCents / 100).toFixed(2)}</td></tr>
+            </table>
+            <div style="text-align:center;">
+              <a href="${APP_URL}/account/orders/${params.orderId}" class="btn">View Order</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>${APP_NAME} — Quality products, fair prices.</p>
+            <p style="margin:4px 0 0;">${APP_URL}</p>
+          </div>
+        </div>
+      </body></html>
+    `,
+  })
+}
+
+export function sendShippingUpdateEmail(params: { email: string; orderId: string; status: string }) {
+  const statusLabels: Record<string, string> = {
+    processing: 'is being processed',
+    shipped: 'has been shipped',
+    delivered: 'has been delivered',
+  }
+
+  return sendEmail({
+    to: params.email,
+    subject: `Order Update #${params.orderId.slice(-8)} — ${APP_NAME}`,
+    html: `
+      <html><head><style>${baseStyles}</style></head><body>
+        <div class="container">
+          <div class="header"><div class="logo">${APP_NAME}</div></div>
+          <div class="card">
+            <h1 style="margin:0 0 8px; font-size:24px; color:#0f172a;">Order Update</h1>
+            <p style="color:#64748b; margin:0 0 24px;">Your order #${params.orderId.slice(-8)} ${statusLabels[params.status] || 'has been updated'}.</p>
+            <div style="text-align:center;">
+              <a href="${APP_URL}/account/orders/${params.orderId}" class="btn">View Order</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>${APP_NAME}</p>
+          </div>
+        </div>
+      </body></html>
     `,
   })
 }

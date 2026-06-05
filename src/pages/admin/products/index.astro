@@ -4,8 +4,13 @@ import Admin from '../../../layouts/Admin.astro'
 
 <Admin title="Products">
   <div class="mb-6 flex items-center justify-between">
-    <p id="product-count" class="text-sm text-gray-500">Loading...</p>
-    <a href="/admin/products/new" class="btn-primary">Add Product</a>
+    <p id="product-count" class="text-sm text-surface-500">Loading...</p>
+    <a href="/admin/products/new" class="btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      </svg>
+      Add Product
+    </a>
   </div>
   <div id="products-table"></div>
 </Admin>
@@ -25,34 +30,36 @@ import Admin from '../../../layouts/Admin.astro'
 
       const container = document.getElementById('products-table')!
       if (!Array.isArray(products) || products.length === 0) {
-        container.innerHTML = '<div class="card p-8 text-center text-gray-500">No products yet. <a href="/admin/products/new" class="text-brand-600">Add one</a></div>'
+        container.innerHTML = '<div class="card p-8 text-center text-surface-500">No products yet. <a href="/admin/products/new" class="text-brand-600 font-medium">Add one</a></div>'
         return
       }
 
-      const root = document.createElement('div')
       const statusBadge = (status: string) => {
         const map: Record<string, string> = { active: 'badge-green', draft: 'badge-yellow', archived: 'badge-gray' }
         return `<span class="${map[status] || 'badge-gray'}">${status}</span>`
       }
 
-      const columns = [
-        { key: 'name', header: 'Name', sortable: true, render: (p: any) => `<span class="font-medium">${p.name}</span>` },
-        { key: 'priceCents', header: 'Price', sortable: true, render: (p: any) => `$${(p.priceCents / 100).toFixed(2)}` },
-        { key: 'stock', header: 'Stock', sortable: true },
-        { key: 'status', header: 'Status', sortable: true, render: (p: any) => statusBadge(p.status) },
-      ]
-
-      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-gray-50 border-b border-gray-200">'
-      for (const col of columns) {
-        html += `<th class="px-4 py-3 text-left font-medium text-gray-600">${col.header}</th>`
-      }
-      html += '<th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th></tr></thead><tbody class="divide-y divide-gray-200">'
+      let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-surface-50 border-b border-surface-200">'
+      html += '<th class="px-4 py-3 text-left font-medium text-surface-600">Product</th>'
+      html += '<th class="px-4 py-3 text-left font-medium text-surface-600">Price</th>'
+      html += '<th class="px-4 py-3 text-left font-medium text-surface-600">Stock</th>'
+      html += '<th class="px-4 py-3 text-left font-medium text-surface-600">Status</th>'
+      html += '<th class="px-4 py-3 text-left font-medium text-surface-600">Actions</th>'
+      html += '</tr></thead><tbody class="divide-y divide-surface-200">'
 
       for (const p of products) {
-        html += `<tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/admin/products/${p.id}'">
-          ${columns.map((col) => `<td class="px-4 py-3 text-gray-700">${col.render ? col.render(p) : p[col.key] ?? ''}</td>`).join('')}
+        html += `<tr class="hover:bg-surface-50 transition-colors cursor-pointer" onclick="window.location='/admin/products/${p.id}'">
           <td class="px-4 py-3">
-            <a href="/admin/products/${p.id}" class="text-brand-600 hover:text-brand-700 text-sm">Edit</a>
+            <div class="flex items-center gap-3">
+              ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="w-10 h-10 rounded-lg object-cover bg-surface-100" />` : '<div class="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-surface-300"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>'}
+              <span class="font-medium text-surface-900">${p.name}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-semibold">$${(p.priceCents / 100).toFixed(2)}</td>
+          <td class="px-4 py-3 text-surface-700">${p.stock}</td>
+          <td class="px-4 py-3">${statusBadge(p.status)}</td>
+          <td class="px-4 py-3">
+            <a href="/admin/products/${p.id}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
           </td>
         </tr>`
       }

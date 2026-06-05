@@ -45,6 +45,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' },
     })
   } catch (err) {
+    console.error('Product detail error:', err)
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 })
   }
 }

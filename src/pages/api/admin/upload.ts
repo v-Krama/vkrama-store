@@ -26,9 +26,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       httpMetadata: { contentType: file.type },
     })
 
-    const url = `https://pub-${env.R2_STORE_BUCKET_ID || 'unknown'}.r2.dev/${key}`
-
-    return new Response(JSON.stringify({ url: `/api/image/${key}` }), {
+    return new Response(JSON.stringify({ url: `/api/image/${key}`, key }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch {

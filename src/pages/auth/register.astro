@@ -2,29 +2,34 @@
 import Base from '../../layouts/Base.astro'
 ---
 
-<Base title="Register">
-  <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Create Account</h1>
-    <form id="register-form" class="card p-6 space-y-4">
-      <div>
-        <label class="label" for="name">Name</label>
-        <input type="text" id="name" class="input" required />
+<Base title="Create Account">
+  <div class="container-page py-16">
+    <div class="max-w-md mx-auto">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-surface-900">Create Account</h1>
+        <p class="text-surface-500 mt-1">Join vkrama today</p>
       </div>
-      <div>
-        <label class="label" for="email">Email</label>
-        <input type="email" id="email" class="input" required />
-      </div>
-      <div>
-        <label class="label" for="password">Password</label>
-        <input type="password" id="password" class="input" minlength={8} required />
-        <p class="text-xs text-gray-500 mt-1">At least 8 characters</p>
-      </div>
-      <p id="error-msg" class="text-sm text-red-600 hidden"></p>
-      <button type="submit" class="btn-primary w-full">Create Account</button>
-      <p class="text-sm text-center text-gray-500">
-        Already have an account? <a href="/auth/login" class="text-brand-600 hover:underline">Sign In</a>
-      </p>
-    </form>
+      <form id="register-form" class="card p-6 space-y-4">
+        <div>
+          <label class="label" for="name">Name</label>
+          <input type="text" id="name" class="input" required />
+        </div>
+        <div>
+          <label class="label" for="email">Email</label>
+          <input type="email" id="email" class="input" required />
+        </div>
+        <div>
+          <label class="label" for="password">Password</label>
+          <input type="password" id="password" class="input" minlength={8} required />
+          <p class="text-xs text-surface-400 mt-1">At least 8 characters</p>
+        </div>
+        <p id="error-msg" class="text-sm text-red-600 hidden"></p>
+        <button type="submit" class="btn-primary w-full btn-lg">Create Account</button>
+        <p class="text-sm text-center text-surface-500">
+          Already have an account? <a href="/auth/login" class="link">Sign In</a>
+        </p>
+      </form>
+    </div>
   </div>
 </Base>
 

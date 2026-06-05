@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { verifyToken, generateId } from '../../../../lib/auth'
+import { verifyToken } from '../../../../lib/auth'
 
 async function checkAdmin(request: Request): Promise<boolean> {
   const auth = request.headers.get('Authorization')
@@ -32,12 +32,14 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   try {
     const body = await request.json()
     await env.DB.prepare(
-      'UPDATE products SET name = ?, description = ?, price_cents = ?, compare_at_price_cents = ?, stock = ?, status = ?, updated_at = datetime(\'now\') WHERE id = ?'
+      `UPDATE products SET name = ?, description = ?, price_cents = ?, compare_at_price_cents = ?, stock = ?, status = ?, image_url = ?, seo_title = ?, seo_description = ?, updated_at = datetime('now') WHERE id = ?`
     ).bind(
       body.name, body.description || null,
       Math.round(body.price * 100),
       body.compareAtPrice ? Math.round(body.compareAtPrice * 100) : null,
-      body.stock || 0, body.status || 'draft', params.id!
+      body.stock || 0, body.status || 'draft',
+      body.imageUrl || null, body.seoTitle || null, body.seoDescription || null,
+      params.id!
     ).run()
 
     return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } })
