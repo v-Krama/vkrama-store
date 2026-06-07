@@ -1,11 +1,16 @@
 ---
-import Admin from '../../../layouts/Admin.astro'
----
+import Admin from '../../../../layouts/Admin.astro'
+import { ADMIN_SLUG } from '../../../../lib/constants'
+
+const { slug } = Astro.params
+if (slug !== ADMIN_SLUG) {
+  return Astro.redirect('/404')
+}---
 
 <Admin title="Products">
   <div class="mb-6 flex items-center justify-between">
     <p id="product-count" class="text-sm text-surface-500">Loading...</p>
-    <a href="/admin/products/new" class="btn-primary">
+    <a href={"/admin/" + ADMIN_SLUG + "/products/new"} class="btn-primary">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
       </svg>
@@ -15,24 +20,24 @@ import Admin from '../../../layouts/Admin.astro'
   <div id="products-table"></div>
 </Admin>
 
-<script>
+<script define:vars={{ ADMIN_SLUG }}>
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
 
   async function loadProducts() {
     const token = localStorage.getItem('vkrama_admin_token')
-    if (!token) { window.location.href = '/admin/login'; return }
+    if (!token) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
 
     try {
       const res = await fetch('/api/admin/products', {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.status === 401) { window.location.href = '/admin/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
       const products = await res.json()
       document.getElementById('product-count')!.textContent = `${products.length} products`
 
       const container = document.getElementById('products-table')!
       if (!Array.isArray(products) || products.length === 0) {
-        container.innerHTML = '<div class="card p-8 text-center text-surface-500">No products yet. <a href="/admin/products/new" class="text-brand-600 font-medium">Add one</a></div>'
+        container.innerHTML = '<div class="card p-8 text-center text-surface-500">No products yet. <a href="/admin/' + ADMIN_SLUG + '/products/new" class="text-brand-600 font-medium">Add one</a></div>'
         return
       }
 
@@ -52,7 +57,7 @@ import Admin from '../../../layouts/Admin.astro'
 
       for (const p of products) {
         const safeId = String(p.id).replace(/[^a-zA-Z0-9_-]/g, '')
-        html += `<tr class="hover:bg-brand-50 transition-colors cursor-pointer" onclick="window.location='/admin/products/${safeId}'">
+        html += `<tr class="hover:bg-brand-50 transition-colors cursor-pointer" onclick="window.location='/admin/' + ADMIN_SLUG + '/products/${safeId}'">
           <td class="px-4 py-3">
             <div class="flex items-center gap-3">
               ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${e(String(p.name))}" class="w-10 h-10 rounded-lg object-cover bg-surface-100" />` : '<div class="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-surface-300"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>'}
@@ -63,7 +68,7 @@ import Admin from '../../../layouts/Admin.astro'
           <td class="px-4 py-3 text-surface-700">${p.stock}</td>
           <td class="px-4 py-3">${statusBadge(p.status)}</td>
           <td class="px-4 py-3">
-            <a href="/admin/products/${safeId}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
+            <a href="/admin/' + ADMIN_SLUG + '/products/${safeId}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
           </td>
         </tr>`
       }
