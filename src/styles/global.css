@@ -57,6 +57,11 @@
            shadow-sm hover:shadow;
   }
 
+  .btn-accent {
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-500
+           shadow-sm hover:shadow;
+  }
+
   .btn-secondary {
     @apply btn bg-white text-surface-700 border border-surface-300 hover:bg-surface-50 hover:border-surface-400 focus:ring-brand-500;
   }

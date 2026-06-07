@@ -49,7 +49,7 @@ export function Table<T extends Record<string, unknown>>({
   if (loading) {
     return (
       <div className="card overflow-hidden">
-        <div className="p-8 text-center text-gray-500">Loading...</div>
+        <div className="p-8 text-center text-surface-500">Loading...</div>
       </div>
     )
   }
@@ -59,12 +59,12 @@ export function Table<T extends Record<string, unknown>>({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
+            <tr className="bg-surface-50 border-b border-surface-200">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-left font-medium text-gray-600 ${
-                    col.sortable ? 'cursor-pointer hover:text-gray-900 select-none' : ''
+                  className={`px-4 py-3 text-left font-medium text-surface-600 ${
+                    col.sortable ? 'cursor-pointer hover:text-surface-900 select-none' : ''
                   }`}
                   onClick={() => col.sortable && handleSort(col.key)}
                 >
@@ -78,10 +78,10 @@ export function Table<T extends Record<string, unknown>>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-surface-200">
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-surface-500">
                   {emptyMessage}
                 </td>
               </tr>
@@ -89,11 +89,11 @@ export function Table<T extends Record<string, unknown>>({
               sorted.map((item, i) => (
                 <tr
                   key={(item.id as string) || i}
-                  className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors`}
+                  className={`${onRowClick ? 'cursor-pointer hover:bg-surface-50' : ''} transition-colors`}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3 text-gray-700">
+                    <td key={col.key} className="px-4 py-3 text-surface-700">
                       {col.render ? col.render(item) : String(item[col.key] ?? '')}
                     </td>
                   ))}

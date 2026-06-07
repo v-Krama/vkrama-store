@@ -39,7 +39,7 @@ import Admin from '../../layouts/Admin.astro'
         <h2 class="font-semibold text-surface-900">Quick Actions</h2>
       </div>
       <div class="p-4 space-y-2">
-        <a href="/admin/products/new" class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 transition-colors">
+        <a href="/admin/products/new" class="flex items-center gap-3 p-3 rounded-lg hover:bg-brand-50 transition-colors">
           <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -47,7 +47,7 @@ import Admin from '../../layouts/Admin.astro'
           </div>
           <span class="text-sm font-medium text-surface-700">Add Product</span>
         </a>
-        <a href="/admin/categories" class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 transition-colors">
+        <a href="/admin/categories" class="flex items-center gap-3 p-3 rounded-lg hover:bg-brand-50 transition-colors">
           <div class="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -55,7 +55,7 @@ import Admin from '../../layouts/Admin.astro'
           </div>
           <span class="text-sm font-medium text-surface-700">Manage Categories</span>
         </a>
-        <a href="/admin/orders" class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 transition-colors">
+        <a href="/admin/orders" class="flex items-center gap-3 p-3 rounded-lg hover:bg-brand-50 transition-colors">
           <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -63,7 +63,7 @@ import Admin from '../../layouts/Admin.astro'
           </div>
           <span class="text-sm font-medium text-surface-700">View Orders</span>
         </a>
-        <a href="/" class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-50 transition-colors">
+        <a href="/" class="flex items-center gap-3 p-3 rounded-lg hover:bg-brand-50 transition-colors">
           <div class="w-9 h-9 rounded-lg bg-surface-100 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -111,7 +111,7 @@ import Admin from '../../layouts/Admin.astro'
                              o.status === 'paid' ? 'badge-blue' :
                              o.status === 'shipped' ? 'badge-purple' : 'badge-yellow'
           html += `
-            <a href="/admin/orders/${o.id}" class="flex items-center justify-between px-6 py-3.5 hover:bg-surface-50 transition-colors">
+            <a href="/admin/orders/${o.id}" class="flex items-center justify-between px-6 py-3.5 hover:bg-brand-50 transition-colors">
               <div class="flex items-center gap-4">
                 <div class="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center">
                   <span class="font-mono text-2xs text-surface-500">#${o.id.slice(-6)}</span>

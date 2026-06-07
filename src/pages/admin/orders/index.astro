@@ -53,7 +53,7 @@ import Admin from '../../../layouts/Admin.astro'
       let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-surface-50 border-b border-surface-200"><th class="px-4 py-3 text-left font-medium text-surface-600">Order</th><th class="px-4 py-3 text-left font-medium text-surface-600">Customer</th><th class="px-4 py-3 text-left font-medium text-surface-600">Total</th><th class="px-4 py-3 text-left font-medium text-surface-600">Payment</th><th class="px-4 py-3 text-left font-medium text-surface-600">Status</th><th class="px-4 py-3 text-left font-medium text-surface-600">Date</th></tr></thead><tbody class="divide-y divide-surface-200">'
 
       for (const o of orders) {
-        html += `<tr class="hover:bg-surface-50 cursor-pointer transition-colors" onclick="window.location='/admin/orders/${o.id}'">
+        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/orders/${o.id}'">
           <td class="px-4 py-3 font-mono text-xs text-surface-500">#${o.id.slice(-8)}</td>
           <td class="px-4 py-3 text-surface-700">${o.email}</td>
           <td class="px-4 py-3 font-semibold text-surface-900">${fp(o.totalCents)}</td>
