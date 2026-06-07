@@ -2,11 +2,14 @@ import { SignJWT, jwtVerify } from 'jose'
 import { nanoid } from 'nanoid'
 import { SESSION_EXPIRY_DAYS, ADMIN_SESSION_EXPIRY_HOURS } from './constants'
 
-const JWT_SECRET_KEY = import.meta.env.JWT_SECRET
-if (!JWT_SECRET_KEY) {
-  throw new Error('JWT_SECRET environment variable is required')
+let _jwtSecret: Uint8Array | null = null
+function getJwtSecretBytes(): Uint8Array {
+  if (_jwtSecret) return _jwtSecret
+  const key = process.env?.JWT_SECRET
+  if (!key) throw new Error('JWT_SECRET environment variable is required')
+  _jwtSecret = new TextEncoder().encode(key)
+  return _jwtSecret
 }
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_KEY)
 
 interface SessionPayload {
   userId: string
@@ -19,12 +22,12 @@ export async function createToken(payload: SessionPayload, expiresInHours: numbe
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(`${expiresInHours}h`)
     .setJti(payload.sessionId)
-    .sign(JWT_SECRET)
+    .sign(getJwtSecretBytes())
 }
 
 export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
+    const { payload } = await jwtVerify(token, getJwtSecretBytes())
     return payload as unknown as SessionPayload
   } catch {
     return null
