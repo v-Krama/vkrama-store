@@ -30,11 +30,11 @@ if (slug !== ADMIN_SLUG) {
     <form id="login-form" class="bg-brand-900 border border-brand-800 rounded-xl p-6 space-y-4 shadow-2xl">
       <div>
         <label class="block text-sm font-medium text-brand-200 mb-1.5" for="email">Email</label>
-        <input type="email" id="email" class="block w-full rounded-lg border border-brand-700 bg-brand-800 px-3.5 py-2.5 text-sm text-white placeholder-brand-400 shadow-sm transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" placeholder="admin@vkrama.com" required />
+        <input type="email" id="email" autocomplete="off" class="block w-full rounded-lg border border-brand-700 bg-brand-800 px-3.5 py-2.5 text-sm text-white placeholder-brand-400 shadow-sm transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" placeholder="Enter your email" required />
       </div>
       <div>
         <label class="block text-sm font-medium text-brand-200 mb-1.5" for="password">Password</label>
-        <input type="password" id="password" class="block w-full rounded-lg border border-brand-700 bg-brand-800 px-3.5 py-2.5 text-sm text-white placeholder-brand-400 shadow-sm transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" placeholder="Enter your password" required />
+        <input type="password" id="password" autocomplete="new-password" class="block w-full rounded-lg border border-brand-700 bg-brand-800 px-3.5 py-2.5 text-sm text-white placeholder-brand-400 shadow-sm transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" placeholder="Enter your password" required />
       </div>
       <p id="error-msg" class="text-sm text-red-400 hidden"></p>
       <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-brand-900 transition-all duration-150 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed">
