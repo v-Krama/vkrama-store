@@ -14,8 +14,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!email || !password) {
       return new Response(JSON.stringify({ error: 'Name, email, and password required' }), { status: 400 })
     }
-    if (password.length < 8) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 8 characters' }), { status: 400 })
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      return new Response(JSON.stringify({ error: 'Password must be at least 8 characters with uppercase, lowercase, and a number' }), { status: 400 })
     }
 
     const normalizedEmail = email.toLowerCase().trim()
@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       'INSERT INTO sessions (id, user_id, user_type, expires_at) VALUES (?, ?, ?, ?)'
     ).bind(sessionId, customerId, 'customer', getCustomerSessionExpiry()).run()
 
-    const token = await createToken({ userId: customerId, userType: 'customer', sessionId }, 720)
+    const token = await createToken({ userId: customerId, userType: 'customer', sessionId }, 24)
 
     return new Response(JSON.stringify({ token, email: normalizedEmail, name: name || '', redirect: '/account/orders' }), {
       headers: { 'Content-Type': 'application/json' },

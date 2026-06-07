@@ -61,8 +61,15 @@ const { title } = Astro.props
         if (emailEl) emailEl.textContent = email || 'Admin'
       }
       if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
+        logoutBtn.addEventListener('click', async (e) => {
           e.preventDefault()
+          const token = localStorage.getItem('vkrama_admin_token')
+          if (token) {
+            await fetch('/api/admin/logout', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => {})
+          }
           localStorage.removeItem('vkrama_admin_token')
           localStorage.removeItem('vkrama_admin_email')
           window.location.href = '/admin/login'

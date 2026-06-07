@@ -107,6 +107,7 @@ import Base from '../../layouts/Base.astro'
 </Base>
 
 <script>
+  const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   let editingId: string | null = null
 
   function openAddressModal(address?: any) {
@@ -154,12 +155,12 @@ import Base from '../../layouts/Base.astro'
         html += `
           <div class="card p-5 ${addr.isDefault ? 'ring-2 ring-brand-600' : ''}">
             ${addr.isDefault ? '<span class="badge-blue mb-2 inline-block">Default</span>' : ''}
-            <h3 class="font-medium text-surface-900">${addr.label || 'Address'}</h3>
+            <h3 class="font-medium text-surface-900">${e(String(addr.label || 'Address'))}</h3>
             <div class="text-sm text-surface-600 mt-1 space-y-0.5">
-              <p>${addr.name}</p>
-              ${addr.phone ? `<p>${addr.phone}</p>` : ''}
-              <p>${addr.line1}${addr.line2 ? ', ' + addr.line2 : ''}</p>
-              <p>${addr.city}, ${addr.state} ${addr.postalCode}</p>
+              <p>${e(String(addr.name))}</p>
+              ${addr.phone ? `<p>${e(String(addr.phone))}</p>` : ''}
+              <p>${e(String(addr.line1))}${addr.line2 ? ', ' + e(String(addr.line2)) : ''}</p>
+              <p>${e(String(addr.city))}, ${e(String(addr.state))} ${e(String(addr.postalCode))}</p>
             </div>
             <div class="flex gap-2 mt-4">
               <button onclick='openAddressModal(${JSON.stringify({ ...addr, isDefault: addr.isDefault, postalCode: addr.postalCode })})' class="btn-secondary btn-sm">Edit</button>

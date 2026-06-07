@@ -2,9 +2,11 @@ import { SignJWT, jwtVerify } from 'jose'
 import { nanoid } from 'nanoid'
 import { SESSION_EXPIRY_DAYS, ADMIN_SESSION_EXPIRY_HOURS } from './constants'
 
-const JWT_SECRET = new TextEncoder().encode(
-  import.meta.env.JWT_SECRET || 'vkrama-dev-secret-change-in-production'
-)
+const JWT_SECRET_KEY = import.meta.env.JWT_SECRET
+if (!JWT_SECRET_KEY) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_KEY)
 
 interface SessionPayload {
   userId: string

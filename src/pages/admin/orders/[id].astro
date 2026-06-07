@@ -14,6 +14,7 @@ import Admin from '../../../layouts/Admin.astro'
 
 <script>
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+  const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const orderId = window.location.pathname.split('/').pop()
 
   async function loadOrder() {
@@ -37,17 +38,17 @@ import Admin from '../../../layouts/Admin.astro'
 
       const statuses = ['pending', 'awaiting_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
       const statusOpts = statuses.map((s) =>
-        `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s.replace('_', ' ')}</option>`
+        `<option value="${s}" ${s === o.status ? 'selected' : ''}>${e(s.replace('_', ' '))}</option>`
       ).join('')
 
       let itemsHtml = ''
       for (const item of o.items || []) {
         itemsHtml += `<div class="flex items-center justify-between py-3 border-b border-surface-100 last:border-0">
           <div class="flex items-center gap-3">
-            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-10 h-10 rounded-lg object-cover bg-surface-100" />` : '<div class="w-10 h-10 rounded-lg bg-surface-100" />'}
+            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${e(String(item.name))}" class="w-10 h-10 rounded-lg object-cover bg-surface-100" />` : '<div class="w-10 h-10 rounded-lg bg-surface-100" />'}
             <div>
-              <p class="text-sm font-medium text-surface-900">${item.name}</p>
-              ${item.variantName ? `<p class="text-xs text-surface-500">${item.variantName}</p>` : ''}
+              <p class="text-sm font-medium text-surface-900">${e(String(item.name))}</p>
+              ${item.variantName ? `<p class="text-xs text-surface-500">${e(String(item.variantName))}</p>` : ''}
               <p class="text-xs text-surface-400">Qty: ${item.quantity}</p>
             </div>
           </div>
@@ -60,14 +61,14 @@ import Admin from '../../../layouts/Admin.astro'
           <div class="lg:col-span-2 space-y-6">
             <div class="card p-6">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-surface-900">Order #${o.id}</h2>
-                <span class="${statusClass(o.status)}">${o.status.replace('_', ' ')}</span>
+                <h2 class="text-lg font-semibold text-surface-900">Order #${String(o.id)}</h2>
+                <span class="${statusClass(o.status)}">${e(o.status.replace('_', ' '))}</span>
               </div>
               <div class="grid grid-cols-2 gap-4 text-sm">
                 <div><span class="text-surface-500">Date</span><p class="font-medium text-surface-900">${new Date(o.createdAt).toLocaleString()}</p></div>
-                <div><span class="text-surface-500">Email</span><p class="font-medium text-surface-900">${o.email}</p></div>
-                ${o.phone ? `<div><span class="text-surface-500">Phone</span><p class="font-medium text-surface-900">${o.phone}</p></div>` : ''}
-                <div><span class="text-surface-500">Payment</span><p class="font-medium text-surface-900">${o.paymentMethod || '—'}</p></div>
+                <div><span class="text-surface-500">Email</span><p class="font-medium text-surface-900">${e(String(o.email))}</p></div>
+                ${o.phone ? `<div><span class="text-surface-500">Phone</span><p class="font-medium text-surface-900">${e(String(o.phone))}</p></div>` : ''}
+                <div><span class="text-surface-500">Payment</span><p class="font-medium text-surface-900">${e(String(o.paymentMethod || '—'))}</p></div>
               </div>
               <div class="mt-6 pt-4 border-t border-surface-200">
                 <label class="label" for="status-select">Update Status</label>
@@ -98,11 +99,11 @@ import Admin from '../../../layouts/Admin.astro'
             <div class="card p-6">
               <h3 class="font-semibold text-surface-900 mb-3">Shipping Address</h3>
               <div class="text-sm text-surface-600 space-y-0.5">
-                <p class="font-medium text-surface-900">${o.shipping_name}</p>
-                ${o.shipping_phone ? `<p>${o.shipping_phone}</p>` : ''}
-                <p>${o.shipping_line1}</p>
-                ${o.shipping_line2 ? `<p>${o.shipping_line2}</p>` : ''}
-                <p>${o.shipping_city}, ${o.shipping_state} ${o.shipping_postal_code}</p>
+                <p class="font-medium text-surface-900">${e(String(o.shipping_name))}</p>
+                ${o.shipping_phone ? `<p>${e(String(o.shipping_phone))}</p>` : ''}
+                <p>${e(String(o.shipping_line1 || ''))}</p>
+                ${o.shipping_line2 ? `<p>${e(String(o.shipping_line2))}</p>` : ''}
+                <p>${e(String(o.shipping_city || ''))}, ${e(String(o.shipping_state || ''))} ${e(String(o.shipping_postal_code || ''))}</p>
               </div>
             </div>` : `
             <div class="card p-6">

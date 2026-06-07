@@ -26,10 +26,11 @@ import Base from '../../layouts/Base.astro'
   </div>
 </Base>
 
-<script>
-  const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+  <script>
+    const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
 
-  async function loadOrders() {
+    async function loadOrders() {
     const token = localStorage.getItem('vkrama_token')
     if (!token) {
       window.location.href = '/auth/login'
@@ -77,13 +78,13 @@ import Base from '../../layouts/Base.astro'
                   </svg>
                 </div>
                 <div>
-                  <p class="font-mono text-xs text-surface-400">#${order.id}</p>
+                  <p class="font-mono text-xs text-surface-400">#${String(order.id)}</p>
                   <p class="font-semibold text-surface-900">${fp(order.totalCents)}</p>
                   <p class="text-xs text-surface-400">${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                 </div>
               </div>
               <div class="flex items-center gap-3 sm:flex-col sm:items-end">
-                <span class="${statusClass}">${order.status.replace('_', ' ')}</span>
+                <span class="${statusClass}">${e(order.status.replace('_', ' '))}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-surface-300 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>

@@ -3,7 +3,16 @@ return Astro.redirect('/')
 ---
 
 <script>
-  localStorage.removeItem('vkrama_token')
-  localStorage.removeItem('vkrama_email')
-  window.location.href = '/'
+  ;(async () => {
+    const token = localStorage.getItem('vkrama_token')
+    if (token) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {})
+    }
+    localStorage.removeItem('vkrama_token')
+    localStorage.removeItem('vkrama_email')
+    window.location.href = '/'
+  })()
 </script>

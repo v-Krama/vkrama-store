@@ -4,6 +4,7 @@ import { products } from '../../../db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { generateId } from '../../../lib/auth'
 import { CURRENCY } from '../../../lib/constants'
+import { sendOrderConfirmationEmail } from '../../../lib/email'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -86,10 +87,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await env.DB.prepare('UPDATE products SET stock = stock - ? WHERE id = ?').bind(item.quantity, item.productId).run()
     }
 
+    if (email) {
+      sendOrderConfirmationEmail({ email, orderId, totalCents }).catch(() => {})
+    }
+
     return new Response(JSON.stringify({ orderId, totalCents, paymentMethod: paymentMethod || 'qr' }), {
       headers: { 'Content-Type': 'application/json' },
     })
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'Checkout failed' }), { status: 400 })
+  } catch (err) {
+    console.error('Checkout error:', err)
+    return new Response(JSON.stringify({ error: 'Checkout failed. Please try again.' }), { status: 400 })
   }
 }

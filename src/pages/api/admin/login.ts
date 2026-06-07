@@ -35,8 +35,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Admin login error:', message)
-    return new Response(JSON.stringify({ error: message }), { status: 400 })
+    console.error('Admin login error:', err)
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), { status: 500 })
   }
 }

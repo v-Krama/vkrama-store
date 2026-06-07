@@ -36,9 +36,10 @@ import Admin from '../../../layouts/Admin.astro'
         return
       }
 
+      const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       const statusBadge = (status: string) => {
         const map: Record<string, string> = { active: 'badge-green', draft: 'badge-yellow', archived: 'badge-gray' }
-        return `<span class="${map[status] || 'badge-gray'}">${status}</span>`
+        return `<span class="${map[status] || 'badge-gray'}">${e(status)}</span>`
       }
 
       let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-surface-50 border-b border-surface-200">'
@@ -50,18 +51,19 @@ import Admin from '../../../layouts/Admin.astro'
       html += '</tr></thead><tbody class="divide-y divide-surface-200">'
 
       for (const p of products) {
-        html += `<tr class="hover:bg-brand-50 transition-colors cursor-pointer" onclick="window.location='/admin/products/${p.id}'">
+        const safeId = String(p.id).replace(/[^a-zA-Z0-9_-]/g, '')
+        html += `<tr class="hover:bg-brand-50 transition-colors cursor-pointer" onclick="window.location='/admin/products/${safeId}'">
           <td class="px-4 py-3">
             <div class="flex items-center gap-3">
-              ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="w-10 h-10 rounded-lg object-cover bg-surface-100" />` : '<div class="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-surface-300"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>'}
-              <span class="font-medium text-surface-900">${p.name}</span>
+              ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${e(String(p.name))}" class="w-10 h-10 rounded-lg object-cover bg-surface-100" />` : '<div class="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-surface-300"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>'}
+              <span class="font-medium text-surface-900">${e(String(p.name))}</span>
             </div>
           </td>
           <td class="px-4 py-3 font-semibold">${fp(p.priceCents)}</td>
           <td class="px-4 py-3 text-surface-700">${p.stock}</td>
           <td class="px-4 py-3">${statusBadge(p.status)}</td>
           <td class="px-4 py-3">
-            <a href="/admin/products/${p.id}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
+            <a href="/admin/products/${safeId}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
           </td>
         </tr>`
       }

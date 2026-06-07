@@ -34,6 +34,7 @@ import Admin from '../../../layouts/Admin.astro'
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       if (res.status === 401) { window.location.href = '/admin/login'; return }
       const orders = await res.json()
+      const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       const container = document.getElementById('orders-table')!
 
       if (!Array.isArray(orders) || orders.length === 0) {
@@ -47,17 +48,18 @@ import Admin from '../../../layouts/Admin.astro'
           processing: 'badge-purple', shipped: 'badge-blue',
           pending: 'badge-yellow', awaiting_payment: 'badge-yellow',
         }
-        return `<span class="${map[s] || 'badge-gray'}">${s.replace('_', ' ')}</span>`
+        return `<span class="${map[s] || 'badge-gray'}">${e(s.replace('_', ' '))}</span>`
       }
 
       let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-surface-50 border-b border-surface-200"><th class="px-4 py-3 text-left font-medium text-surface-600">Order</th><th class="px-4 py-3 text-left font-medium text-surface-600">Customer</th><th class="px-4 py-3 text-left font-medium text-surface-600">Total</th><th class="px-4 py-3 text-left font-medium text-surface-600">Payment</th><th class="px-4 py-3 text-left font-medium text-surface-600">Status</th><th class="px-4 py-3 text-left font-medium text-surface-600">Date</th></tr></thead><tbody class="divide-y divide-surface-200">'
 
       for (const o of orders) {
-        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/orders/${o.id}'">
-          <td class="px-4 py-3 font-mono text-xs text-surface-500">#${o.id.slice(-8)}</td>
-          <td class="px-4 py-3 text-surface-700">${o.email}</td>
+        const safeId = String(o.id).replace(/[^a-zA-Z0-9_-]/g, '')
+        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/orders/${safeId}'">
+          <td class="px-4 py-3 font-mono text-xs text-surface-500">#${String(o.id).slice(-8)}</td>
+          <td class="px-4 py-3 text-surface-700">${e(String(o.email))}</td>
           <td class="px-4 py-3 font-semibold text-surface-900">${fp(o.totalCents)}</td>
-          <td class="px-4 py-3 text-xs text-surface-500">${o.paymentMethod || '—'}</td>
+          <td class="px-4 py-3 text-xs text-surface-500">${e(String(o.paymentMethod || '—'))}</td>
           <td class="px-4 py-3">${statusBadge(o.status)}</td>
           <td class="px-4 py-3 text-sm text-surface-500">${new Date(o.createdAt).toLocaleDateString()}</td>
         </tr>`

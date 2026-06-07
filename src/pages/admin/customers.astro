@@ -24,11 +24,12 @@ import Admin from '../../layouts/Admin.astro'
         container.innerHTML = '<div class="card p-8 text-center text-surface-500">No customers yet.</div>'
         return
       }
+      const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       let html = '<div class="card overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-surface-50 border-b border-surface-200"><th class="px-4 py-3 text-left font-medium text-surface-600">Name</th><th class="px-4 py-3 text-left font-medium text-surface-600">Email</th><th class="px-4 py-3 text-left font-medium text-surface-600">Orders</th><th class="px-4 py-3 text-left font-medium text-surface-600">Joined</th></tr></thead><tbody class="divide-y divide-surface-200">'
       for (const c of customers) {
         html += `<tr>
-          <td class="px-4 py-3 font-medium text-surface-900">${c.name || '—'}</td>
-          <td class="px-4 py-3 text-surface-700">${c.email}</td>
+          <td class="px-4 py-3 font-medium text-surface-900">${e(String(c.name || '—'))}</td>
+          <td class="px-4 py-3 text-surface-700">${e(String(c.email))}</td>
           <td class="px-4 py-3">${c.orderCount || 0}</td>
           <td class="px-4 py-3 text-sm text-surface-500">${c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}</td>
         </tr>`
