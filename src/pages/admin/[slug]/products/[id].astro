@@ -1,11 +1,8 @@
 ---
 import Admin from '../../../../layouts/Admin.astro'
-import { ADMIN_SLUG } from '../../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+---
 
 <Admin title="Edit Product">
   <div class="max-w-3xl">
@@ -74,13 +71,13 @@ if (slug !== ADMIN_SLUG) {
       <div class="flex gap-3">
         <button type="submit" class="btn-primary">Update Product</button>
         <button type="button" id="delete-btn" class="btn-danger">Delete</button>
-        <a href={"/admin/" + ADMIN_SLUG + "/products"} class="btn-secondary">Cancel</a>
+        <a href={"/admin/" + slug + "/products"} class="btn-secondary">Cancel</a>
       </div>
     </form>
   </div>
 </Admin>
 
-<script define:vars={{ ADMIN_SLUG }}>
+<script define:vars={{ slug }}>
   const productId = window.location.pathname.split('/').pop()
 
   async function loadProduct() {
@@ -89,7 +86,7 @@ if (slug !== ADMIN_SLUG) {
       const res = await fetch(`/api/admin/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.status === 401) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const p = await res.json()
 
       document.getElementById('form-loading')!.classList.add('hidden')
@@ -150,7 +147,7 @@ if (slug !== ADMIN_SLUG) {
         body: JSON.stringify(payload),
       })
       if (res.ok) {
-        window.location.href = '/admin/' + ADMIN_SLUG + '/products'
+        window.location.href = '/admin/' + slug + '/products'
       } else {
         const data = await res.json()
         const errorEl = document.getElementById('error-msg')!
@@ -172,7 +169,7 @@ if (slug !== ADMIN_SLUG) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.ok) window.location.href = '/admin/' + ADMIN_SLUG + '/products'
+      if (res.ok) window.location.href = '/admin/' + slug + '/products'
       else alert('Delete failed')
     } catch { alert('Delete failed') }
   })

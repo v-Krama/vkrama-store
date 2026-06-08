@@ -1,22 +1,19 @@
 ---
 import Admin from '../../../../layouts/Admin.astro'
-import { ADMIN_SLUG } from '../../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+---
 
 <Admin title="Orders">
   <div class="flex gap-2 mb-6 flex-wrap" id="status-filters">
-    <a href={"/admin/" + ADMIN_SLUG + "/orders"} class="btn-secondary btn-sm">All</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=pending"} class="btn-secondary btn-sm">Pending</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=awaiting_payment"} class="btn-secondary btn-sm">Awaiting Payment</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=paid"} class="btn-secondary btn-sm">Paid</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=processing"} class="btn-secondary btn-sm">Processing</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=shipped"} class="btn-secondary btn-sm">Shipped</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=delivered"} class="btn-secondary btn-sm">Delivered</a>
-    <a href={"/admin/" + ADMIN_SLUG + "/orders?status=cancelled"} class="btn-secondary btn-sm">Cancelled</a>
+    <a href={"/admin/" + slug + "/orders"} class="btn-secondary btn-sm">All</a>
+    <a href={"/admin/" + slug + "/orders?status=pending"} class="btn-secondary btn-sm">Pending</a>
+    <a href={"/admin/" + slug + "/orders?status=awaiting_payment"} class="btn-secondary btn-sm">Awaiting Payment</a>
+    <a href={"/admin/" + slug + "/orders?status=paid"} class="btn-secondary btn-sm">Paid</a>
+    <a href={"/admin/" + slug + "/orders?status=processing"} class="btn-secondary btn-sm">Processing</a>
+    <a href={"/admin/" + slug + "/orders?status=shipped"} class="btn-secondary btn-sm">Shipped</a>
+    <a href={"/admin/" + slug + "/orders?status=delivered"} class="btn-secondary btn-sm">Delivered</a>
+    <a href={"/admin/" + slug + "/orders?status=cancelled"} class="btn-secondary btn-sm">Cancelled</a>
   </div>
   <div id="orders-table">
     <div class="card p-8 text-center text-surface-500">
@@ -26,18 +23,18 @@ if (slug !== ADMIN_SLUG) {
   </div>
 </Admin>
 
-<script define:vars={{ ADMIN_SLUG }}>
+<script define:vars={{ slug }}>
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
 
   async function loadOrders() {
     const token = localStorage.getItem('vkrama_admin_token')
-    if (!token) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+    if (!token) { window.location.href = '/admin/' + slug + '/login'; return }
     const status = new URLSearchParams(window.location.search).get('status') || ''
 
     try {
       const url = status ? `/api/admin/orders?status=${status}` : '/api/admin/orders'
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      if (res.status === 401) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const orders = await res.json()
       const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       const container = document.getElementById('orders-table')!
@@ -60,7 +57,7 @@ if (slug !== ADMIN_SLUG) {
 
       for (const o of orders) {
         const safeId = String(o.id).replace(/[^a-zA-Z0-9_-]/g, '')
-        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/' + ADMIN_SLUG + '/orders/${safeId}'">
+        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/' + slug + '/orders/${safeId}'">
           <td class="px-4 py-3 font-mono text-xs text-surface-500">#${String(o.id).slice(-8)}</td>
           <td class="px-4 py-3 text-surface-700">${e(String(o.email))}</td>
           <td class="px-4 py-3 font-semibold text-surface-900">${fp(o.totalCents)}</td>

@@ -1,11 +1,8 @@
 ---
 import Admin from '../../../../layouts/Admin.astro'
-import { ADMIN_SLUG } from '../../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+---
 
 <Admin title="Add Product">
   <div class="max-w-3xl">
@@ -81,13 +78,13 @@ if (slug !== ADMIN_SLUG) {
       <p id="error-msg" class="text-sm text-red-600 hidden"></p>
       <div class="flex gap-3">
         <button type="submit" class="btn-primary">Save Product</button>
-        <a href={"/admin/" + ADMIN_SLUG + "/products"} class="btn-secondary">Cancel</a>
+        <a href={"/admin/" + slug + "/products"} class="btn-secondary">Cancel</a>
       </div>
     </form>
   </div>
 </Admin>
 
-<script define:vars={{ ADMIN_SLUG }}>
+<script define:vars={{ slug }}>
   const options: Array<{ group: string; value: string }> = []
 
   document.getElementById('add-option-btn')?.addEventListener('click', () => {
@@ -155,7 +152,7 @@ if (slug !== ADMIN_SLUG) {
       })
       const data = await res.json()
       if (res.ok) {
-        window.location.href = '/admin/' + ADMIN_SLUG + '/products'
+        window.location.href = '/admin/' + slug + '/products'
       } else {
         const errorEl = document.getElementById('error-msg')!
         errorEl.textContent = data.error || 'Failed to create product'

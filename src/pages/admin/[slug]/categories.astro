@@ -1,11 +1,8 @@
 ---
 import Admin from '../../../layouts/Admin.astro'
-import { ADMIN_SLUG } from '../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+---
 
 <Admin title="Categories">
   <div class="mb-6 flex items-center justify-between">
@@ -25,7 +22,7 @@ if (slug !== ADMIN_SLUG) {
   </div>
 </Admin>
 
-<script define:vars={{ ADMIN_SLUG }}>
+<script define:vars={{ slug }}>
   const token = () => localStorage.getItem('vkrama_admin_token')
 
   async function loadCategories() {
@@ -33,7 +30,7 @@ if (slug !== ADMIN_SLUG) {
       const res = await fetch('/api/admin/categories?all=1', {
         headers: { Authorization: `Bearer ${token()}` },
       })
-      if (res.status === 401) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const cats = await res.json()
       document.getElementById('category-count')!.textContent = `${cats.length} categories`
       const container = document.getElementById('categories-list')!

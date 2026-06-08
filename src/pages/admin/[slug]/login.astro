@@ -1,11 +1,9 @@
 ---
 import '../../../styles/global.css'
-import { ADMIN_SLUG } from '../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+if (!slug) return Astro.redirect('/404')
+---
 
 <!DOCTYPE html>
 <html lang="en">
@@ -46,7 +44,8 @@ if (slug !== ADMIN_SLUG) {
     </p>
   </div>
 
-  <script define:vars={{ ADMIN_SLUG }}>
+  <script>
+    const _slug = window.location.pathname.split('/')[2]
     const form = document.getElementById('login-form')
     const emailInput = document.getElementById('email')
     const passwordInput = document.getElementById('password')
@@ -68,7 +67,7 @@ if (slug !== ADMIN_SLUG) {
         if (res.ok) {
           localStorage.setItem('vkrama_admin_token', data.token)
           localStorage.setItem('vkrama_admin_email', data.email)
-          window.location.href = '/admin/' + ADMIN_SLUG
+          window.location.href = '/admin/' + _slug
         } else {
           errorEl.textContent = data.error || 'Invalid credentials'
           errorEl.classList.remove('hidden')

@@ -1,14 +1,11 @@
 ---
 import Admin from '../../../../layouts/Admin.astro'
-import { ADMIN_SLUG } from '../../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+---
 
 <Admin title="Order Detail">
-  <a href={"/admin/" + ADMIN_SLUG + "/orders"} class="text-sm text-brand-600 hover:underline mb-4 inline-block">&larr; Back to Orders</a>
+  <a href={"/admin/" + slug + "/orders"} class="text-sm text-brand-600 hover:underline mb-4 inline-block">&larr; Back to Orders</a>
   <div id="order-content">
     <div class="card p-8 text-center text-surface-500">
       <div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
@@ -17,7 +14,7 @@ if (slug !== ADMIN_SLUG) {
   </div>
 </Admin>
 
-<script define:vars={{ ADMIN_SLUG }}>
+<script define:vars={{ slug }}>
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
   const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const orderId = window.location.pathname.split('/').pop()
@@ -28,7 +25,7 @@ if (slug !== ADMIN_SLUG) {
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.status === 401) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const o = await res.json()
       const container = document.getElementById('order-content')!
 

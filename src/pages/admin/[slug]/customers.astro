@@ -1,11 +1,8 @@
 ---
 import Admin from '../../../layouts/Admin.astro'
-import { ADMIN_SLUG } from '../../../lib/constants'
 
 const { slug } = Astro.params
-if (slug !== ADMIN_SLUG) {
-  return Astro.redirect('/404')
-}---
+---
 
 <Admin title="Customers">
   <div id="customers-table">
@@ -16,13 +13,13 @@ if (slug !== ADMIN_SLUG) {
   </div>
 </Admin>
 
-<script define:vars={{ ADMIN_SLUG }}>
+<script define:vars={{ slug }}>
   async function loadCustomers() {
     const token = localStorage.getItem('vkrama_admin_token')
-    if (!token) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+    if (!token) { window.location.href = '/admin/' + slug + '/login'; return }
     try {
       const res = await fetch('/api/admin/customers', { headers: { Authorization: `Bearer ${token}` } })
-      if (res.status === 401) { window.location.href = '/admin/' + ADMIN_SLUG + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const customers = await res.json()
       const container = document.getElementById('customers-table')!
       if (!Array.isArray(customers) || customers.length === 0) {
