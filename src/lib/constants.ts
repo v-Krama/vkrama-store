@@ -4,7 +4,8 @@ export const CURRENCY = 'npr'
 export const CURRENCY_SYMBOL = 'Rs.'
 export const SESSION_EXPIRY_DAYS = 30
 export const ADMIN_SESSION_EXPIRY_HOURS = 12
-export const ADMIN_SLUG = process.env?.PUBLIC_ADMIN_SLUG || import.meta.env.PUBLIC_ADMIN_SLUG || 'portal'
+export const ADMIN_SLUG = (typeof process !== 'undefined' && process.env?.['PUBLIC_ADMIN_SLUG'])
+  || import.meta.env.PUBLIC_ADMIN_SLUG || 'portal'
 export const PAGINATION_LIMIT = 24
 
 export const ORDER_STATUSES = ['pending', 'awaiting_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'] as const

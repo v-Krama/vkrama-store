@@ -2,13 +2,12 @@ import { SignJWT, jwtVerify } from 'jose'
 import { nanoid } from 'nanoid'
 import { SESSION_EXPIRY_DAYS, ADMIN_SESSION_EXPIRY_HOURS } from './constants'
 
-let _jwtSecret: Uint8Array | null = null
+const _envJwtKey = 'JWT_SECRET'
 function getJwtSecretBytes(): Uint8Array {
-  if (_jwtSecret) return _jwtSecret
-  const key = process.env?.JWT_SECRET
+  const key = typeof process !== 'undefined' && process.env?.[_envJwtKey]
+    || typeof import.meta !== 'undefined' && (import.meta as any).env?.[_envJwtKey]
   if (!key) throw new Error('JWT_SECRET environment variable is required')
-  _jwtSecret = new TextEncoder().encode(key)
-  return _jwtSecret
+  return new TextEncoder().encode(key)
 }
 
 interface SessionPayload {
