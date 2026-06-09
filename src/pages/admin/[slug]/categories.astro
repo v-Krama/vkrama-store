@@ -64,6 +64,7 @@ const { slug } = Astro.params
         })
       })
     } catch {
+      document.getElementById('category-count')!.textContent = 'Failed to load'
       document.getElementById('categories-list')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load.</div>'
     }
   }

@@ -1,6 +1,6 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as generateId, v as verifyToken } from '../../../chunks/auth_BKtXvTES.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { g as generateId, v as verifyToken } from '../../../chunks/auth_cYJQecgM.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 async function checkAdmin(request) {
   const auth = request.headers.get("Authorization");
@@ -12,11 +12,16 @@ const GET = async ({ request, locals }) => {
   if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 });
-  const all = await env.DB.prepare(`
-    SELECT c.*, (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) as product_count
-    FROM categories c ORDER BY c.sort_order
-  `).all();
-  return new Response(JSON.stringify(all.results), { headers: { "Content-Type": "application/json" } });
+  try {
+    const all = await env.DB.prepare(`
+      SELECT c.*, (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) as product_count
+      FROM categories c ORDER BY c.sort_order
+    `).all();
+    return new Response(JSON.stringify(all.results), { headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    console.error("Categories GET error:", err);
+    return new Response(JSON.stringify({ error: "Failed to load categories" }), { status: 500 });
+  }
 };
 const POST = async ({ request, locals }) => {
   if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });

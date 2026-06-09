@@ -140,6 +140,10 @@ const { slug } = Astro.params
       }
     } catch {
       document.getElementById('stat-revenue')!.textContent = 'Error'
+      document.getElementById('stat-orders')!.textContent = '—'
+      document.getElementById('stat-products')!.textContent = '—'
+      document.getElementById('stat-customers')!.textContent = '—'
+      document.getElementById('recent-orders')!.innerHTML = '<p class="text-surface-400 py-4">Failed to load.</p>'
     }
   }
   loadStats()

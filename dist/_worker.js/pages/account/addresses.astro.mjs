@@ -1,8 +1,8 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                        */
-import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../../chunks/astro/server_B3LaWqT_.mjs';
-import { $ as $$Base } from '../../chunks/Base_BrzleQZO.mjs';
-export { r as renderers } from '../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../../chunks/astro/server_DFXjdrHI.mjs';
+import { $ as $$Base } from '../../chunks/Base_CghCu4Vd.mjs';
+export { r as renderers } from '../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const $$Addresses = createComponent(async ($$result, $$props, $$slots) => {
   return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": "My Addresses" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container-page py-8"> <div class="max-w-3xl mx-auto"> <div class="flex items-center justify-between mb-8"> <div> <h1 class="text-2xl font-bold text-surface-900">My Addresses</h1> <p class="text-sm text-surface-500 mt-1">Manage your shipping addresses</p> </div> <div class="flex gap-3"> <a href="/account/orders" class="btn-secondary btn-sm">&larr; Orders</a> </div> </div> <div class="mb-6"> <button id="add-address-btn" class="btn-primary"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path> </svg>

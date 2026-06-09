@@ -1,6 +1,6 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { a as verifyPassword, g as generateId, b as getAdminSessionExpiry, c as createToken } from '../../../chunks/auth_BKtXvTES.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { a as verifyPassword, g as generateId, b as getAdminSessionExpiry, c as createToken } from '../../../chunks/auth_cYJQecgM.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const POST = async ({ request, locals }) => {
   const env = locals.runtime?.env;
@@ -29,9 +29,8 @@ const POST = async ({ request, locals }) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Admin login error:", message);
-    return new Response(JSON.stringify({ error: message }), { status: 400 });
+    console.error("Admin login error:", err);
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), { status: 500 });
   }
 };
 

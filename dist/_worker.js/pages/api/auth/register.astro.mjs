@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, c as customers, e as eq } from '../../../chunks/db_FAPdo79f.mjs';
-import { g as generateId, h as hashPassword, d as getCustomerSessionExpiry, c as createToken } from '../../../chunks/auth_BKtXvTES.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { g as generateId, h as hashPassword, d as getCustomerSessionExpiry, c as createToken } from '../../../chunks/auth_cYJQecgM.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const POST = async ({ request, locals }) => {
   const env = locals.runtime?.env;
@@ -12,8 +12,8 @@ const POST = async ({ request, locals }) => {
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Name, email, and password required" }), { status: 400 });
     }
-    if (password.length < 8) {
-      return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), { status: 400 });
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      return new Response(JSON.stringify({ error: "Password must be at least 8 characters with uppercase, lowercase, and a number" }), { status: 400 });
     }
     const normalizedEmail = email.toLowerCase().trim();
     const existing = await db.select({ id: customers.id }).from(customers).where(eq(customers.email, normalizedEmail)).get();
@@ -29,7 +29,7 @@ const POST = async ({ request, locals }) => {
     await env.DB.prepare(
       "INSERT INTO sessions (id, user_id, user_type, expires_at) VALUES (?, ?, ?, ?)"
     ).bind(sessionId, customerId, "customer", getCustomerSessionExpiry()).run();
-    const token = await createToken({ userId: customerId, userType: "customer", sessionId }, 720);
+    const token = await createToken({ userId: customerId, userType: "customer", sessionId }, 24);
     return new Response(JSON.stringify({ token, email: normalizedEmail, name: name || "", redirect: "/account/orders" }), {
       headers: { "Content-Type": "application/json" }
     });

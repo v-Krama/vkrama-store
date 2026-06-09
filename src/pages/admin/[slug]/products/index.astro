@@ -73,6 +73,7 @@ const { slug } = Astro.params
       html += '</tbody></table></div>'
       container.innerHTML = html
     } catch {
+      document.getElementById('product-count')!.textContent = 'Failed to load'
       document.getElementById('products-table')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load products.</div>'
     }
   }

@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const GET = async ({ params, locals }) => {
   const env = locals.runtime?.env;

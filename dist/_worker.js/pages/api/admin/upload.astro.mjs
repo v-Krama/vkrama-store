@@ -1,6 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { v as verifyToken, n as nanoid } from '../../../chunks/auth_BKtXvTES.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { v as verifyToken } from '../../../chunks/auth_cYJQecgM.mjs';
+import { nanoid } from '../../../chunks/index.browser_DZKJnQ_o.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const POST = async ({ request, locals }) => {
   const auth = request.headers.get("Authorization");
@@ -14,7 +15,19 @@ const POST = async ({ request, locals }) => {
     const file = formData.get("file");
     const folder = formData.get("folder") || "products";
     if (!file) return new Response(JSON.stringify({ error: "No file provided" }), { status: 400 });
-    const ext = file.name.split(".").pop() || "jpg";
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const allowedExts = ["jpg", "jpeg", "png", "gif", "webp"];
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return new Response(JSON.stringify({ error: "File too large. Maximum 5MB." }), { status: 400 });
+    }
+    if (!allowedTypes.includes(file.type)) {
+      return new Response(JSON.stringify({ error: "Invalid file type. Allowed: JPG, PNG, GIF, WebP." }), { status: 400 });
+    }
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!allowedExts.includes(ext)) {
+      return new Response(JSON.stringify({ error: "Invalid file extension." }), { status: 400 });
+    }
     const key = `${folder}/${nanoid(16)}.${ext}`;
     const buffer = await file.arrayBuffer();
     await env.R2_STORE.put(key, buffer, {

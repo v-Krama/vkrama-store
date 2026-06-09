@@ -1,9 +1,9 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                     */
-import { e as createAstro, f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../chunks/astro/server_B3LaWqT_.mjs';
-import { $ as $$Base } from '../chunks/Base_BrzleQZO.mjs';
-import { $ as $$ProductCard } from '../chunks/ProductCard_C-qYKpSJ.mjs';
-export { r as renderers } from '../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { e as createAstro, f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../chunks/astro/server_DFXjdrHI.mjs';
+import { $ as $$Base } from '../chunks/Base_CghCu4Vd.mjs';
+import { $ as $$ProductCard } from '../chunks/ProductCard_C65whVvK.mjs';
+export { r as renderers } from '../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const $$Astro = createAstro("https://vkrama.com");
 const $$Index = createComponent(async ($$result, $$props, $$slots) => {
