@@ -29,6 +29,7 @@ const { slug } = Astro.params
     try {
       const res = await fetch('/api/admin/categories?all=1', {
         headers: { Authorization: `Bearer ${token()}` },
+        signal: AbortSignal.timeout(15000),
       })
       if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const cats = await res.json()

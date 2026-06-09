@@ -13,12 +13,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
 
-  const all = await env.DB.prepare(`
-    SELECT c.*, (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) as product_count
-    FROM categories c ORDER BY c.sort_order
-  `).all()
+  try {
+    const all = await env.DB.prepare(`
+      SELECT c.*, (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) as product_count
+      FROM categories c ORDER BY c.sort_order
+    `).all()
 
-  return new Response(JSON.stringify(all.results), { headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify(all.results), { headers: { 'Content-Type': 'application/json' } })
+  } catch (err) {
+    console.error('Categories GET error:', err)
+    return new Response(JSON.stringify({ error: 'Failed to load categories' }), { status: 500 })
+  }
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {

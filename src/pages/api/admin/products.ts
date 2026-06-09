@@ -12,10 +12,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
-  const db = getDb(env.DB)
 
-  const result = await db.select().from(products).orderBy(desc(products.createdAt)).all()
-  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } })
+  try {
+    const db = getDb(env.DB)
+    const result = await db.select().from(products).orderBy(desc(products.createdAt)).all()
+    return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } })
+  } catch (err) {
+    console.error('Products GET error:', err)
+    return new Response(JSON.stringify({ error: 'Failed to load products' }), { status: 500 })
+  }
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {

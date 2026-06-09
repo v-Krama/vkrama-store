@@ -27,6 +27,7 @@ const { slug } = Astro.params
     try {
       const res = await fetch('/api/admin/products', {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(15000),
       })
       if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
       const products = await res.json()
