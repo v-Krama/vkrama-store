@@ -116,7 +116,7 @@ const { slug } = Astro.params
                              o.status === 'shipped' ? 'badge-purple' : 'badge-yellow'
           const safeId = String(o.id).replace(/[^a-zA-Z0-9_-]/g, '')
           html += `
-            <a href="/admin/' + slug + '/orders/${safeId}" class="flex items-center justify-between px-6 py-3.5 hover:bg-brand-50 transition-colors">
+            <a href="/admin/${slug}/orders/${safeId}" class="flex items-center justify-between px-6 py-3.5 hover:bg-brand-50 transition-colors">
               <div class="flex items-center gap-4">
                 <div class="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center">
                   <span class="font-mono text-2xs text-surface-500">#${String(o.id).slice(-6)}</span>

@@ -2,28 +2,33 @@ globalThis.process ??= {}; globalThis.process.env ??= {};
 import { v as verifyToken } from '../../../../chunks/auth_cYJQecgM.mjs';
 export { r as renderers } from '../../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
-async function checkAdmin(request) {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return false;
-  const payload = await verifyToken(auth.slice(7));
-  return !!payload && payload.userType === "admin";
-}
 const GET = async ({ params, request, locals }) => {
-  if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });
+  const auth = request.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+  const payload = await verifyToken(auth.slice(7));
+  if (!payload || payload.userType !== "admin") return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
-  if (!env?.DB) return new Response("Not found", { status: 404 });
-  const row = await env.DB.prepare("SELECT * FROM products WHERE id = ?").bind(params.id).first();
-  if (!row) return new Response("Not found", { status: 404 });
-  const variants = await env.DB.prepare("SELECT * FROM product_variants WHERE product_id = ? ORDER BY sort_order").bind(params.id).all();
-  const opts = await env.DB.prepare("SELECT * FROM variant_options WHERE product_id = ? ORDER BY sort_order").bind(params.id).all();
-  return new Response(JSON.stringify({ ...row, variants: variants.results, variantOptions: opts.results }), {
-    headers: { "Content-Type": "application/json" }
-  });
+  if (!env?.DB) return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
+  const id = params.id;
+  if (!id) return new Response(JSON.stringify({ error: "Product ID required" }), { status: 400 });
+  try {
+    const product = await env.DB.prepare("SELECT * FROM products WHERE id = ?").bind(id).first();
+    if (!product) return new Response(JSON.stringify({ error: "Product not found" }), { status: 404 });
+    return new Response(JSON.stringify(product), { headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    console.error("Product GET error:", err);
+    return new Response(JSON.stringify({ error: "Failed to load product" }), { status: 500 });
+  }
 };
 const PUT = async ({ params, request, locals }) => {
-  if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });
+  const auth = request.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+  const payload = await verifyToken(auth.slice(7));
+  if (!payload || payload.userType !== "admin") return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
-  if (!env?.DB) return new Response("Not found", { status: 404 });
+  if (!env?.DB) return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
+  const id = params.id;
+  if (!id) return new Response(JSON.stringify({ error: "Product ID required" }), { status: 400 });
   try {
     const body = await request.json();
     await env.DB.prepare(
@@ -38,25 +43,27 @@ const PUT = async ({ params, request, locals }) => {
       body.imageUrl || null,
       body.seoTitle || null,
       body.seoDescription || null,
-      params.id
+      id
     ).run();
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
-  } catch {
-    return new Response(JSON.stringify({ error: "Update failed" }), { status: 400 });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message || "Failed to update product" }), { status: 400 });
   }
 };
 const DELETE = async ({ params, request, locals }) => {
-  if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });
+  const auth = request.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+  const payload = await verifyToken(auth.slice(7));
+  if (!payload || payload.userType !== "admin") return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
-  if (!env?.DB) return new Response("Not found", { status: 404 });
+  if (!env?.DB) return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
+  const id = params.id;
+  if (!id) return new Response(JSON.stringify({ error: "Product ID required" }), { status: 400 });
   try {
-    await env.DB.prepare("DELETE FROM product_variants WHERE product_id = ?").bind(params.id).run();
-    await env.DB.prepare("DELETE FROM variant_options WHERE product_id = ?").bind(params.id).run();
-    await env.DB.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(params.id).run();
-    await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(params.id).run();
+    await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
-  } catch {
-    return new Response(JSON.stringify({ error: "Delete failed" }), { status: 400 });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message || "Failed to delete product" }), { status: 400 });
   }
 };
 

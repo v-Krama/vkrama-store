@@ -1,33 +1,39 @@
 import type { APIRoute } from 'astro'
 import { verifyToken } from '../../../../lib/auth'
 
-async function checkAdmin(request: Request): Promise<boolean> {
-  const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return false
-  const payload = await verifyToken(auth.slice(7))
-  return !!payload && payload.userType === 'admin'
-}
-
 export const GET: APIRoute = async ({ params, request, locals }) => {
-  if (!(await checkAdmin(request))) return new Response('Unauthorized', { status: 401 })
+  const auth = request.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) return new Response('Unauthorized', { status: 401 })
+  const payload = await verifyToken(auth.slice(7))
+  if (!payload || payload.userType !== 'admin') return new Response('Unauthorized', { status: 401 })
+
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response('Not found', { status: 404 })
+  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
 
-  const row = await env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(params.id!).first()
-  if (!row) return new Response('Not found', { status: 404 })
+  const id = params.id
+  if (!id) return new Response(JSON.stringify({ error: 'Product ID required' }), { status: 400 })
 
-  const variants = await env.DB.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY sort_order').bind(params.id!).all()
-  const opts = await env.DB.prepare('SELECT * FROM variant_options WHERE product_id = ? ORDER BY sort_order').bind(params.id!).all()
-
-  return new Response(JSON.stringify({ ...row, variants: variants.results, variantOptions: opts.results }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  try {
+    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first()
+    if (!product) return new Response(JSON.stringify({ error: 'Product not found' }), { status: 404 })
+    return new Response(JSON.stringify(product), { headers: { 'Content-Type': 'application/json' } })
+  } catch (err) {
+    console.error('Product GET error:', err)
+    return new Response(JSON.stringify({ error: 'Failed to load product' }), { status: 500 })
+  }
 }
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
-  if (!(await checkAdmin(request))) return new Response('Unauthorized', { status: 401 })
+  const auth = request.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) return new Response('Unauthorized', { status: 401 })
+  const payload = await verifyToken(auth.slice(7))
+  if (!payload || payload.userType !== 'admin') return new Response('Unauthorized', { status: 401 })
+
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response('Not found', { status: 404 })
+  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+
+  const id = params.id
+  if (!id) return new Response(JSON.stringify({ error: 'Product ID required' }), { status: 400 })
 
   try {
     const body = await request.json()
@@ -38,28 +44,32 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       Math.round(body.price * 100),
       body.compareAtPrice ? Math.round(body.compareAtPrice * 100) : null,
       body.stock || 0, body.status || 'draft',
-      body.imageUrl || null, body.seoTitle || null, body.seoDescription || null,
-      params.id!
+      body.imageUrl || null,
+      body.seoTitle || null, body.seoDescription || null,
+      id
     ).run()
-
     return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } })
-  } catch {
-    return new Response(JSON.stringify({ error: 'Update failed' }), { status: 400 })
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message || 'Failed to update product' }), { status: 400 })
   }
 }
 
 export const DELETE: APIRoute = async ({ params, request, locals }) => {
-  if (!(await checkAdmin(request))) return new Response('Unauthorized', { status: 401 })
+  const auth = request.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) return new Response('Unauthorized', { status: 401 })
+  const payload = await verifyToken(auth.slice(7))
+  if (!payload || payload.userType !== 'admin') return new Response('Unauthorized', { status: 401 })
+
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response('Not found', { status: 404 })
+  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+
+  const id = params.id
+  if (!id) return new Response(JSON.stringify({ error: 'Product ID required' }), { status: 400 })
 
   try {
-    await env.DB.prepare('DELETE FROM product_variants WHERE product_id = ?').bind(params.id!).run()
-    await env.DB.prepare('DELETE FROM variant_options WHERE product_id = ?').bind(params.id!).run()
-    await env.DB.prepare('DELETE FROM product_categories WHERE product_id = ?').bind(params.id!).run()
-    await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(params.id!).run()
+    await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(id).run()
     return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } })
-  } catch {
-    return new Response(JSON.stringify({ error: 'Delete failed' }), { status: 400 })
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message || 'Failed to delete product' }), { status: 400 })
   }
 }

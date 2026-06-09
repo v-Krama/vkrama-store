@@ -35,7 +35,7 @@ const { slug } = Astro.params
 
       const container = document.getElementById('products-table')!
       if (!Array.isArray(products) || products.length === 0) {
-        container.innerHTML = '<div class="card p-8 text-center text-surface-500">No products yet. <a href="/admin/' + slug + '/products/new" class="text-brand-600 font-medium">Add one</a></div>'
+        container.innerHTML = `<div class="card p-8 text-center text-surface-500">No products yet. <a href="/admin/${slug}/products/new" class="text-brand-600 font-medium">Add one</a></div>`
         return
       }
 
@@ -66,7 +66,7 @@ const { slug } = Astro.params
           <td class="px-4 py-3 text-surface-700">${p.stock}</td>
           <td class="px-4 py-3">${statusBadge(p.status)}</td>
           <td class="px-4 py-3">
-            <a href="/admin/' + slug + '/products/${safeId}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
+            <a href="/admin/${slug}/products/${safeId}" class="text-brand-600 hover:text-brand-700 text-sm font-medium" onclick="event.stopPropagation()">Edit</a>
           </td>
         </tr>`
       }
