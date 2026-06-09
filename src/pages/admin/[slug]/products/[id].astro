@@ -45,6 +45,7 @@ const { slug } = Astro.params
           <div class="flex gap-2">
             <input type="url" id="image_url" class="input flex-1" />
             <button type="button" id="upload-btn" class="btn-secondary btn-sm">Upload</button>
+            <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
           </div>
           <div id="image-preview" class="hidden mt-2">
             <img src="" alt="Preview" class="h-32 rounded-lg object-cover" id="preview-img" />
@@ -114,12 +115,41 @@ const { slug } = Astro.params
   loadProduct()
 
   document.getElementById('upload-btn')?.addEventListener('click', () => {
-    const url = prompt('Enter image URL:')
-    if (url) {
-      (document.getElementById('image_url') as HTMLInputElement).value = url
-      const preview = document.getElementById('image-preview')!
-      preview.classList.remove('hidden')
-      ;(document.getElementById('preview-img') as HTMLImageElement).src = url
+    document.getElementById('file-input')?.click()
+  })
+
+  document.getElementById('file-input')?.addEventListener('change', async () => {
+    const input = document.getElementById('file-input') as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) return
+    const token = localStorage.getItem('vkrama_admin_token')
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', 'products')
+    const btn = document.getElementById('upload-btn') as HTMLButtonElement
+    btn.disabled = true
+    btn.textContent = 'Uploading...'
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        (document.getElementById('image_url') as HTMLInputElement).value = data.url
+        const preview = document.getElementById('image-preview')!
+        preview.classList.remove('hidden')
+        ;(document.getElementById('preview-img') as HTMLImageElement).src = data.url
+      } else {
+        alert(data.error || 'Upload failed')
+      }
+    } catch {
+      alert('Upload failed')
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Upload'
+      input.value = ''
     }
   })
 
