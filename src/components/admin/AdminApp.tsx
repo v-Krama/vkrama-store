@@ -1,57 +1,48 @@
 import React from 'react'
+import { Admin, Resource, ListGuesser } from 'react-admin'
 
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
-  state = { error: null }
-  static getDerivedStateFromError(error: Error) { return { error } }
-  render() {
-    if (this.state.error) {
-      return React.createElement('pre', {
-        style: { color: 'red', padding: 40, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }
-      }, this.state.error.stack || this.state.error.message)
-    }
-    return this.props.children
-  }
+const dataProvider = {
+  getList: (resource, params) => {
+    console.log('RA getList', resource, params)
+    return Promise.resolve({ data: [], total: 0 })
+  },
+  getOne: () => Promise.resolve({ data: { id: '1' } }),
+  getMany: (resource, ids) => Promise.resolve({ data: ids.map(id => ({ id })) }),
+  getManyReference: () => Promise.resolve({ data: [], total: 0 }),
+  create: () => Promise.resolve({ data: { id: 'new' } }),
+  update: () => Promise.resolve({ data: { id: '1' } }),
+  updateMany: () => Promise.resolve({ data: [] }),
+  delete: () => Promise.resolve({ data: { id: '1' } }),
+  deleteMany: () => Promise.resolve({ data: [] }),
 }
 
+const authProvider = {
+  login: () => Promise.resolve(),
+  logout: () => Promise.resolve(),
+  checkAuth: () => Promise.resolve(),
+  checkError: () => Promise.resolve(),
+  getPermissions: () => Promise.resolve(null),
+}
+
+const MyLayout = ({ children }) => React.createElement('div', {
+  style: { background: '#ff0000', color: 'white', padding: 40, minHeight: '100vh' }
+}, children)
+
 export default function AdminApp() {
-  const [el, setEl] = React.useState<React.ReactNode>(null)
-  const [error, setError] = React.useState<string | null>(null)
+  console.log('AdminApp render start')
 
-  React.useEffect(() => {
-    import('react-admin').then(ra => {
-      const emptyAuth = {
-        login: () => Promise.resolve(),
-        logout: () => Promise.resolve(),
-        checkAuth: () => Promise.resolve(),
-        checkError: () => Promise.resolve(),
-        getPermissions: () => Promise.resolve(null),
-      }
-      const emptyData: any = {}
-      for (const m of ['getList','getOne','getMany','getManyReference','create','update','updateMany','delete','deleteMany']) {
-        emptyData[m] = () => Promise.resolve({ data: [] })
-      }
-      emptyData.getList = () => Promise.resolve({ data: [], total: 0 })
-      emptyData.getOne = () => Promise.resolve({ data: { id: '1' } })
+  const el = React.createElement('div', { style: { background: '#ff0000', minHeight: '100vh' } },
+    React.createElement(Admin, {
+      basename: '/admin',
+      dataProvider,
+      authProvider,
+      requireAuth: false,
+      layout: MyLayout,
+    },
+      React.createElement(Resource, { name: 'products', list: ListGuesser })
+    )
+  )
 
-      setEl(React.createElement(ra.Admin, {
-        basename: '/admin',
-        dataProvider: emptyData,
-        authProvider: emptyAuth,
-        requireAuth: false,
-        disableTelemetry: true,
-      },
-        React.createElement(ra.Resource, {
-          name: 'products',
-          list: () => React.createElement('div', { style: { padding: 20 } }, 'Products work!'),
-        })
-      ))
-    }).catch((e: any) => {
-      setError(e?.stack || String(e))
-    })
-  }, [])
-
-  if (error) return React.createElement('pre', { style: { color: 'red', padding: 40, fontFamily: 'monospace' } }, error)
-  if (!el) return React.createElement('div', { style: { padding: 40 } }, 'Loading...')
-
-  return React.createElement(ErrorBoundary, null, el)
+  console.log('AdminApp render done')
+  return el
 }
