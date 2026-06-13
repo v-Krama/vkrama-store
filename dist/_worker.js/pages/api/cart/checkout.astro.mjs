@@ -1,8 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as getDb, p as products, i as inArray } from '../../../chunks/db_DGDNi2yE.mjs';
-import { g as generateId } from '../../../chunks/auth_B-iE9LmZ.mjs';
-import { a as APP_NAME, b as APP_URL, C as CURRENCY } from '../../../chunks/constants_CD9_lEZx.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
+import { g as getDb, c as customers, e as eq, p as products, i as inArray } from '../../../chunks/db_DGDNi2yE.mjs';
+import { A as APP_NAME, f as APP_URL, v as verifyToken, g as generateId, C as CURRENCY } from '../../../chunks/auth_rVfLOqBr.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 function formatPrice(cents) {
   return `Rs. ${(cents / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -75,8 +74,20 @@ const POST = async ({ request, locals }) => {
     return new Response(JSON.stringify({ error: "Database not configured" }), { status: 500 });
   }
   const db = getDb(env.DB);
+  const auth = request.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Authentication required" }), { status: 401 });
+  }
+  const payload = await verifyToken(auth.slice(7));
+  if (!payload || payload.userType !== "customer") {
+    return new Response(JSON.stringify({ error: "Invalid or expired session" }), { status: 401 });
+  }
+  const customer = await db.select({ id: customers.id, email: customers.email }).from(customers).where(eq(customers.id, payload.userId)).get();
+  if (!customer) {
+    return new Response(JSON.stringify({ error: "Customer not found" }), { status: 401 });
+  }
   try {
-    const { items, paymentMethod, email, shippingInfo } = await request.json();
+    const { items, paymentMethod, phone, shippingInfo } = await request.json();
     if (!items || items.length === 0) {
       return new Response(JSON.stringify({ error: "Cart is empty" }), { status: 400 });
     }
@@ -111,12 +122,13 @@ const POST = async ({ request, locals }) => {
     const taxCents = 0;
     const totalCents = subtotalCents + shippingCents + taxCents;
     await env.DB.prepare(
-      `INSERT INTO orders (id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO orders (id, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       orderId,
-      email || "guest@checkout",
-      shippingInfo?.phone || null,
+      customer.id,
+      customer.email,
+      phone || null,
       status,
       subtotalCents,
       shippingCents,
@@ -139,8 +151,8 @@ const POST = async ({ request, locals }) => {
       ).bind(generateId("oi"), orderId, item.productId, item.variantId || null, item.name, item.variantName || null, item.quantity, item.priceCents, item.imageUrl || null).run();
       await env.DB.prepare("UPDATE products SET stock = stock - ? WHERE id = ?").bind(item.quantity, item.productId).run();
     }
-    if (email) {
-      sendOrderConfirmationEmail({ email, orderId, totalCents }).catch(() => {
+    if (customer.email) {
+      sendOrderConfirmationEmail({ email: customer.email, orderId, totalCents }).catch(() => {
       });
     }
     return new Response(JSON.stringify({ orderId, totalCents, paymentMethod: paymentMethod || "qr" }), {
