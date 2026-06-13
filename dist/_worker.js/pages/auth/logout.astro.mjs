@@ -1,13 +1,10 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                        */
-import { e as createAstro, f as createComponent } from '../../chunks/astro/server_Ce7Lw4RO.mjs';
+import { f as createComponent, l as renderScript, r as renderTemplate } from '../../chunks/astro/server_Ce7Lw4RO.mjs';
 export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
-const $$Astro = createAstro("https://vkrama.com");
 const $$Logout = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
-  Astro2.self = $$Logout;
-  return Astro2.redirect("/");
+  return renderTemplate`${renderScript($$result, "/home/v-krama/vkrama-store/src/pages/auth/logout.astro?astro&type=script&index=0&lang.ts")}`;
 }, "/home/v-krama/vkrama-store/src/pages/auth/logout.astro", void 0);
 
 const $$file = "/home/v-krama/vkrama-store/src/pages/auth/logout.astro";
