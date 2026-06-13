@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const { items, paymentMethod, email } = await request.json()
+    const { items, paymentMethod, phone, shippingInfo } = await request.json()
     if (!items || items.length === 0) {
       return new Response(JSON.stringify({ error: 'Cart is empty' }), { status: 400 })
     }
@@ -81,9 +81,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const taxCents = 0
     const totalCents = subtotalCents + shippingCents + taxCents
 
-    const body = await request.json()
-    const { shippingInfo } = body
-
     await env.DB.prepare(
       `INSERT INTO orders (id, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -91,7 +88,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       orderId,
       customer.id,
       customer.email,
-      email || null,
+      phone || null,
       status,
       subtotalCents, shippingCents, taxCents, totalCents,
       CURRENCY, paymentMethod || 'qr',

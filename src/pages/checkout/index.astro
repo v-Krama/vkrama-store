@@ -240,6 +240,7 @@ import Base from '../../layouts/Base.astro'
         },
         body: JSON.stringify({
           paymentMethod,
+          phone: getVal('phone') || undefined,
           shippingInfo: shippingInfo.name ? shippingInfo : undefined,
           items: cart.map((i) => ({
             slug: i.slug,
