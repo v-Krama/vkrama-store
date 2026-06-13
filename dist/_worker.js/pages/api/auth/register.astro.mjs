@@ -1,6 +1,6 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, c as customers, e as eq } from '../../../chunks/db_DGDNi2yE.mjs';
-import { g as generateId, h as hashPassword, e as getCustomerSessionExpiry, d as createToken } from '../../../chunks/auth_C4GgaQbx.mjs';
+import { g as generateId, h as hashPassword, e as getCustomerSessionExpiry, d as createToken } from '../../../chunks/auth_BWp464vu.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const POST = async ({ request, locals }) => {

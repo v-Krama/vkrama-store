@@ -1,9 +1,9 @@
 ---
 import '../../../styles/global.css'
-import { ADMIN_SLUG } from '../../../lib/constants'
+import { getAdminSlug } from '../../../lib/constants'
 
 const { slug } = Astro.params
-if (!slug || slug !== ADMIN_SLUG) return Astro.redirect('/404')
+if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
 ---
 
 <!DOCTYPE html>
@@ -45,7 +45,7 @@ if (!slug || slug !== ADMIN_SLUG) return Astro.redirect('/404')
     </p>
   </div>
 
-  <script>
+  <script is:inline>
     const _slug = window.location.pathname.split('/')[2]
     const form = document.getElementById('login-form')
     const emailInput = document.getElementById('email')

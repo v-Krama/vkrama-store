@@ -4,7 +4,9 @@ import './chunks/astro-designed-error-pages_BlQuCbak.mjs';
 import './chunks/astro/server_DFXjdrHI.mjs';
 
 const __vite_import_meta_env__ = {"ASSETS_PREFIX": undefined, "BASE_URL": "/", "DEV": false, "MODE": "production", "PROD": true, "PUBLIC_ADMIN_SLUG": "portal", "PUBLIC_APP_NAME": "vkrama", "PUBLIC_APP_URL": "http://localhost:4321", "PUBLIC_R2_PUBLIC_URL": "https://pub-placeholder.r2.dev", "PUBLIC_STRIPE_KEY": "pk_test_placeholder", "SITE": "https://vkrama.com", "SSR": true};
-const ADMIN_SLUG = typeof process !== "undefined" && process.env?.["PUBLIC_ADMIN_SLUG"] || typeof import.meta !== "undefined" && Object.assign(__vite_import_meta_env__, { _: process.env._ })?.["PUBLIC_ADMIN_SLUG"] || "portal";
+function getAdminSlug() {
+  return typeof process !== "undefined" && process.env?.["PUBLIC_ADMIN_SLUG"] || typeof import.meta !== "undefined" && Object.assign(__vite_import_meta_env__, { _: process.env._ })?.["PUBLIC_ADMIN_SLUG"] || "portal";
+}
 const onRequest$2 = defineMiddleware(async (context, next) => {
   const env = context.locals.runtime?.env;
   if (env) {
@@ -16,17 +18,20 @@ const onRequest$2 = defineMiddleware(async (context, next) => {
   }
   const url = new URL(context.request.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
-  if (pathParts[0] === "admin" && pathParts[1] && pathParts[1] !== ADMIN_SLUG) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: "/404" }
-    });
-  }
-  if (pathParts[0] === "admin" && pathParts[1] === ADMIN_SLUG && !pathParts[2]) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `/admin/${ADMIN_SLUG}/login` }
-    });
+  if (pathParts[0] === "admin" && pathParts[1]) {
+    const adminSlug = getAdminSlug();
+    if (pathParts[1] !== adminSlug) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "/404" }
+      });
+    }
+    if (!pathParts[2]) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: `/admin/${adminSlug}/login` }
+      });
+    }
   }
   return next();
 });

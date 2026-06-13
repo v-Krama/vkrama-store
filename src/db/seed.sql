@@ -1,7 +1,7 @@
 -- Admin user (DELETE first to allow re-running)
 DELETE FROM admins;
 INSERT INTO admins (id, email, name, password_hash, role) VALUES
-  ('admin_01', 'vkramagroup@gmail.com', 'VKrama Admin', '$2b$10$RkqQ1tKAOlhCZALb98YzcOhEG/1MYTMD8y5MT.8.QcTp/wmGn6FqS', 'superadmin');
+  ('admin_01', 'vkramagroup@gmail.com', 'VKrama Admin', '$2b$10$GTUOINvhHEzk6jtncvmGgu3IqWmlol0LbOZqRCgxOe7N1Sq2GsZOW', 'superadmin');
 
 -- Categories
 INSERT OR IGNORE INTO categories (id, name, slug, description, sort_order) VALUES
