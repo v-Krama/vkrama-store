@@ -32,6 +32,30 @@ import Base from '../../layouts/Base.astro'
   }
 
   const PAYMENT_QR_IMAGE = '/images/sample-qr.svg'
+  const TOKEN = localStorage.getItem('vkrama_token')
+
+  if (!TOKEN) {
+    window.location.href = '/auth/login?redirect=/checkout'
+  }
+
+  let CURRENT_USER: { id: string; email: string; name?: string } | null = null;
+
+  (async function init() {
+    if (!TOKEN) return
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${TOKEN}` }
+      })
+      if (!res.ok) throw new Error('Unauthorized')
+      const data = await res.json()
+      if (!data.user) throw new Error('No user')
+      CURRENT_USER = data.user
+      renderCheckout()
+    } catch {
+      localStorage.removeItem('vkrama_token')
+      window.location.href = '/auth/login?redirect=/checkout'
+    }
+  })()
 
   function renderCheckout() {
     const cart: CartItem[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
@@ -72,11 +96,20 @@ import Base from '../../layouts/Base.astro'
       <div class="grid md:grid-cols-3 gap-8">
         <div class="md:col-span-2 space-y-6">
           <div class="card p-6">
+            <div class="flex items-center gap-2 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-sm text-surface-500">Signed in as <strong>${CURRENT_USER!.email}</strong></p>
+            </div>
+          </div>
+
+          <div class="card p-6">
             <h2 class="text-lg font-semibold text-surface-900 mb-4">Contact Information</h2>
             <div class="space-y-4">
               <div>
                 <label class="label" for="email">Email</label>
-                <input type="email" id="email" class="input" value="${localStorage.getItem('vkrama_email') || ''}" required />
+                <input type="email" id="email" class="input" value="${CURRENT_USER!.email}" readonly />
               </div>
               <div>
                 <label class="label" for="phone">Phone (optional)</label>
@@ -90,7 +123,7 @@ import Base from '../../layouts/Base.astro'
             <div class="grid grid-cols-2 gap-3">
               <div class="col-span-2 sm:col-span-1">
                 <label class="label" for="ship-name">Full Name</label>
-                <input type="text" id="ship-name" class="input" />
+                <input type="text" id="ship-name" class="input" value="${CURRENT_USER!.name || ''}" />
               </div>
               <div class="col-span-2 sm:col-span-1">
                 <label class="label" for="ship-phone">Phone</label>
@@ -183,13 +216,6 @@ import Base from '../../layouts/Base.astro'
     const getVal = (id: string) => (document.getElementById(id) as HTMLInputElement).value
     const paymentMethodEl = document.querySelector('input[name="payment"]:checked') as HTMLInputElement
     const paymentMethod = paymentMethodEl?.value || 'qr'
-    const email = getVal('email')
-
-    if (!email) {
-      errorEl.textContent = 'Email is required'
-      errorEl.classList.remove('hidden')
-      return
-    }
 
     btn.disabled = true
     btn.textContent = 'Placing Order...'
@@ -208,11 +234,12 @@ import Base from '../../layouts/Base.astro'
     try {
       const res = await fetch('/api/cart/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${TOKEN}`,
+        },
         body: JSON.stringify({
           paymentMethod,
-          email,
-          phone: getVal('phone'),
           shippingInfo: shippingInfo.name ? shippingInfo : undefined,
           items: cart.map((i) => ({
             slug: i.slug,
@@ -242,6 +269,4 @@ import Base from '../../layouts/Base.astro'
       btn.textContent = 'Place Order'
     }
   }
-
-  renderCheckout()
 </script>

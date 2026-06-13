@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
-import { products } from '../../../db/schema'
+import { customers, products } from '../../../db/schema'
 import { eq, inArray } from 'drizzle-orm'
-import { generateId } from '../../../lib/auth'
+import { generateId, verifyToken } from '../../../lib/auth'
 import { CURRENCY } from '../../../lib/constants'
 import { sendOrderConfirmationEmail } from '../../../lib/email'
 
@@ -13,8 +13,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   const db = getDb(env.DB)
 
+  const auth = request.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 })
+  }
+  const payload = await verifyToken(auth.slice(7))
+  if (!payload || payload.userType !== 'customer') {
+    return new Response(JSON.stringify({ error: 'Invalid or expired session' }), { status: 401 })
+  }
+
+  const customer = await db
+    .select({ id: customers.id, email: customers.email })
+    .from(customers)
+    .where(eq(customers.id, payload.userId))
+    .get()
+
+  if (!customer) {
+    return new Response(JSON.stringify({ error: 'Customer not found' }), { status: 401 })
+  }
+
   try {
-    const { items, paymentMethod, email, shippingInfo } = await request.json()
+    const { items, paymentMethod, email } = await request.json()
     if (!items || items.length === 0) {
       return new Response(JSON.stringify({ error: 'Cart is empty' }), { status: 400 })
     }
@@ -62,13 +81,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const taxCents = 0
     const totalCents = subtotalCents + shippingCents + taxCents
 
+    const body = await request.json()
+    const { shippingInfo } = body
+
     await env.DB.prepare(
-      `INSERT INTO orders (id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO orders (id, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       orderId,
-      email || 'guest@checkout',
-      shippingInfo?.phone || null,
+      customer.id,
+      customer.email,
+      email || null,
       status,
       subtotalCents, shippingCents, taxCents, totalCents,
       CURRENCY, paymentMethod || 'qr',
@@ -86,8 +109,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await env.DB.prepare('UPDATE products SET stock = stock - ? WHERE id = ?').bind(item.quantity, item.productId).run()
     }
 
-    if (email) {
-      sendOrderConfirmationEmail({ email, orderId, totalCents }).catch(() => {})
+    if (customer.email) {
+      sendOrderConfirmationEmail({ email: customer.email, orderId, totalCents }).catch(() => {})
     }
 
     return new Response(JSON.stringify({ orderId, totalCents, paymentMethod: paymentMethod || 'qr' }), {
