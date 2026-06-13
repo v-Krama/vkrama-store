@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { c as checkAdminAuth } from '../../../../chunks/auth_BWp464vu.mjs';
+import { c as checkAdminAuth } from '../../../../chunks/auth_B-iE9LmZ.mjs';
 export { r as renderers } from '../../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const DELETE = async ({ params, request, locals }) => {

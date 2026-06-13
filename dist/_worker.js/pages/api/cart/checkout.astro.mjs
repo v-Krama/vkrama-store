@@ -1,6 +1,6 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, p as products, i as inArray } from '../../../chunks/db_DGDNi2yE.mjs';
-import { g as generateId } from '../../../chunks/auth_BWp464vu.mjs';
+import { g as generateId } from '../../../chunks/auth_B-iE9LmZ.mjs';
 import { a as APP_NAME, b as APP_URL, C as CURRENCY } from '../../../chunks/constants_CD9_lEZx.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
@@ -80,8 +80,7 @@ const POST = async ({ request, locals }) => {
     if (!items || items.length === 0) {
       return new Response(JSON.stringify({ error: "Cart is empty" }), { status: 400 });
     }
-    const isStripe = paymentMethod !== "cod" && paymentMethod !== "qr";
-    const status = isStripe ? "awaiting_payment" : "pending";
+    const status = "pending";
     const slugs = items.map((i) => i.slug);
     const productRows = await db.select().from(products).where(inArray(products.slug, slugs)).all();
     const productMap = new Map(productRows.map((p) => [p.slug, p]));

@@ -221,6 +221,7 @@ import Base from '../../layouts/Base.astro'
             variantName: i.variantName,
           })),
         }),
+        signal: AbortSignal.timeout(30000),
       })
       const data = await res.json()
 

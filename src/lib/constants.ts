@@ -17,6 +17,6 @@ export const SHIPPING_COST_CENTS = 0
 export const TAX_RATE = 0
 export const FREE_SHIPPING_MINIMUM_CENTS = 500000
 
-export const STRIPE_PUBLIC_KEY = import.meta.env.PUBLIC_STRIPE_KEY || ''
+export const STRIPE_PUBLIC_KEY = ''
 
 export const R2_PUBLIC_URL = import.meta.env.PUBLIC_R2_PUBLIC_URL || ''

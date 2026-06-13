@@ -20,8 +20,9 @@ try {
 } catch {}
 
 const qrImageUrl = PAYMENT_QR_IMAGE_URL
-const isCod = order?.payment_method === 'cod' || order?.status === 'pending'
-const isQr = order?.payment_method === 'qr' || (!order?.payment_method || order?.payment_method === 'qr') && !isCod
+const pm = order?.payment_method
+const isCod = pm === 'cod'
+const isQr = pm === 'qr' || !pm
 ---
 
 <Base title={order ? 'Order Placed' : 'Order Not Found'}>

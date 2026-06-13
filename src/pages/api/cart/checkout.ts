@@ -19,8 +19,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'Cart is empty' }), { status: 400 })
     }
 
-    const isStripe = paymentMethod !== 'cod' && paymentMethod !== 'qr'
-    const status = isStripe ? 'awaiting_payment' : 'pending'
+    const status = 'pending'
 
     const slugs = items.map((i: any) => i.slug)
     const productRows = await db

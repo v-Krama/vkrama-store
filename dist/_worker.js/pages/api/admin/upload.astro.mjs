@@ -1,6 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { c as checkAdminAuth } from '../../../chunks/auth_BWp464vu.mjs';
-import { nanoid } from '../../../chunks/index.browser_DZKJnQ_o.mjs';
+import { c as checkAdminAuth, n as nanoid } from '../../../chunks/auth_B-iE9LmZ.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const POST = async ({ request, locals }) => {
