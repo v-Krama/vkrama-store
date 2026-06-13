@@ -18,18 +18,18 @@ const onRequest$2 = defineMiddleware(async (context, next) => {
   }
   const url = new URL(context.request.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
-  if (pathParts[0] === "admin" && pathParts[1]) {
+  if (pathParts[0] === "admin") {
     const adminSlug = getAdminSlug();
+    if (!pathParts[1]) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: `/admin/${adminSlug}/login` }
+      });
+    }
     if (pathParts[1] !== adminSlug) {
       return new Response(null, {
         status: 302,
         headers: { Location: "/404" }
-      });
-    }
-    if (!pathParts[2]) {
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `/admin/${adminSlug}/login` }
       });
     }
   }
