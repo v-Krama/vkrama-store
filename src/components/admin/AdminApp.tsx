@@ -1,39 +1,57 @@
 import React from 'react'
 
-declare global {
-  interface Window { __adm: any }
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return React.createElement('pre', {
+        style: { color: 'red', padding: 40, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }
+      }, this.state.error.stack || this.state.error.message)
+    }
+    return this.props.children
+  }
 }
 
 export default function AdminApp() {
-  const [msg, setMsg] = React.useState('Starting...')
+  const [el, setEl] = React.useState<React.ReactNode>(null)
+  const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    setMsg('useEffect ran')
-
-    async function check() {
-      try {
-        setMsg('Importing react-admin...')
-        const ra = await import('react-admin')
-        window.__adm = ra
-        setMsg(`Loaded! Exports: ${Object.keys(ra).slice(0,15).join(', ')}...`)
-      } catch (e: any) {
-        setMsg(`ERROR: ${e.message}\n${e.stack}`)
+    import('react-admin').then(ra => {
+      const emptyAuth = {
+        login: () => Promise.resolve(),
+        logout: () => Promise.resolve(),
+        checkAuth: () => Promise.resolve(),
+        checkError: () => Promise.resolve(),
+        getPermissions: () => Promise.resolve(null),
       }
-    }
-    check()
+      const emptyData: any = {}
+      for (const m of ['getList','getOne','getMany','getManyReference','create','update','updateMany','delete','deleteMany']) {
+        emptyData[m] = () => Promise.resolve({ data: [] })
+      }
+      emptyData.getList = () => Promise.resolve({ data: [], total: 0 })
+      emptyData.getOne = () => Promise.resolve({ data: { id: '1' } })
+
+      setEl(React.createElement(ra.Admin, {
+        basename: '/admin',
+        dataProvider: emptyData,
+        authProvider: emptyAuth,
+        requireAuth: false,
+        disableTelemetry: true,
+      },
+        React.createElement(ra.Resource, {
+          name: 'products',
+          list: () => React.createElement('div', { style: { padding: 20 } }, 'Products work!'),
+        })
+      ))
+    }).catch((e: any) => {
+      setError(e?.stack || String(e))
+    })
   }, [])
 
-  return React.createElement('div', {
-    style: {
-      padding: '40px',
-      fontFamily: 'monospace',
-      fontSize: '14px',
-      whiteSpace: 'pre-wrap',
-      maxWidth: '100%',
-      overflow: 'auto',
-      background: '#fff',
-      color: '#333',
-      minHeight: '100vh'
-    }
-  }, msg)
+  if (error) return React.createElement('pre', { style: { color: 'red', padding: 40, fontFamily: 'monospace' } }, error)
+  if (!el) return React.createElement('div', { style: { padding: 40 } }, 'Loading...')
+
+  return React.createElement(ErrorBoundary, null, el)
 }
