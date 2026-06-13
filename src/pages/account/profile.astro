@@ -24,9 +24,15 @@ import Base from '../../layouts/Base.astro'
 </Base>
 
 <script>
+  function e(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') }
+
   async function loadProfile() {
+    const container = document.getElementById('profile-content')!
     const token = localStorage.getItem('vkrama_token')
-    if (!token) { window.location.href = '/auth/login'; return }
+    if (!token) {
+      container.innerHTML = '<div class="card p-8 text-center"><p class="text-surface-500 mb-4">You need to sign in to view your profile.</p><a href="/auth/login" class="btn-primary">Sign In</a></div>'
+      return
+    }
 
     try {
       const res = await fetch('/api/account/profile', {
@@ -34,7 +40,6 @@ import Base from '../../layouts/Base.astro'
       })
       if (res.status === 401) { localStorage.removeItem('vkrama_token'); window.location.href = '/auth/login'; return }
       const data = await res.json()
-      const container = document.getElementById('profile-content')!
 
       if (!data.user) {
         container.innerHTML = '<div class="card p-8 text-center text-red-500">User not found.</div>'
@@ -45,16 +50,16 @@ import Base from '../../layouts/Base.astro'
         <form id="profile-form" class="card p-6 space-y-4">
           <div>
             <label class="label" for="name">Name</label>
-            <input type="text" id="name" class="input" value="${e(String(data.user.name || ''))}" />
+            <input type="text" id="name" class="input" value="${e(data.user.name || '')}" />
           </div>
           <div>
             <label class="label" for="email">Email</label>
-            <input type="email" id="email" class="input" value="${e(String(data.user.email || ''))}" disabled />
+            <input type="email" id="email" class="input" value="${e(data.user.email || '')}" disabled />
             <p class="text-xs text-surface-400 mt-1">Email cannot be changed</p>
           </div>
           <div>
             <label class="label" for="phone">Phone</label>
-            <input type="tel" id="phone" class="input" value="${e(String(data.user.phone || ''))}" placeholder="+1 (555) 000-0000" />
+            <input type="tel" id="phone" class="input" value="${e(data.user.phone || '')}" placeholder="+1 (555) 000-0000" />
           </div>
           <p id="profile-msg" class="text-sm hidden"></p>
           <button type="submit" class="btn-primary">Save Changes</button>
@@ -94,7 +99,7 @@ import Base from '../../layouts/Base.astro'
         msg.classList.remove('hidden')
       })
     } catch {
-      document.getElementById('profile-content')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load profile.</div>'
+      container.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load profile. <a href="/auth/login" class="underline">Sign in again</a></div>'
     }
   }
   loadProfile()
