@@ -36,7 +36,13 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
         <h2 class="font-semibold text-surface-900">Recent Orders</h2>
         <a href={"/admin/" + slug + "/orders"} class="text-sm text-brand-600 hover:underline">View All</a>
       </div>
-      <div id="recent-orders" class="p-6 text-center text-surface-500 text-sm">Loading...</div>
+      <div id="recent-orders" class="divide-y divide-surface-100">
+        <div class="skeleton-row"><div class="skeleton-cell w-8 h-8 rounded-lg"></div><div class="flex-1 ml-3"><div class="skeleton-cell w-32 mb-2"></div><div class="skeleton-cell w-20 h-3"></div></div><div class="ml-auto text-right"><div class="skeleton-cell w-16 mb-1"></div><div class="skeleton-cell w-14 h-4"></div></div></div>
+        <div class="skeleton-row"><div class="skeleton-cell w-8 h-8 rounded-lg"></div><div class="flex-1 ml-3"><div class="skeleton-cell w-28 mb-2"></div><div class="skeleton-cell w-16 h-3"></div></div><div class="ml-auto text-right"><div class="skeleton-cell w-14 mb-1"></div><div class="skeleton-cell w-12 h-4"></div></div></div>
+        <div class="skeleton-row"><div class="skeleton-cell w-8 h-8 rounded-lg"></div><div class="flex-1 ml-3"><div class="skeleton-cell w-36 mb-2"></div><div class="skeleton-cell w-24 h-3"></div></div><div class="ml-auto text-right"><div class="skeleton-cell w-18 mb-1"></div><div class="skeleton-cell w-16 h-4"></div></div></div>
+        <div class="skeleton-row"><div class="skeleton-cell w-8 h-8 rounded-lg"></div><div class="flex-1 ml-3"><div class="skeleton-cell w-24 mb-2"></div><div class="skeleton-cell w-14 h-3"></div></div><div class="ml-auto text-right"><div class="skeleton-cell w-16 mb-1"></div><div class="skeleton-cell w-10 h-4"></div></div></div>
+        <div class="skeleton-row"><div class="skeleton-cell w-8 h-8 rounded-lg"></div><div class="flex-1 ml-3"><div class="skeleton-cell w-30 mb-2"></div><div class="skeleton-cell w-18 h-3"></div></div><div class="ml-auto text-right"><div class="skeleton-cell w-12 mb-1"></div><div class="skeleton-cell w-14 h-4"></div></div></div>
+      </div>
     </div>
     <div class="card">
       <div class="px-6 py-4 border-b border-surface-200">

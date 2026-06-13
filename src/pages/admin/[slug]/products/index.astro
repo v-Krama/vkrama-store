@@ -16,7 +16,26 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       Add Product
     </a>
   </div>
-  <div id="products-table"></div>
+  <div id="products-table">
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead><tr class="bg-surface-50 border-b border-surface-200">
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Product</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Price</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Stock</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Status</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Actions</th>
+        </tr></thead>
+        <tbody class="divide-y divide-surface-200">
+          <tr><td class="px-4 py-3" colspan="5"><div class="flex items-center gap-3"><div class="skeleton-cell w-10 h-10 rounded-lg shrink-0"></div><div class="skeleton-cell w-48 h-4"></div></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="5"><div class="flex items-center gap-3"><div class="skeleton-cell w-10 h-10 rounded-lg shrink-0"></div><div class="skeleton-cell w-36 h-4"></div></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="5"><div class="flex items-center gap-3"><div class="skeleton-cell w-10 h-10 rounded-lg shrink-0"></div><div class="skeleton-cell w-52 h-4"></div></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="5"><div class="flex items-center gap-3"><div class="skeleton-cell w-10 h-10 rounded-lg shrink-0"></div><div class="skeleton-cell w-40 h-4"></div></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="5"><div class="flex items-center gap-3"><div class="skeleton-cell w-10 h-10 rounded-lg shrink-0"></div><div class="skeleton-cell w-44 h-4"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </Admin>
 
 <script define:vars={{ slug }}>

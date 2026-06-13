@@ -17,9 +17,37 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
     </button>
   </div>
   <div id="categories-list">
-    <div class="card p-8 text-center text-surface-500">
-      <div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-      Loading...
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead><tr class="bg-surface-50 border-b border-surface-200">
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Name</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Slug</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Products</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Actions</th>
+        </tr></thead>
+        <tbody class="divide-y divide-surface-200" id="categories-body">
+          <tr><td class="px-4 py-3" colspan="4"><div class="skeleton-cell w-32 h-4"></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="4"><div class="skeleton-cell w-24 h-4"></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="4"><div class="skeleton-cell w-40 h-4"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="cat-modal" class="modal hidden">
+    <div class="overlay" id="cat-overlay"></div>
+    <div class="modal-content p-6">
+      <h3 class="text-lg font-semibold text-surface-900 mb-4">Add Category</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="label" for="cat-name">Name</label>
+          <input type="text" id="cat-name" class="input" placeholder="Category name" />
+        </div>
+        <div class="flex gap-3 justify-end">
+          <button id="cat-cancel" class="btn-secondary">Cancel</button>
+          <button id="cat-save" class="btn-primary">Save</button>
+        </div>
+      </div>
     </div>
   </div>
 </Admin>
@@ -61,8 +89,13 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this category?')) return
           const id = (btn as HTMLElement).dataset.id
-          await fetch(`/api/admin/categories/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
-          loadCategories()
+          const res = await fetch(`/api/admin/categories/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
+          if (res.ok) {
+            (window as any).showToast?.('Category deleted', 'success')
+            loadCategories()
+          } else {
+            (window as any).showToast?.('Delete failed', 'error')
+          }
         })
       })
     } catch {
@@ -71,18 +104,51 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
     }
   }
 
-  document.getElementById('add-cat-btn')?.addEventListener('click', async () => {
-    const name = prompt('Category name:')
+  document.getElementById('add-cat-btn')?.addEventListener('click', () => {
+    document.getElementById('cat-modal')!.classList.remove('hidden');
+    (document.getElementById('cat-name') as HTMLInputElement).value = '';
+    (document.getElementById('cat-name') as HTMLInputElement).focus()
+  })
+
+  document.getElementById('cat-cancel')?.addEventListener('click', () => {
+    document.getElementById('cat-modal')!.classList.add('hidden')
+  })
+
+  document.getElementById('cat-overlay')?.addEventListener('click', () => {
+    document.getElementById('cat-modal')!.classList.add('hidden')
+  })
+
+  document.getElementById('cat-save')?.addEventListener('click', async () => {
+    const name = (document.getElementById('cat-name') as HTMLInputElement).value.trim()
     if (!name) return
+    const btn = document.getElementById('cat-save') as HTMLButtonElement
+    btn.disabled = true
+    btn.textContent = 'Saving...'
     try {
       const res = await fetch('/api/admin/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ name }),
       })
-      if (res.ok) loadCategories()
-      else alert('Failed to create category')
-    } catch { alert('Failed') }
+      if (res.ok) {
+        document.getElementById('cat-modal')!.classList.add('hidden');
+        (window as any).showToast?.('Category created', 'success')
+        loadCategories()
+      } else {
+        const data = await res.json();
+        (window as any).showToast?.(data.error || 'Failed', 'error')
+      }
+    } catch {
+      (window as any).showToast?.('Network error', 'error')
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Save'
+    }
+  })
+
+  document.getElementById('cat-name')?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') (document.getElementById('cat-save') as HTMLButtonElement)?.click()
+    if (e.key === 'Escape') document.getElementById('cat-modal')!.classList.add('hidden')
   })
 
   loadCategories()

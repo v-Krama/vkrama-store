@@ -147,6 +147,42 @@
   .overlay {
     @apply fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-40 transition-opacity;
   }
+
+  .modal {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-xl border border-surface-200 shadow-2xl w-full max-w-md animate-scale-in;
+  }
+
+  .toast-container {
+    @apply fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none;
+  }
+
+  .toast {
+    @apply pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-slide-in-right;
+  }
+
+  .toast-success {
+    @apply toast bg-emerald-600 text-white;
+  }
+
+  .toast-error {
+    @apply toast bg-red-600 text-white;
+  }
+
+  .toast-info {
+    @apply toast bg-brand-600 text-white;
+  }
+
+  .skeleton-row {
+    @apply flex items-center gap-3 px-6 py-3.5;
+  }
+
+  .skeleton-cell {
+    @apply skeleton-shimmer h-4 rounded;
+  }
 }
 
 @layer utilities {

@@ -13,7 +13,13 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   try {
     const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?').bind(id).first()
     if (!product) return new Response(JSON.stringify({ error: 'Product not found' }), { status: 404 })
-    return new Response(JSON.stringify(product), { headers: { 'Content-Type': 'application/json' } })
+
+    const variantOptions = await env.DB.prepare('SELECT * FROM variant_options WHERE product_id = ? ORDER BY sort_order, id').bind(id).all()
+    const productVariants = await env.DB.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY sort_order, id').bind(id).all()
+
+    return new Response(JSON.stringify({ ...product, variantOptions: variantOptions.results, productVariants: productVariants.results }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (err) {
     console.error('Product GET error:', err)
     return new Response(JSON.stringify({ error: 'Failed to load product' }), { status: 500 })
@@ -31,7 +37,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
   try {
     const body = await request.json()
-    await env.DB.prepare(
+    const db = env.DB
+
+    await db.prepare(
       `UPDATE products SET name = ?, description = ?, price_cents = ?, compare_at_price_cents = ?, stock = ?, status = ?, image_url = ?, seo_title = ?, seo_description = ?, updated_at = datetime('now') WHERE id = ?`
     ).bind(
       body.name, body.description || null,
@@ -42,6 +50,37 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       body.seoTitle || null, body.seoDescription || null,
       id
     ).run()
+
+    if (body.variantOptions) {
+      await db.prepare('DELETE FROM variant_options WHERE product_id = ?').bind(id).run()
+      await db.prepare('DELETE FROM product_variants WHERE product_id = ?').bind(id).run()
+
+      for (const opt of body.variantOptions) {
+        await db.prepare(
+          'INSERT INTO variant_options (product_id, group_name, value, sort_order) VALUES (?, ?, ?, ?)'
+        ).bind(id, opt.group, opt.value, 0).run()
+      }
+
+      const groups = [...new Set(body.variantOptions.map((o: any) => o.group))] as string[]
+      const valuesByGroup = groups.map((g: string) => body.variantOptions.filter((o: any) => o.group === g).map((o: any) => o.value))
+
+      function cartesian(arrays: string[][]): string[][] {
+        if (arrays.length === 0) return [[]]
+        const [first, ...rest] = arrays
+        const restCombos = cartesian(rest)
+        return first.flatMap((v) => restCombos.map((combo) => [v, ...combo]))
+      }
+
+      const combinations = cartesian(valuesByGroup)
+      for (const combo of combinations) {
+        const variantName = combo.join(' / ')
+        const variantId = 'var_' + crypto.randomUUID().slice(0, 20)
+        await db.prepare(
+          'INSERT INTO product_variants (id, product_id, name, stock, price_cents) VALUES (?, ?, ?, ?, ?)'
+        ).bind(variantId, id, variantName, body.stock || 0, body.price ? Math.round(body.price * 100) : null).run()
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } })
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message || 'Failed to update product' }), { status: 400 })

@@ -18,9 +18,23 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
     <a href={"/admin/" + slug + "/orders?status=cancelled"} class="btn-secondary btn-sm">Cancelled</a>
   </div>
   <div id="orders-table">
-    <div class="card p-8 text-center text-surface-500">
-      <div class="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-      Loading...
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead><tr class="bg-surface-50 border-b border-surface-200">
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Order</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Customer</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Total</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Payment</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Status</th>
+          <th class="px-4 py-3 text-left font-medium text-surface-600">Date</th>
+        </tr></thead>
+        <tbody class="divide-y divide-surface-200" id="orders-body">
+          <tr><td class="px-4 py-3" colspan="6"><div class="skeleton-cell w-24 h-4"></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="6"><div class="skeleton-cell w-32 h-4"></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="6"><div class="skeleton-cell w-28 h-4"></div></td></tr>
+          <tr><td class="px-4 py-3" colspan="6"><div class="skeleton-cell w-36 h-4"></div></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </Admin>

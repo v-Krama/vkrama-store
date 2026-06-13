@@ -51,12 +51,28 @@ const slug = (Astro.params.slug as string)
         </main>
       </div>
     </div>
+    <div id="toast-container" class="toast-container"></div>
       <script>
         const _slug = window.location.pathname.split('/')[2]
         const email = localStorage.getItem('vkrama_admin_email')
         const token = localStorage.getItem('vkrama_admin_token')
         const emailEl = document.getElementById('admin-email')
         const logoutBtn = document.getElementById('logout-btn')
+
+        function showToast(message, type = 'success') {
+          const container = document.getElementById('toast-container')
+          if (!container) return
+          const toast = document.createElement('div')
+          toast.className = `toast-${type}`
+          toast.textContent = message
+          container.appendChild(toast)
+          setTimeout(() => {
+            toast.style.opacity = '0'
+            toast.style.transition = 'opacity 0.3s'
+            setTimeout(() => toast.remove(), 300)
+          }, 3000)
+        }
+        ;(window as any).showToast = showToast
 
         async function checkToken() {
           if (!token) {

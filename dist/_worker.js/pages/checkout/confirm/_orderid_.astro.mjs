@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                           */
 import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../../chunks/astro/server_DFXjdrHI.mjs';
-import { j as jsxRuntimeExports, $ as $$Base } from '../../../chunks/Base_CghCu4Vd.mjs';
+import { j as jsxRuntimeExports, $ as $$Base } from '../../../chunks/Base_CVb1R01W.mjs';
 import { P as PAYMENT_QR_IMAGE_URL } from '../../../chunks/payment_BhMckVXS.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 

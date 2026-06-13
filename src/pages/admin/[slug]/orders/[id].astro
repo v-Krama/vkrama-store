@@ -157,13 +157,22 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
 
       document.getElementById('update-status')?.addEventListener('click', async () => {
         const status = (document.getElementById('status-select') as HTMLSelectElement).value
+        const btn = document.getElementById('update-status') as HTMLButtonElement
+        btn.disabled = true
+        btn.textContent = 'Updating...'
         const res = await fetch(`/api/admin/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ status }),
         })
-        if (res.ok) location.reload()
-        else alert('Update failed')
+        if (res.ok) {
+          (window as any).showToast?.('Status updated', 'success')
+          setTimeout(() => location.reload(), 600)
+        } else {
+          (window as any).showToast?.('Update failed', 'error')
+          btn.disabled = false
+          btn.textContent = 'Update'
+        }
       })
     } catch {
       document.getElementById('order-content')!.innerHTML = '<div class="card p-8 text-center text-red-500">Failed to load order.</div>'
