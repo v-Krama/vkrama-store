@@ -1,41 +1,18 @@
 import React from 'react'
-import { Admin, Resource } from 'react-admin'
-import { dataProvider } from './dataProvider'
-import { authProvider } from './authProvider'
-import Dashboard from './Dashboard'
-import { ProductList, ProductEdit, ProductCreate } from './resources/Products'
-import { CategoryList } from './resources/Categories'
-import { OrderList, OrderShow } from './resources/Orders'
-import { CustomerList } from './resources/Customers'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import Typography from '@mui/material/Typography'
+
+const theme = createTheme()
 
 export default function AdminApp() {
-  return React.createElement('div', { style: { minHeight: '100vh' } },
-    React.createElement(Admin, {
-      basename: '/admin',
-      dataProvider,
-      authProvider,
-      requireAuth: true,
-      dashboard: Dashboard,
-    },
-      React.createElement(Resource, {
-        name: 'products',
-        list: ProductList,
-        edit: ProductEdit,
-        create: ProductCreate,
-      }),
-      React.createElement(Resource, {
-        name: 'categories',
-        list: CategoryList,
-      }),
-      React.createElement(Resource, {
-        name: 'orders',
-        list: OrderList,
-        show: OrderShow,
-      }),
-      React.createElement(Resource, {
-        name: 'customers',
-        list: CustomerList,
-      }),
+  try {
+    return React.createElement(ThemeProvider, { theme },
+      React.createElement('div', { style: { padding: 40, background: '#fff', minHeight: '100vh' } },
+        React.createElement(Typography, { variant: 'h1' }, 'MUI Works!'),
+        React.createElement(Typography, { variant: 'body1' }, 'This text uses MUI Typography'),
+      )
     )
-  )
+  } catch (e) {
+    return React.createElement('pre', { style: { color: 'red', padding: 40 } }, 'MUI error: ' + e.message)
+  }
 }
