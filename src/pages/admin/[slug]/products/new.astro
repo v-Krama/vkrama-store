@@ -87,7 +87,8 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   const options: Array<{ group: string; value: string }> = []
 
   document.getElementById('add-option-btn')?.addEventListener('click', () => {
@@ -207,7 +208,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       })
       const data = await res.json()
       if (res.ok) {
-        window.location.href = '/admin/' + slug + '/products'
+        window.location.href = '/admin/' + _slug + '/products'
       } else {
         const errorEl = document.getElementById('error-msg')!
         errorEl.textContent = data.error || 'Failed to create product'

@@ -52,7 +52,8 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   const token = () => localStorage.getItem('vkrama_admin_token')
 
   async function loadCategories() {
@@ -61,7 +62,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
         headers: { Authorization: `Bearer ${token()}` },
         signal: AbortSignal.timeout(15000),
       })
-      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + _slug + '/login'; return }
       const cats = await res.json()
       document.getElementById('category-count')!.textContent = `${cats.length} categories`
       const container = document.getElementById('categories-list')!

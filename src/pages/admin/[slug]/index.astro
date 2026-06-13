@@ -86,20 +86,21 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
 
   async function loadStats() {
     const token = localStorage.getItem('vkrama_admin_token')
-    if (!token) { window.location.href = '/admin/' + slug + '/login'; return }
+    if (!token) { window.location.href = '/admin/' + _slug + '/login'; return }
 
     try {
       const res = await fetch('/api/admin/stats', {
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(15000),
       })
-      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + _slug + '/login'; return }
       const stats = await res.json()
 
       document.getElementById('stat-revenue')!.textContent = fp(stats.totalRevenueCents)
@@ -124,7 +125,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
                              o.status === 'shipped' ? 'badge-purple' : 'badge-yellow'
           const safeId = String(o.id).replace(/[^a-zA-Z0-9_-]/g, '')
           html += `
-            <a href="/admin/${slug}/orders/${safeId}" class="flex items-center justify-between px-6 py-3.5 hover:bg-brand-50 transition-colors">
+            <a href="/admin/${_slug}/orders/${safeId}" class="flex items-center justify-between px-6 py-3.5 hover:bg-brand-50 transition-colors">
               <div class="flex items-center gap-4">
                 <div class="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center">
                   <span class="font-mono text-2xs text-surface-500">#${String(o.id).slice(-6)}</span>
@@ -148,9 +149,9 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       }
     } catch {
       document.getElementById('stat-revenue')!.textContent = 'Error'
-      document.getElementById('stat-orders')!.textContent = '—'
-      document.getElementById('stat-products')!.textContent = '—'
-      document.getElementById('stat-customers')!.textContent = '—'
+      document.getElementById('stat-orders')!.textContent = '\u2014'
+      document.getElementById('stat-products')!.textContent = '\u2014'
+      document.getElementById('stat-customers')!.textContent = '\u2014'
       document.getElementById('recent-orders')!.innerHTML = '<p class="text-surface-400 py-4">Failed to load.</p>'
     }
   }

@@ -39,18 +39,19 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
 
   async function loadOrders() {
     const token = localStorage.getItem('vkrama_admin_token')
-    if (!token) { window.location.href = '/admin/' + slug + '/login'; return }
+    if (!token) { window.location.href = '/admin/' + _slug + '/login'; return }
     const status = new URLSearchParams(window.location.search).get('status') || ''
 
     try {
       const url = status ? `/api/admin/orders?status=${status}` : '/api/admin/orders'
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) })
-      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + _slug + '/login'; return }
       const orders = await res.json()
       const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       const container = document.getElementById('orders-table')!
@@ -73,7 +74,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
 
       for (const o of orders) {
         const safeId = String(o.id).replace(/[^a-zA-Z0-9_-]/g, '')
-        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/' + slug + '/orders/${safeId}'">
+        html += `<tr class="hover:bg-brand-50 cursor-pointer transition-colors" onclick="window.location='/admin/' + _slug + '/orders/${safeId}'">
           <td class="px-4 py-3 font-mono text-xs text-surface-500">#${String(o.id).slice(-8)}</td>
           <td class="px-4 py-3 text-surface-700">${e(String(o.email))}</td>
           <td class="px-4 py-3 font-semibold text-surface-900">${fp(o.totalCents)}</td>

@@ -16,7 +16,8 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
   const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   const orderId = window.location.pathname.split('/').pop()
@@ -27,7 +28,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + _slug + '/login'; return }
       const o = await res.json()
       const container = document.getElementById('order-content')!
 

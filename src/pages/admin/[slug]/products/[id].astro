@@ -93,7 +93,8 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   const productId = window.location.pathname.split('/').pop()
   const options: Array<{ group: string; value: string }> = []
 
@@ -142,7 +143,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       const res = await fetch(`/api/admin/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + _slug + '/login'; return }
       const p = await res.json()
 
       document.getElementById('form-loading')!.classList.add('hidden')
@@ -241,7 +242,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       })
       if (res.ok) {
         (window as any).showToast?.('Product updated', 'success')
-        setTimeout(() => { window.location.href = '/admin/' + slug + '/products' }, 500)
+        setTimeout(() => { window.location.href = '/admin/' + _slug + '/products' }, 500)
       } else {
         const data = await res.json()
         const errorEl = document.getElementById('error-msg')!
@@ -265,7 +266,7 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
       })
       if (res.ok) {
         (window as any).showToast?.('Product deleted', 'success')
-        setTimeout(() => { window.location.href = '/admin/' + slug + '/products' }, 500)
+        setTimeout(() => { window.location.href = '/admin/' + _slug + '/products' }, 500)
       }
       else (window as any).showToast?.('Delete failed', 'error')
     } catch { (window as any).showToast?.('Delete failed', 'error') }

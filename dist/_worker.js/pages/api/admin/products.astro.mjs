@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, p as products, d as desc } from '../../../chunks/db_DGDNi2yE.mjs';
 import { c as checkAdminAuth, g as generateId } from '../../../chunks/auth_B-iE9LmZ.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 const GET = async ({ request, locals }) => {
   if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });

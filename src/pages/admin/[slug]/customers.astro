@@ -27,13 +27,14 @@ if (!slug || slug !== getAdminSlug()) return Astro.redirect('/404')
   </div>
 </Admin>
 
-<script define:vars={{ slug }}>
+<script is:inline>
+  const _slug = window.location.pathname.split('/')[2]
   async function loadCustomers() {
     const token = localStorage.getItem('vkrama_admin_token')
-    if (!token) { window.location.href = '/admin/' + slug + '/login'; return }
+    if (!token) { window.location.href = '/admin/' + _slug + '/login'; return }
     try {
       const res = await fetch('/api/admin/customers', { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) })
-      if (res.status === 401) { window.location.href = '/admin/' + slug + '/login'; return }
+      if (res.status === 401) { window.location.href = '/admin/' + _slug + '/login'; return }
       const customers = await res.json()
       const container = document.getElementById('customers-table')!
       if (!Array.isArray(customers) || customers.length === 0) {

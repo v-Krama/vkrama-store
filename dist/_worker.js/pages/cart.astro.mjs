@@ -1,8 +1,8 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                     */
-import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_DFXjdrHI.mjs';
-import { $ as $$Base } from '../chunks/Base_K6G6gUWu.mjs';
-export { r as renderers } from '../chunks/_@astro-renderers_C3QtnHAK.mjs';
+import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_B3LaWqT_.mjs';
+import { $ as $$Base } from '../chunks/Base_GEixWMz0.mjs';
+export { r as renderers } from '../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 const $$Cart = createComponent(($$result, $$props, $$slots) => {
   return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": "Shopping Cart" }, { "default": ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container-page py-8"> <div class="max-w-4xl mx-auto"> <div class="flex items-center justify-between mb-8"> <div> <h1 class="text-2xl font-bold text-surface-900">Shopping Cart</h1> <p id="cart-count-label" class="text-sm text-surface-500 mt-1">Loading...</p> </div> <a href="/products" class="text-sm text-brand-600 hover:text-brand-700 font-medium">

@@ -2,7 +2,7 @@ globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, p as products, i as inArray } from '../../../chunks/db_DGDNi2yE.mjs';
 import { g as generateId } from '../../../chunks/auth_B-iE9LmZ.mjs';
 import { a as APP_NAME, b as APP_URL, C as CURRENCY } from '../../../chunks/constants_CD9_lEZx.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_Drbtiq9T.mjs';
 
 function formatPrice(cents) {
   return `Rs. ${(cents / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
