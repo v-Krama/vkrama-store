@@ -286,6 +286,7 @@ function ProductForm({ id }: { id?: string }) {
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState('')
   const [ready, setReady] = React.useState(!isEdit)
+  const [confirmDelete, setConfirmDelete] = React.useState(false)
 
   React.useEffect(() => {
     if (id) {
@@ -320,6 +321,15 @@ function ProductForm({ id }: { id?: string }) {
     } catch (e: any) { setError(e.message) } finally { setSaving(false) }
   }
 
+  const handleDelete = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setSaving(true); setError('')
+    try {
+      await api(`/products/${id}`, { method: 'DELETE' })
+      window.location.href = '/admin/products'
+    } catch (e: any) { setError(e.message); setConfirmDelete(false) } finally { setSaving(false) }
+  }
+
   if (!ready) return React.createElement(Spinner, null)
 
   const fields = [
@@ -352,9 +362,22 @@ function ProductForm({ id }: { id?: string }) {
             ['draft', 'active', 'archived'].map(s => React.createElement('option', { key: s, value: s }, s))
           )
         ),
-        React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: 24 } },
-          React.createElement('button', { type: 'submit', disabled: saving, style: btnS(true, saving) }, saving ? 'Saving...' : 'Save'),
-          React.createElement('a', { href: '/admin/products', style: btnS(false) }, 'Cancel')
+        React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: 24, justifyContent: 'space-between' } },
+          React.createElement('div', { style: { display: 'flex', gap: 12 } },
+            React.createElement('button', { type: 'submit', disabled: saving, style: btnS(true, saving) }, saving ? 'Saving...' : 'Save'),
+            React.createElement('a', { href: '/admin/products', style: btnS(false) }, 'Cancel')
+          ),
+          isEdit && React.createElement('button', {
+            type: 'button', disabled: saving,
+            onClick: handleDelete,
+            style: {
+              padding: '10px 20px', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
+              fontFamily: 'inherit', cursor: saving ? 'not-allowed' : 'pointer',
+              background: confirmDelete ? '#dc2626' : '#fff',
+              color: confirmDelete ? '#fff' : '#dc2626',
+              border: confirmDelete ? 'none' : '1px solid #fecaca'
+            }
+          }, confirmDelete ? 'Confirm Delete?' : 'Delete')
         )
       )
     )
