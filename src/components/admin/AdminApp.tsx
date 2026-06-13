@@ -1,6 +1,5 @@
 import React from 'react'
 import { Admin, Resource } from 'react-admin'
-import Typography from '@mui/material/Typography'
 
 const dataProvider = {
   getList: () => Promise.resolve({ data: [], total: 0 }),
@@ -22,29 +21,45 @@ const authProvider = {
   getPermissions: () => Promise.resolve(null),
 }
 
-function MyDashboard() {
-  return React.createElement('div', { style: { background: '#ff0000', color: 'white', padding: 40, fontSize: 24 } },
-    'DASHBOARD IS VISIBLE'
-  )
-}
-
-const MyLayout = ({ children }) => React.createElement('div', { style: { background: '#ff0', minHeight: '100vh', padding: 20 } },
-  React.createElement(Typography, { variant: 'h5', sx: { fontWeight: 700 } }, 'ADMIN HEADER'),
-  children
-)
-
 export default function AdminApp() {
-  return React.createElement('div', { style: { minHeight: '100vh' } },
-    React.createElement(Admin, {
-      basename: '/admin',
-      dataProvider,
-      authProvider,
-      requireAuth: false,
-      layout: MyLayout,
-      dashboard: MyDashboard,
-    },
-      React.createElement(Resource, { name: 'products', list: () => React.createElement('div', { style: { padding: 20 } }, 'PRODUCTS PAGE') }),
-      React.createElement(Resource, { name: 'orders', list: () => React.createElement('div', { style: { padding: 20 } }, 'ORDERS PAGE') }),
+  const [phase, setPhase] = React.useState('initial')
+  const [el, setEl] = React.useState<React.ReactNode>(null)
+
+  React.useEffect(() => {
+    setPhase('effect fired')
+    try {
+      const adminEl = React.createElement(Admin, {
+        basename: '/admin',
+        dataProvider,
+        authProvider,
+        requireAuth: false,
+        layout: ({ children }) => React.createElement('div', { style: { background: '#ff0000', minHeight: '100vh' } },
+          React.createElement('div', { style: { padding: 20, color: 'white', fontSize: 18 } }, 'LAYOUT RENDERED'),
+          children
+        ),
+      },
+        React.createElement(Resource, { name: 'products', list: () => React.createElement('div', { style: { padding: 20 } }, 'PRODUCTS PAGE') }),
+      )
+      setEl(adminEl)
+      setPhase('element created, triggering re-render')
+    } catch (e: any) {
+      setPhase('ERROR creating element: ' + e.message)
+    }
+  }, [])
+
+  if (phase.includes('ERROR')) {
+    return React.createElement('pre', { style: { color: 'red', padding: 40, fontFamily: 'monospace', background: '#fff', minHeight: '100vh' } }, phase)
+  }
+
+  if (!el) {
+    return React.createElement('div', { style: { padding: 40, background: '#ff0', minHeight: '100vh' } },
+      'Loading Admin... Phase: ' + phase
     )
-  )
+  }
+
+  try {
+    return el
+  } catch (e: any) {
+    return React.createElement('pre', { style: { color: 'red', padding: 40 } }, 'Render error: ' + e.message)
+  }
 }
