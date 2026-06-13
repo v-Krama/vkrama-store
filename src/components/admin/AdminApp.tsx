@@ -1,48 +1,41 @@
 import React from 'react'
-import { Admin, Resource, ListGuesser } from 'react-admin'
-
-const dataProvider = {
-  getList: (resource, params) => {
-    console.log('RA getList', resource, params)
-    return Promise.resolve({ data: [], total: 0 })
-  },
-  getOne: () => Promise.resolve({ data: { id: '1' } }),
-  getMany: (resource, ids) => Promise.resolve({ data: ids.map(id => ({ id })) }),
-  getManyReference: () => Promise.resolve({ data: [], total: 0 }),
-  create: () => Promise.resolve({ data: { id: 'new' } }),
-  update: () => Promise.resolve({ data: { id: '1' } }),
-  updateMany: () => Promise.resolve({ data: [] }),
-  delete: () => Promise.resolve({ data: { id: '1' } }),
-  deleteMany: () => Promise.resolve({ data: [] }),
-}
-
-const authProvider = {
-  login: () => Promise.resolve(),
-  logout: () => Promise.resolve(),
-  checkAuth: () => Promise.resolve(),
-  checkError: () => Promise.resolve(),
-  getPermissions: () => Promise.resolve(null),
-}
-
-const MyLayout = ({ children }) => React.createElement('div', {
-  style: { background: '#ff0000', color: 'white', padding: 40, minHeight: '100vh' }
-}, children)
+import { Admin, Resource } from 'react-admin'
+import { dataProvider } from './dataProvider'
+import { authProvider } from './authProvider'
+import Dashboard from './Dashboard'
+import { ProductList, ProductEdit, ProductCreate } from './resources/Products'
+import { CategoryList } from './resources/Categories'
+import { OrderList, OrderShow } from './resources/Orders'
+import { CustomerList } from './resources/Customers'
 
 export default function AdminApp() {
-  console.log('AdminApp render start')
-
-  const el = React.createElement('div', { style: { background: '#ff0000', minHeight: '100vh' } },
+  return React.createElement('div', { style: { minHeight: '100vh' } },
     React.createElement(Admin, {
       basename: '/admin',
       dataProvider,
       authProvider,
-      requireAuth: false,
-      layout: MyLayout,
+      requireAuth: true,
+      dashboard: Dashboard,
     },
-      React.createElement(Resource, { name: 'products', list: ListGuesser })
+      React.createElement(Resource, {
+        name: 'products',
+        list: ProductList,
+        edit: ProductEdit,
+        create: ProductCreate,
+      }),
+      React.createElement(Resource, {
+        name: 'categories',
+        list: CategoryList,
+      }),
+      React.createElement(Resource, {
+        name: 'orders',
+        list: OrderList,
+        show: OrderShow,
+      }),
+      React.createElement(Resource, {
+        name: 'customers',
+        list: CustomerList,
+      }),
     )
   )
-
-  console.log('AdminApp render done')
-  return el
 }

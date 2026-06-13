@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                        */
 import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../chunks/astro/server_Ce7Lw4RO.mjs';
-import { $ as $$Base } from '../../chunks/Base_BH4qti8X.mjs';
+import { $ as $$Base } from '../../chunks/Base_COq19l6H.mjs';
 export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const $$Register = createComponent(async ($$result, $$props, $$slots) => {
