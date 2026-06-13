@@ -20,9 +20,6 @@ function OrderQR({ imageUrl }) {
 }
 
 const $$Astro = createAstro("https://vkrama.com");
-async function getStaticPaths() {
-  return [];
-}
 const $$orderId = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
   Astro2.self = $$orderId;
@@ -56,7 +53,6 @@ const _page = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: $$orderId,
   file: $$file,
-  getStaticPaths,
   url: $$url
 }, Symbol.toStringTag, { value: 'Module' }));
 

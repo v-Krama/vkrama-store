@@ -1,15 +1,9 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as generateId, v as verifyToken } from '../../../chunks/auth_cYJQecgM.mjs';
+import { c as checkAdminAuth, g as generateId } from '../../../chunks/auth_C4GgaQbx.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
-async function checkAdmin(request) {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return false;
-  const payload = await verifyToken(auth.slice(7));
-  return !!payload && payload.userType === "admin";
-}
 const GET = async ({ request, locals }) => {
-  if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });
+  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 });
   try {
@@ -24,7 +18,7 @@ const GET = async ({ request, locals }) => {
   }
 };
 const POST = async ({ request, locals }) => {
-  if (!await checkAdmin(request)) return new Response("Unauthorized", { status: 401 });
+  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
   const { name } = await request.json();

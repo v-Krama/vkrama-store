@@ -1,8 +1,9 @@
 ---
 import '../../../styles/global.css'
+import { ADMIN_SLUG } from '../../../lib/constants'
 
 const { slug } = Astro.params
-if (!slug) return Astro.redirect('/404')
+if (!slug || slug !== ADMIN_SLUG) return Astro.redirect('/404')
 ---
 
 <!DOCTYPE html>

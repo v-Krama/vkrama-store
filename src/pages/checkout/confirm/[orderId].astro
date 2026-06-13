@@ -3,10 +3,6 @@ import Base from '../../../layouts/Base.astro'
 import OrderQR from '../../../components/payment/OrderQR.tsx'
 import { PAYMENT_QR_IMAGE_URL } from '../../../lib/payment'
 
-export async function getStaticPaths() {
-  return []
-}
-
 const orderId = Astro.params.orderId!
 let order: Record<string, any> | null = null
 let items: any[] = []

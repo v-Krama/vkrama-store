@@ -1,12 +1,9 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { v as verifyToken } from '../../../../chunks/auth_cYJQecgM.mjs';
+import { c as checkAdminAuth } from '../../../../chunks/auth_C4GgaQbx.mjs';
 export { r as renderers } from '../../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const DELETE = async ({ params, request, locals }) => {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload || payload.userType !== "admin") return new Response("Unauthorized", { status: 401 });
+  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response("Not found", { status: 404 });
   await env.DB.prepare("DELETE FROM product_categories WHERE category_id = ?").bind(params.id).run();

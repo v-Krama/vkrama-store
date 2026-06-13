@@ -1,13 +1,10 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as getDb, p as products, d as desc } from '../../../chunks/db_FAPdo79f.mjs';
-import { v as verifyToken, g as generateId } from '../../../chunks/auth_cYJQecgM.mjs';
+import { g as getDb, p as products, d as desc } from '../../../chunks/db_DGDNi2yE.mjs';
+import { c as checkAdminAuth, g as generateId } from '../../../chunks/auth_C4GgaQbx.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_C3QtnHAK.mjs';
 
 const GET = async ({ request, locals }) => {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload || payload.userType !== "admin") return new Response("Unauthorized", { status: 401 });
+  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 });
   try {
@@ -20,10 +17,7 @@ const GET = async ({ request, locals }) => {
   }
 };
 const POST = async ({ request, locals }) => {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload || payload.userType !== "admin") return new Response("Unauthorized", { status: 401 });
+  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
   try {

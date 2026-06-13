@@ -35,6 +35,7 @@ export default defineConfig({
     platformProxy: {
       enabled: true,
     },
+    session: false,
   }),
   integrations: [
     tailwind(),

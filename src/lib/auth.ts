@@ -69,3 +69,19 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash)
 }
+
+export async function checkAdminAuth(request: Request): Promise<boolean> {
+  const auth = request.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) return false
+  const payload = await verifyToken(auth.slice(7))
+  return !!payload && payload.userType === 'admin'
+}
+
+export function getEnv(key: string, fallback = ''): string {
+  if (typeof process !== 'undefined' && process.env?.[key]) return process.env[key]
+  if (typeof import.meta !== 'undefined') {
+    const meta = import.meta as any
+    if (meta.env?.[key]) return meta.env[key]
+  }
+  return fallback
+}

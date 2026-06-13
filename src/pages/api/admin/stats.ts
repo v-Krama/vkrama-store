@@ -1,11 +1,8 @@
 import type { APIRoute } from 'astro'
-import { verifyToken } from '../../../lib/auth'
+import { checkAdminAuth } from '../../../lib/auth'
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return new Response('Unauthorized', { status: 401 })
-  const payload = await verifyToken(auth.slice(7))
-  if (!payload || payload.userType !== 'admin') return new Response('Unauthorized', { status: 401 })
+  if (!(await checkAdminAuth(request))) return new Response('Unauthorized', { status: 401 })
 
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify({}), { status: 200 })

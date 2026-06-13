@@ -1,7 +1,9 @@
 ---
 import Admin from '../../../../layouts/Admin.astro'
+import { ADMIN_SLUG } from '../../../../lib/constants'
 
 const { slug } = Astro.params
+if (!slug || slug !== ADMIN_SLUG) return Astro.redirect('/404')
 ---
 
 <Admin title="Products">

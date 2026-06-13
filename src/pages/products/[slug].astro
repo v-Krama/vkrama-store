@@ -3,10 +3,6 @@ import Base from '../../layouts/Base.astro'
 import VariantSelector from '../../components/product/VariantSelector.tsx'
 import ProductGallery from '../../components/product/ProductGallery.tsx'
 
-export async function getStaticPaths() {
-  return []
-}
-
 const { slug } = Astro.params
 
 const product = await (async () => {
