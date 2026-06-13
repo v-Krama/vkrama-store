@@ -1,9 +1,6 @@
 import React from 'react'
 import { Admin, Resource } from 'react-admin'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
-
-const theme = createTheme()
 
 const dataProvider = {
   getList: () => Promise.resolve({ data: [], total: 0 }),
@@ -25,24 +22,29 @@ const authProvider = {
   getPermissions: () => Promise.resolve(null),
 }
 
-const MyLayout = ({ children }) => React.createElement('div', { style: { padding: 20, background: '#fff', minHeight: '100vh' } }, children)
+function MyDashboard() {
+  return React.createElement('div', { style: { background: '#ff0000', color: 'white', padding: 40, fontSize: 24 } },
+    'DASHBOARD IS VISIBLE'
+  )
+}
+
+const MyLayout = ({ children }) => React.createElement('div', { style: { background: '#ff0', minHeight: '100vh', padding: 20 } },
+  React.createElement(Typography, { variant: 'h5', sx: { fontWeight: 700 } }, 'ADMIN HEADER'),
+  children
+)
 
 export default function AdminApp() {
-  return React.createElement(ThemeProvider, { theme },
-    React.createElement('div', { style: { minHeight: '100vh' } },
-      React.createElement(Typography, { variant: 'h4', sx: { p: 2 } }, 'MUI outside RA works'),
-      React.createElement(Admin, {
-        basename: '/admin',
-        dataProvider,
-        authProvider,
-        requireAuth: false,
-        layout: MyLayout,
-      },
-        React.createElement(Resource, {
-          name: 'products',
-          list: () => React.createElement('div', null, 'Products content'),
-        }),
-      ),
+  return React.createElement('div', { style: { minHeight: '100vh' } },
+    React.createElement(Admin, {
+      basename: '/admin',
+      dataProvider,
+      authProvider,
+      requireAuth: false,
+      layout: MyLayout,
+      dashboard: MyDashboard,
+    },
+      React.createElement(Resource, { name: 'products', list: () => React.createElement('div', { style: { padding: 20 } }, 'PRODUCTS PAGE') }),
+      React.createElement(Resource, { name: 'orders', list: () => React.createElement('div', { style: { padding: 20 } }, 'ORDERS PAGE') }),
     )
   )
 }
