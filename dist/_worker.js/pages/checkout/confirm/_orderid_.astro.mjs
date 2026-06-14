@@ -1,9 +1,9 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                           */
-import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../../chunks/astro/server_Ce7Lw4RO.mjs';
-import { j as jsxRuntimeExports, $ as $$Base } from '../../../chunks/Base_CyiuoItI.mjs';
+import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../../chunks/astro/server_DUQEdt6X.mjs';
+import { j as jsxRuntimeExports, $ as $$Base } from '../../../chunks/Base_CGDZG_k5.mjs';
 import { a as formatPriceSimple, f as formatPrice } from '../../../chunks/format_B9LZfv3I.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 function OrderQR({ imageUrl }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-4", children: [

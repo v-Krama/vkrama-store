@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                        */
-import { e as createAstro, f as createComponent } from '../../chunks/astro/server_Ce7Lw4RO.mjs';
-export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
+import { e as createAstro, f as createComponent } from '../../chunks/astro/server_DUQEdt6X.mjs';
+export { r as renderers } from '../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const $$Astro = createAstro("https://vkrama.com");
 const $$Success = createComponent(($$result, $$props, $$slots) => {

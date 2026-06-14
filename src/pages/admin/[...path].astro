@@ -1,5 +1,17 @@
 ---
 import AdminApp from '../../components/admin/AdminApp'
+import '../../styles/global.css'
 ---
-
-<AdminApp client:only="react" />
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — vkrama</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <AdminApp client:only="react" />
+  </body>
+</html>

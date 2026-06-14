@@ -1,8 +1,8 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                     */
-import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_Ce7Lw4RO.mjs';
-import { $ as $$Base } from '../chunks/Base_CyiuoItI.mjs';
-export { r as renderers } from '../chunks/_@astro-renderers_CzUJxHa9.mjs';
+import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_DUQEdt6X.mjs';
+import { $ as $$Base } from '../chunks/Base_CGDZG_k5.mjs';
+export { r as renderers } from '../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const $$Index = createComponent(async ($$result, $$props, $$slots) => {
   return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": "Checkout" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container-page py-8"> <div class="max-w-4xl mx-auto"> <h1 class="text-2xl font-bold text-surface-900 mb-8">Checkout</h1> <div id="checkout-contents"> <div class="card p-8 text-center text-surface-500"> <div class="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>

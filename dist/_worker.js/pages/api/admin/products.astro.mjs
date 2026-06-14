@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, p as products, d as desc } from '../../../chunks/db_BOPxdIeH.mjs';
 import { g as getAuthUser, j as jsonError, s as sanitizeString, k as validatePrice, c as generateId } from '../../../chunks/validation_C3-TSEuz.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const GET = async ({ request, locals }) => {
   const env = locals.runtime?.env;

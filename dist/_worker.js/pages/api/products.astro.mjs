@@ -1,6 +1,6 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, d as desc, p as products, j as asc, b as categories, e as eq, a as productCategories, l as like, k as and } from '../../chunks/db_BOPxdIeH.mjs';
-export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
+export { r as renderers } from '../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const GET = async ({ request, locals }) => {
   const env = locals.runtime?.env;

@@ -2,7 +2,7 @@ globalThis.process ??= {}; globalThis.process.env ??= {};
 import { g as getDb, p as products, i as inArray } from '../../../chunks/db_BOPxdIeH.mjs';
 import { j as jsonError, g as getAuthUser, c as generateId, C as CURRENCY, b as jsonOk } from '../../../chunks/validation_C3-TSEuz.mjs';
 import { a as sendOrderConfirmationEmail } from '../../../chunks/email_CRMb01ci.mjs';
-export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
+export { r as renderers } from '../../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const POST = async ({ request, locals }) => {
   const env = locals.runtime?.env;
