@@ -1,17 +1,22 @@
 import { defineMiddleware } from 'astro:middleware'
 
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "frame-src 'self' https://js.stripe.com https://m.stripe.network",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://api.stripe.com https://m.stripe.network https://api.resend.com",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join('; ')
+function getCsp(env: Record<string, unknown> | undefined) {
+  const r2PublicUrl = env?.PUBLIC_R2_PUBLIC_URL as string | undefined
+  const r2Domain = r2PublicUrl ? new URL(r2PublicUrl).hostname : ""
+
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network https://static.cloudflareinsights.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "frame-src 'self' https://js.stripe.com https://m.stripe.network",
+    `img-src 'self' data: blob: https:${r2Domain ? ` ${r2Domain}` : ""}`,
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self' https://api.stripe.com https://m.stripe.network https://api.resend.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ")
+}
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const env = (context.locals as any).runtime?.env
@@ -35,7 +40,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   if (!context.url.pathname.startsWith('/api/')) {
-    securityHeaders['Content-Security-Policy'] = CSP
+    securityHeaders['Content-Security-Policy'] = getCsp(env)
     securityHeaders['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
   }
 

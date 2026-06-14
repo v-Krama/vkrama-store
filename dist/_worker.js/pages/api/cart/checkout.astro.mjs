@@ -1,7 +1,9 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as getDb, p as products, i as inArray } from '../../../chunks/db_BOPxdIeH.mjs';
-import { j as jsonError, g as getAuthUser, c as generateId, C as CURRENCY, b as jsonOk } from '../../../chunks/validation_C3-TSEuz.mjs';
-import { a as sendOrderConfirmationEmail } from '../../../chunks/email_CRMb01ci.mjs';
+import { g as getDb } from '../../../chunks/db_DcVNGvRk.mjs';
+import { p as products, f as productVariants, e as eq, J as inArray } from '../../../chunks/schema_na8qKZKe.mjs';
+import { g as getAuthUser, b as generateId } from '../../../chunks/auth_CxCLYHmj.mjs';
+import { T as TAX_RATE, d as SHIPPING_COST_CENTS, C as CURRENCY } from '../../../chunks/constants_GLW3iTdd.mjs';
+import { j as jsonError, a as jsonOk } from '../../../chunks/validation_DU1POphA.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const POST = async ({ request, locals }) => {
@@ -13,46 +15,66 @@ const POST = async ({ request, locals }) => {
   try {
     const body = await request.json().catch(() => null);
     if (!body) return jsonError(400, "Invalid request body");
-    const { items, paymentMethod, phone, shippingInfo } = body;
+    const { items, paymentMethod, phone, shippingInfo, billingInfo, couponCode, notes, isGift, giftNote } = body;
     if (!items || !Array.isArray(items) || items.length === 0) {
       return jsonError(400, "Cart is empty");
     }
     if (items.length > 50) return jsonError(400, "Too many items in cart");
-    const slugs = items.map((i) => String(i.slug).slice(0, 200));
-    const productRows = await db.select().from(products).where(inArray(products.slug, slugs)).all();
-    const productMap = new Map(productRows.map((p) => [p.slug, p]));
+    const variantIds = items.map((i) => String(i.variantId || i.slug).slice(0, 200));
+    const variantRows = await db.select({
+      id: productVariants.id,
+      productId: productVariants.productId,
+      name: productVariants.name,
+      priceCents: productVariants.priceCents,
+      compareAtPriceCents: productVariants.compareAtPriceCents,
+      stock: productVariants.stock,
+      imageUrl: productVariants.imageUrl,
+      sku: productVariants.sku,
+      productName: products.name,
+      productSlug: products.slug,
+      productStatus: products.status
+    }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(inArray(productVariants.id, variantIds)).all();
+    const variantMap = new Map(variantRows.map((v) => [v.id, v]));
     let subtotalCents = 0;
     const lineItems = [];
     for (const item of items) {
       const qty = Math.min(Math.max(1, Number(item.quantity) || 1), 100);
-      const p = productMap.get(item.slug);
-      if (!p || p.status !== "active") {
-        return jsonError(400, `Product not available: ${item.slug}`);
+      const v = variantMap.get(item.variantId);
+      if (!v || v.productStatus !== "active") {
+        return jsonError(400, `Product not available: ${item.variantId}`);
       }
-      if (p.stock < qty) {
-        return jsonError(400, `Insufficient stock for ${p.name}`);
+      if (v.stock < qty) {
+        return jsonError(400, `Insufficient stock for ${v.productName} (${v.name})`);
       }
+      const taxCents2 = Math.round(v.priceCents * TAX_RATE);
       lineItems.push({
-        name: item.variantName ? `${p.name} (${item.variantName})` : p.name,
+        orderItemId: generateId("oi"),
+        productId: v.productId,
+        variantId: v.id,
+        name: v.productName,
+        variantName: v.name,
+        sku: v.sku,
         quantity: qty,
-        priceCents: p.priceCents,
-        imageUrl: p.imageUrl || void 0,
-        slug: item.slug,
-        productId: p.id,
-        variantId: item.variantId || void 0,
-        variantName: item.variantName || void 0
+        priceCents: v.priceCents,
+        taxCents: taxCents2,
+        discountCents: 0,
+        weight: null,
+        imageUrl: v.imageUrl
       });
-      subtotalCents += p.priceCents * qty;
+      subtotalCents += v.priceCents * qty;
     }
     const orderId = generateId("ord");
-    const shippingCents = 0;
-    const taxCents = 0;
-    const totalCents = subtotalCents + shippingCents + taxCents;
+    const orderNumber = "VK-" + Date.now().toString(36).toUpperCase() + "-" + orderId.slice(-4).toUpperCase();
+    const shippingCents = SHIPPING_COST_CENTS;
+    const taxCents = lineItems.reduce((s, i) => s + i.taxCents * i.quantity, 0);
+    const discountCents = 0;
+    const totalCents = subtotalCents + shippingCents + taxCents - discountCents;
     const orderInsert = env.DB.prepare(
-      `INSERT INTO orders (id, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, total_cents, currency, payment_method, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO orders (id, order_number, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, discount_cents, total_cents, currency, payment_method, payment_status, shipping_cost_cents, coupon_code, gift_note, notes, ip_address, user_agent, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country, billing_name, billing_phone, billing_line1, billing_line2, billing_city, billing_state, billing_postal_code, billing_country, is_gift)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       orderId,
+      orderNumber,
       customer.id,
       customer.email,
       phone || null,
@@ -60,9 +82,17 @@ const POST = async ({ request, locals }) => {
       subtotalCents,
       shippingCents,
       taxCents,
+      discountCents,
       totalCents,
       CURRENCY,
       paymentMethod || "qr",
+      paymentMethod === "cash" ? "pending" : "pending",
+      shippingCents,
+      couponCode || null,
+      giftNote || null,
+      notes || null,
+      request.headers.get("CF-Connecting-IP") || null,
+      request.headers.get("User-Agent") || null,
       shippingInfo?.name || null,
       shippingInfo?.phone || null,
       shippingInfo?.line1 || null,
@@ -70,37 +100,78 @@ const POST = async ({ request, locals }) => {
       shippingInfo?.city || null,
       shippingInfo?.state || null,
       shippingInfo?.postalCode || null,
-      shippingInfo?.country || "NP"
+      shippingInfo?.country || "NP",
+      billingInfo?.name || shippingInfo?.name || null,
+      billingInfo?.phone || shippingInfo?.phone || null,
+      billingInfo?.line1 || shippingInfo?.line1 || null,
+      billingInfo?.line2 || shippingInfo?.line2 || null,
+      billingInfo?.city || shippingInfo?.city || null,
+      billingInfo?.state || shippingInfo?.state || null,
+      billingInfo?.postalCode || shippingInfo?.postalCode || null,
+      billingInfo?.country || shippingInfo?.country || "NP",
+      isGift ? 1 : 0
     );
-    const itemStatements = lineItems.map((item) => ({
-      insert: env.DB.prepare(
-        "INSERT INTO order_items (id, order_id, product_id, variant_id, name, variant_name, quantity, price_cents, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-      ).bind(generateId("oi"), orderId, item.productId, item.variantId || null, item.name, item.variantName || null, item.quantity, item.priceCents, item.imageUrl || null),
-      updateStock: env.DB.prepare(
-        "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?"
-      ).bind(item.quantity, item.productId, item.quantity)
-    }));
-    const batchOps = [orderInsert];
-    for (const s of itemStatements) {
-      batchOps.push(s.insert, s.updateStock);
-    }
+    const itemStatements = lineItems.map(
+      (item) => env.DB.prepare(
+        "INSERT INTO order_items (id, order_id, product_id, variant_id, name, variant_name, sku, quantity, price_cents, tax_cents, discount_cents, image_url, is_gift) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      ).bind(
+        item.orderItemId,
+        orderId,
+        item.productId,
+        item.variantId,
+        item.name,
+        item.variantName,
+        item.sku,
+        item.quantity,
+        item.priceCents,
+        item.taxCents,
+        item.discountCents,
+        item.imageUrl,
+        isGift ? 1 : 0
+      )
+    );
+    const stockStatements = lineItems.map(
+      (item) => env.DB.prepare("UPDATE product_variants SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(
+        item.quantity,
+        item.variantId,
+        item.quantity
+      )
+    );
+    const statusStatement = env.DB.prepare(
+      "INSERT INTO order_status_history (order_id, from_status, to_status, created_by) VALUES (?, NULL, ?, ?)"
+    ).bind(orderId, "pending", customer.id);
+    const batchOps = [orderInsert, statusStatement, ...itemStatements, ...stockStatements];
     const batchResults = await env.DB.batch(batchOps);
     const stockFailures = batchResults.filter(
-      (r, i) => i >= 2 && i % 2 === 0 && r.meta?.changes === 0
+      (r, i) => i >= 2 + itemStatements.length && r.meta?.changes === 0
     );
     if (stockFailures.length > 0) {
       await env.DB.batch(
         lineItems.map(
-          (item) => env.DB.prepare("UPDATE products SET stock = stock + ? WHERE id = ?").bind(item.quantity, item.productId)
+          (item) => env.DB.prepare("UPDATE product_variants SET stock = stock + ? WHERE id = ?").bind(
+            item.quantity,
+            item.variantId
+          )
         )
       );
       return jsonError(409, "Stock changed, please review your cart");
     }
-    if (customer.email) {
-      sendOrderConfirmationEmail({ email: customer.email, orderId, totalCents }).catch(() => {
-      });
-    }
-    return jsonOk({ orderId, totalCents, paymentMethod: paymentMethod || "qr" });
+    await env.ORDER_QUEUE.send({
+      type: "validate",
+      orderId
+    }).catch(() => {
+    });
+    await env.ORDER_QUEUE.send({
+      type: "send_confirmation",
+      orderId
+    }).catch(() => {
+    });
+    return jsonOk({
+      orderId,
+      orderNumber,
+      totalCents,
+      paymentMethod: paymentMethod || "qr"
+    });
   } catch (err) {
     console.error("Checkout error:", err);
     return jsonError(500, "Checkout failed. Please try again.");

@@ -1,20 +1,24 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { e as defineMiddleware, s as sequence } from './chunks/render-context_BfDKVjNX.mjs';
-import './chunks/astro-designed-error-pages_jGJrgUtJ.mjs';
+import { e as defineMiddleware, s as sequence } from './chunks/render-context_Bap5jD-e.mjs';
+import './chunks/astro-designed-error-pages_kM9Gkwsq.mjs';
 import './chunks/astro/server_DUQEdt6X.mjs';
 
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "frame-src 'self' https://js.stripe.com https://m.stripe.network",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://api.stripe.com https://m.stripe.network https://api.resend.com",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'"
-].join("; ");
+function getCsp(env) {
+  const r2PublicUrl = env?.PUBLIC_R2_PUBLIC_URL;
+  const r2Domain = r2PublicUrl ? new URL(r2PublicUrl).hostname : "";
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network https://static.cloudflareinsights.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "frame-src 'self' https://js.stripe.com https://m.stripe.network",
+    `img-src 'self' data: blob: https:${r2Domain ? ` ${r2Domain}` : ""}`,
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self' https://api.stripe.com https://m.stripe.network https://api.resend.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ].join("; ");
+}
 const onRequest$2 = defineMiddleware(async (context, next) => {
   const env = context.locals.runtime?.env;
   if (env) {
@@ -33,7 +37,7 @@ const onRequest$2 = defineMiddleware(async (context, next) => {
     "X-XSS-Protection": "1; mode=block"
   };
   if (!context.url.pathname.startsWith("/api/")) {
-    securityHeaders["Content-Security-Policy"] = CSP;
+    securityHeaders["Content-Security-Policy"] = getCsp(env);
     securityHeaders["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
   }
   for (const [key, value] of Object.entries(securityHeaders)) {

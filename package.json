@@ -1,5 +1,5 @@
 {
-  "name": "vkrama-store",
+  "name": "vkrama",
   "private": true,
   "version": "2.0.0",
   "type": "module",
@@ -9,8 +9,11 @@
     "preview": "wrangler pages dev dist",
     "deploy": "astro build && wrangler pages deploy dist",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply vkrama-db",
-    "db:seed": "wrangler d1 execute vkrama-db --file=./src/db/seed.sql"
+    "db:migrate": "wrangler d1 execute vkrama-db --remote --file=./src/db/migrations/0000_public_maginty.sql",
+    "db:seed": "wrangler d1 execute vkrama-db --remote --file=./src/db/seed.sql",
+    "types": "wrangler types",
+    "cf:tail": "wrangler tail",
+    "cf:logs": "wrangler pages deployment list --project-name vkrama"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.2.0",

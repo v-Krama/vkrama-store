@@ -1,7 +1,7 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                     */
 import { f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_DUQEdt6X.mjs';
-import { $ as $$Base } from '../chunks/Base_CGDZG_k5.mjs';
+import { $ as $$Base } from '../chunks/Base_LuIWtNvf.mjs';
 export { r as renderers } from '../chunks/_@astro-renderers_eNrc7DJ3.mjs';
 
 const $$Search = createComponent(async ($$result, $$props, $$slots) => {

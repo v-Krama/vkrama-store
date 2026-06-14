@@ -1,9 +1,15 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                           */
 import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../../chunks/astro/server_DUQEdt6X.mjs';
-import { j as jsxRuntimeExports, $ as $$Base } from '../../../chunks/Base_CGDZG_k5.mjs';
-import { a as formatPriceSimple, f as formatPrice } from '../../../chunks/format_B9LZfv3I.mjs';
+import { j as jsxRuntimeExports, $ as $$Base } from '../../../chunks/Base_LuIWtNvf.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
+
+function formatPrice(cents) {
+  return `Rs. ${(cents / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+function formatPriceSimple(cents) {
+  return `Rs. ${(cents / 100).toFixed(2)}`;
+}
 
 function OrderQR({ imageUrl }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-4", children: [
@@ -21,7 +27,7 @@ function OrderQR({ imageUrl }) {
 
 const PAYMENT_QR_IMAGE_URL = "/images/sample-qr.svg";
 
-const $$Astro = createAstro("https://vkrama.com");
+const $$Astro = createAstro("https://vkrama.com.np");
 const $$orderId = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
   Astro2.self = $$orderId;

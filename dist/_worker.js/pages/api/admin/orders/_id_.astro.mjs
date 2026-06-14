@@ -1,7 +1,67 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { j as jsonError, g as getAuthUser } from '../../../../chunks/validation_C3-TSEuz.mjs';
-import { s as sendShippingUpdateEmail } from '../../../../chunks/email_CRMb01ci.mjs';
+import { g as getAuthUser } from '../../../../chunks/auth_CxCLYHmj.mjs';
+import { j as jsonError } from '../../../../chunks/validation_DU1POphA.mjs';
+import { A as APP_NAME, a as APP_URL } from '../../../../chunks/constants_GLW3iTdd.mjs';
 export { r as renderers } from '../../../../chunks/_@astro-renderers_eNrc7DJ3.mjs';
+
+const resendKey = "re_placeholder";
+async function sendEmail({ to, subject, html }) {
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: `${APP_NAME} <orders@${"vkrama.com.np"}>`,
+        to,
+        subject,
+        html
+      })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+const baseStyles = `
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f8fafc; }
+  .container { max-width: 600px; margin: 0 auto; padding: 32px 24px; }
+  .header { text-align: center; padding: 32px 0; }
+  .logo { font-size: 28px; font-weight: 800; color: #2563EB; letter-spacing: -0.5px; }
+  .card { background: white; border-radius: 16px; padding: 32px; border: 1px solid #e2e8f0; }
+  .btn { display: inline-block; background: #2563EB; color: white; padding: 12px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 15px; }
+  .footer { text-align: center; padding: 24px; color: #94a3b8; font-size: 13px; }
+`;
+function sendShippingUpdateEmail(params) {
+  const statusLabels = {
+    processing: "is being processed",
+    shipped: "has been shipped",
+    delivered: "has been delivered"
+  };
+  return sendEmail({
+    to: params.email,
+    subject: `Order Update #${params.orderId.slice(-8)} — ${APP_NAME}`,
+    html: `
+      <html><head><style>${baseStyles}</style></head><body>
+        <div class="container">
+          <div class="header"><div class="logo">${APP_NAME}</div></div>
+          <div class="card">
+            <h1 style="margin:0 0 8px; font-size:24px; color:#111827;">Order Update</h1>
+            <p style="color:#64748b; margin:0 0 24px;">Your order #${params.orderId.slice(-8)} ${statusLabels[params.status] || "has been updated"}.</p>
+            <div style="text-align:center;">
+              <a href="${APP_URL}/account/orders/${params.orderId}" class="btn">View Order</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>${APP_NAME}</p>
+          </div>
+        </div>
+      </body></html>
+    `
+  });
+}
 
 const VALID_TRANSITIONS = {
   pending: ["paid", "cancelled"],

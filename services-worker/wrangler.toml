@@ -1,0 +1,57 @@
+name = "vkrama-services"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "vkrama-db"
+database_id = "b8665214-d54a-41e3-a392-ea536c4d1188"
+
+# R2
+[[r2_buckets]]
+binding = "R2_STORE"
+bucket_name = "vkrama-assets"
+
+# KV
+[[kv_namespaces]]
+binding = "CACHE"
+id = "b5cb9dd451db4a6fb595fed867a8f3a7"
+
+# AI
+[ai]
+binding = "AI"
+
+# Durable Objects
+[[durable_objects.bindings]]
+name = "CART_DO"
+class_name = "CartDO"
+
+[[durable_objects.bindings]]
+name = "INVENTORY_DO"
+class_name = "InventoryDO"
+
+[[durable_objects.bindings]]
+name = "NOTIFICATION_DO"
+class_name = "NotificationDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CartDO", "InventoryDO", "NotificationDO"]
+
+# Queue Consumers — async processing
+[[queues.consumers]]
+queue = "vkrama-order-processor"
+max_batch_size = 10
+max_batch_timeout = 30
+
+[[queues.consumers]]
+queue = "vkrama-email"
+max_batch_size = 50
+max_batch_timeout = 10
+
+[[queues.consumers]]
+queue = "vkrama-analytics"
+max_batch_size = 100
+max_batch_timeout = 5

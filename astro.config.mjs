@@ -29,7 +29,7 @@ const messageChannelPolyfill = `if (typeof globalThis.MessageChannel === 'undefi
 }`
 
 export default defineConfig({
-  site: 'https://vkrama.com',
+  site: 'https://vkrama.com.np',
   output: 'server',
   adapter: cloudflare({
     platformProxy: {

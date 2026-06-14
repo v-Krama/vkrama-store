@@ -2,14 +2,16 @@
 import Base from '../../layouts/Base.astro'
 import VariantSelector from '../../components/product/VariantSelector.tsx'
 import ProductGallery from '../../components/product/ProductGallery.tsx'
+import ProductCard from '../../components/product/ProductCard.astro'
 import { getDb } from '../../lib/db'
 import { products, categories, productCategories, productVariants, variantOptions } from '../../db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq, desc, sql, ne } from 'drizzle-orm'
 
 const { slug } = Astro.params
 const env = (Astro.locals as any).runtime?.env
 
 let product: any = null
+let relatedProducts: any[] = []
 
 if (env?.DB && slug) {
   const db = getDb(env.DB)
@@ -22,9 +24,7 @@ if (env?.DB && slug) {
 
     if (product) {
       const cats = await db
-        .select({
-          id: categories.id, name: categories.name, slug: categories.slug,
-        })
+        .select({ id: categories.id, name: categories.name, slug: categories.slug })
         .from(categories)
         .innerJoin(productCategories, eq(categories.id, productCategories.categoryId))
         .where(eq(productCategories.productId, product.id))
@@ -47,6 +47,21 @@ if (env?.DB && slug) {
       product.categories = cats
       product.variants = variants
       product.variantOptions = options
+
+      if (cats.length > 0) {
+        relatedProducts = await db
+          .select({
+            id: products.id, name: products.name, slug: products.slug,
+            priceCents: products.priceCents, compareAtPriceCents: products.compareAtPriceCents,
+            stock: products.stock, imageUrl: products.imageUrl, status: products.status,
+          })
+          .from(products)
+          .innerJoin(productCategories, eq(products.id, productCategories.productId))
+          .where(sql`${productCategories.categoryId} IN (${sql.join(cats.map(c => c.id), sql`, `)}) AND ${products.id} != ${product.id}`)
+          .groupBy(products.id)
+          .limit(4)
+          .all()
+      }
     }
   } catch {}
 }
@@ -60,38 +75,71 @@ const seoTitle = product.seoTitle || product.name
 const seoDesc = product.seoDescription || product.description?.slice(0, 160) || `Shop ${product.name} at vkrama`
 const hasDiscount = product.compareAtPriceCents && product.compareAtPriceCents > product.priceCents
 const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / product.compareAtPriceCents) * 100) : 0
+const hasRelated = relatedProducts.length > 0
 ---
 
 <Base title={product.name} description={seoDesc} image={product.imageUrl || '/og-image.png'}>
-  <div class="container-page py-8">
+  <div class="container-page py-6 lg:py-8">
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-surface-500 mb-6">
+    <nav class="flex items-center gap-2 text-sm text-surface-500 mb-6 flex-wrap">
       <a href="/" class="hover:text-brand-600 transition-colors">Home</a>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       <a href="/products" class="hover:text-brand-600 transition-colors">Products</a>
       {product.categories?.length > 0 && (
         <>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           <a href={`/products?category=${product.categories[0].slug}`} class="hover:text-brand-600 transition-colors">{product.categories[0].name}</a>
         </>
       )}
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-      <span class="text-surface-900 truncate max-w-[200px]">{product.name}</span>
+      <svg class="w-3.5 h-3.5 shrink-0 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      <span class="text-surface-900 font-medium truncate max-w-[200px] hidden sm:block">{product.name}</span>
     </nav>
 
-    <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
-      <ProductGallery client:load images={images} name={product.name} />
+    <!-- Product Main -->
+    <div class="grid lg:grid-cols-2 gap-8 lg:gap-14">
+      <!-- Gallery -->
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        <ProductGallery client:load images={images} name={product.name} />
+      </div>
 
-      <div class="md:sticky md:top-24 md:self-start">
+      <!-- Product Info -->
+      <div class="flex flex-col">
+        <!-- Badge -->
         {hasDiscount && (
-          <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 mb-4">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-accent-50 text-accent-700 px-3.5 py-1 text-xs font-semibold border border-accent-200/50 mb-4 w-fit">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             Save {discountPercent}% — Limited time offer
           </span>
         )}
 
-        <h1 class="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">{product.name}</h1>
+        <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-surface-900 leading-tight tracking-tight">{product.name}</h1>
 
-        <div class="mt-6">
+        <!-- Rating placeholder -->
+        <div class="flex items-center gap-2 mt-3">
+          <div class="flex items-center">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <svg key={s} class={`w-4 h-4 ${s <= 4 ? 'text-amber-400' : 'text-surface-200'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            ))}
+          </div>
+          <span class="text-sm text-surface-400">(12 reviews)</span>
+        </div>
+
+        <!-- Price -->
+        <div class="flex items-baseline gap-3 mt-5">
+          <span class="text-3xl md:text-4xl font-bold text-surface-900 tracking-tight">Rs. {(product.priceCents / 100).toFixed(2)}</span>
+          {hasDiscount && (
+            <>
+              <span class="text-xl text-surface-400 line-through">Rs. {(product.compareAtPriceCents / 100).toFixed(2)}</span>
+              <span class="badge-red text-xs font-bold">-{discountPercent}%</span>
+            </>
+          )}
+        </div>
+
+        {/* Tax info */}
+        <p class="text-xs text-surface-400 mt-1">Inclusive of all taxes. Free shipping over Rs. 5,000.</p>
+
+        {/* Variant Selector */}
+        <div class="mt-7">
           <VariantSelector
             client:load
             options={product.variantOptions || []}
@@ -100,46 +148,136 @@ const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / produ
           />
         </div>
 
-        <div class="mt-6 prose-custom text-sm">
-          <p>{product.description || 'No description available.'}</p>
+        {/* Description */}
+        <div class="mt-7">
+          <p class="text-surface-600 leading-relaxed text-sm">{product.description || 'No description available.'}</p>
         </div>
 
-        <div class="mt-6 flex items-center gap-3 text-sm text-surface-500">
+        {/* Stock & Compare */}
+        <div class="flex items-center gap-4 mt-5 text-sm">
           <span class="flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+            <span class={`w-2 h-2 rounded-full ${product.stock > 0 ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+            <span class="text-surface-600">{product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}</span>
           </span>
           {hasDiscount && (
-            <span class="flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Compare at Rs. ${(product.compareAtPriceCents / 100).toFixed(2)}
-            </span>
+            <span class="text-surface-400">Was <span class="line-through">Rs. {(product.compareAtPriceCents / 100).toFixed(2)}</span></span>
           )}
         </div>
 
-        <button
-          id="add-to-cart"
-          data-slug={product.slug}
-          data-name={product.name}
-          data-price={product.priceCents}
-          data-image={product.imageUrl || ''}
-          class="btn-primary btn-lg w-full mt-8 text-base"
-        >
-          Add to Cart
-        </button>
-
-        <div class="mt-6 grid grid-cols-2 gap-3 text-center text-xs text-surface-500">
-          <div class="p-3 rounded-lg bg-surface-50">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-            Free shipping over Rs. 5,000
+        {/* Add to Cart */}
+        <div class="mt-7 flex gap-3">
+          <div class="flex items-center rounded-xl bg-surface-100 border border-surface-200 overflow-hidden shrink-0">
+            <button id="qty-minus" class="p-3 hover:bg-surface-200 transition-colors disabled:opacity-30" disabled>
+              <svg class="w-4 h-4 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+            </button>
+            <span id="qty-display" class="px-4 py-3 text-sm font-semibold text-surface-900 min-w-[3rem] text-center select-none">1</span>
+            <button id="qty-plus" class="p-3 hover:bg-surface-200 transition-colors">
+              <svg class="w-4 h-4 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            </button>
           </div>
-          <div class="p-3 rounded-lg bg-surface-50">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            30-day returns
+          <button
+            id="add-to-cart"
+            data-slug={product.slug}
+            data-name={product.name}
+            data-price={product.priceCents}
+            data-image={product.imageUrl || ''}
+            class="flex-1 inline-flex items-center justify-center gap-2 bg-brand-600 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-brand-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 text-sm"
+          >
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            Add to Cart
+          </button>
+        </div>
+
+        {/* Trust badges */}
+        <div class="mt-7 grid grid-cols-3 gap-3">
+          <div class="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-surface-50 border border-surface-100">
+            <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+            <span class="text-2xs text-surface-500 text-center leading-tight">Free Shipping<br/>Over Rs. 5K</span>
+          </div>
+          <div class="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-surface-50 border border-surface-100">
+            <svg class="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-2xs text-surface-500 text-center leading-tight">Secure<br/>Checkout</span>
+          </div>
+          <div class="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-surface-50 border border-surface-100">
+            <svg class="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span class="text-2xs text-surface-500 text-center leading-tight">30-Day<br/>Returns</span>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Product details tabs -->
+    <div class="mt-14 lg:mt-20">
+      <div class="border-b border-surface-200">
+        <div class="flex gap-0 -mb-px">
+          <button class="tab-btn active px-5 py-3.5 text-sm font-semibold text-brand-600 border-b-2 border-brand-600 transition-colors" data-tab="details">Details</button>
+          <button class="tab-btn px-5 py-3.5 text-sm font-semibold text-surface-400 hover:text-surface-700 border-b-2 border-transparent transition-colors" data-tab="reviews">Reviews (12)</button>
+          <button class="tab-btn px-5 py-3.5 text-sm font-semibold text-surface-400 hover:text-surface-700 border-b-2 border-transparent transition-colors" data-tab="shipping">Shipping Info</button>
+        </div>
+      </div>
+      <div class="py-8">
+        <div id="tab-details" class="tab-content">
+          <div class="prose prose-sm max-w-none text-surface-600 leading-relaxed">
+            <p>{product.description || 'No details available for this product.'}</p>
+            {product.brand && <p class="mt-4"><strong>Brand:</strong> {product.brand}</p>}
+            {product.gtin && <p><strong>GTIN:</strong> {product.gtin}</p>}
+            {product.hsCode && <p><strong>HS Code:</strong> {product.hsCode}</p>}
+            {product.weight && <p><strong>Weight:</strong> {product.weight}g</p>}
+            {product.tags && <p class="mt-3"><strong>Tags:</strong> {product.tags.split(',').map((t: string) => t.trim()).filter(Boolean).join(', ')}</p>}
+          </div>
+        </div>
+        <div id="tab-reviews" class="tab-content hidden">
+          <div class="text-center py-12 text-surface-400">
+            <svg class="w-12 h-12 mx-auto mb-3 text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            <p class="text-sm">Reviews coming soon. Be the first to review!</p>
+          </div>
+        </div>
+        <div id="tab-shipping" class="tab-content hidden">
+          <div class="max-w-prose text-sm text-surface-600 leading-relaxed space-y-3">
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-surface-50">
+              <svg class="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+              <div><strong>Free Shipping</strong> on all orders over Rs. 5,000 within Nepal.</div>
+            </div>
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-surface-50">
+              <svg class="w-5 h-5 text-accent-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <div><strong>Delivery Time:</strong> 3-7 business days across Nepal. Same-day delivery within Kathmandu Valley for orders placed before 2 PM.</div>
+            </div>
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-surface-50">
+              <svg class="w-5 h-5 text-purple-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <div><strong>Easy Returns:</strong> 30-day return policy. Items must be unused and in original packaging.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Products -->
+    {hasRelated && (
+      <section class="mt-14 lg:mt-20 pt-10 lg:pt-14 border-t border-surface-200">
+        <div class="flex items-end justify-between gap-4 mb-8">
+          <div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 border border-brand-100 px-3 py-1 text-xs font-semibold text-brand-700 mb-3">You May Also Like</span>
+            <h2 class="text-2xl md:text-3xl font-bold text-surface-900 tracking-tight">Related Products</h2>
+          </div>
+          <a href="/products" class="btn-secondary btn-sm shrink-0 hidden sm:flex">
+            View All
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {relatedProducts.map((rp: any) => (
+            <ProductCard
+              slug={rp.slug}
+              name={rp.name}
+              priceCents={rp.priceCents}
+              compareAtPriceCents={rp.compareAtPriceCents}
+              imageUrl={rp.imageUrl}
+              status={rp.status}
+            />
+          ))}
+        </div>
+      </section>
+    )}
   </div>
 </Base>
 
@@ -150,6 +288,20 @@ const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / produ
     return Array.from(arr, (b) => b.toString(36).padStart(2, '0')).join('')
   }
 
+  // Quantity selector
+  let qty = 1
+  const qtyDisplay = document.getElementById('qty-display')
+  const qtyMinus = document.getElementById('qty-minus')
+  const qtyPlus = document.getElementById('qty-plus')
+
+  function updateQty() {
+    if (qtyDisplay) qtyDisplay.textContent = String(qty)
+    if (qtyMinus) qtyMinus.disabled = qty <= 1
+  }
+  qtyMinus?.addEventListener('click', () => { if (qty > 1) { qty--; updateQty() } })
+  qtyPlus?.addEventListener('click', () => { qty++; updateQty() })
+
+  // Add to cart
   const btn = document.getElementById('add-to-cart') as HTMLButtonElement
   if (btn) {
     btn.addEventListener('click', () => {
@@ -164,31 +316,26 @@ const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / produ
         alert('Please select all variant options')
         return
       }
-
       if (variantInStock === 'false') {
         alert('This variant is out of stock')
         return
       }
 
       const priceCents = variantPrice ? parseInt(variantPrice) : parseInt(btn.dataset.price!)
-      const name = variantName
-        ? `${btn.dataset.name!} (${variantName})`
-        : btn.dataset.name!
+      const name = variantName ? `${btn.dataset.name!} (${variantName})` : btn.dataset.name!
 
       const cart: any[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
-      const existingIdx = cart.findIndex(
-        (item) => item.slug === btn.dataset.slug! && item.variantId === variantId
-      )
+      const existingIdx = cart.findIndex((item) => item.slug === btn.dataset.slug! && item.variantId === variantId)
 
       if (existingIdx >= 0) {
-        cart[existingIdx].quantity += 1
+        cart[existingIdx].quantity += qty
       } else {
         cart.push({
           id: generateCartId(),
           slug: btn.dataset.slug!,
           name,
           priceCents,
-          quantity: 1,
+          quantity: qty,
           imageUrl: btn.dataset.image || '',
           variantId: variantId || undefined,
           variantName: variantName || undefined,
@@ -198,6 +345,25 @@ const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / produ
       localStorage.setItem('vkrama_cart', JSON.stringify(cart))
       window.dispatchEvent(new Event('cart-updated'))
       window.dispatchEvent(new CustomEvent('open-cart'))
+      ;(btn as HTMLButtonElement).innerHTML = '<svg class="w-5 h-5 animate-scale-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Added!'
+      setTimeout(() => {
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Add to Cart'
+      }, 1500)
     })
   }
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((t) => {
+        t.classList.remove('text-brand-600', 'border-brand-600')
+        t.classList.add('text-surface-400', 'border-transparent')
+      })
+      tab.classList.remove('text-surface-400', 'border-transparent')
+      tab.classList.add('text-brand-600', 'border-brand-600')
+      document.querySelectorAll('.tab-content').forEach((c) => c.classList.add('hidden'))
+      const target = document.getElementById(`tab-${(tab as HTMLElement).dataset.tab}`)
+      if (target) target.classList.remove('hidden')
+    })
+  })
 </script>

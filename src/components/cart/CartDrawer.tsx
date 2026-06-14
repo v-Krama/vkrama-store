@@ -1,73 +1,204 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from "react"
 
 interface CartItem {
-  id: string
-  slug: string
+  variantId: string
+  productId: string
   name: string
+  variantName: string | null
+  imageUrl: string | null
   priceCents: number
   quantity: number
-  imageUrl: string
-  variantId?: string
-  variantName?: string
+  maxQuantity: number | null
+  sku: string | null
+}
+
+interface CartState {
+  items: CartItem[]
+  customerId: string | null
+  sessionId: string
+  couponCode: string | null
+  updatedAt: number
+}
+
+const CART_COOKIE = "vkrama_cart_id"
+
+function getAuthToken(): string | null {
+  return localStorage.getItem("vkrama_token")
+}
+
+function getSessionId(): string {
+  let id = localStorage.getItem("vkrama_session_id")
+  if (!id) {
+    id = "sess_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+    localStorage.setItem("vkrama_session_id", id)
+  }
+  return id
+}
+
+async function api(path: string, options?: RequestInit): Promise<any> {
+  const token = getAuthToken()
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Cart-Session": getSessionId(),
+  }
+  if (token) headers["Authorization"] = `Bearer ${token}`
+  const res = await fetch(path, { ...options, headers })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Request failed" }))
+    throw new Error(err.error || "Request failed")
+  }
+  return res.json()
 }
 
 export default function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false)
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartState | null>(null)
   const [animating, setAnimating] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
+  const [usingServerCart, setUsingServerCart] = useState(!!getAuthToken())
+  const [localItems, setLocalItems] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
+    } catch {
+      return []
+    }
+  })
+  const [error, setError] = useState("")
+  const mounted = useRef(true)
 
-  const loadCart = useCallback(() => {
-    setCart(JSON.parse(localStorage.getItem('vkrama_cart') || '[]'))
-  }, [])
+  const token = getAuthToken()
+
+  const loadCart = useCallback(async () => {
+    if (token) {
+      setUsingServerCart(true)
+      setLoading(true)
+      try {
+        const data = await api("/api/cart")
+        setCart(data)
+        setLocalItems([])
+      } catch {
+        setUsingServerCart(false)
+        loadLocalCart()
+      } finally {
+        setLoading(false)
+      }
+    } else {
+      setUsingServerCart(false)
+      loadLocalCart()
+    }
+  }, [token])
+
+  function loadLocalCart() {
+    try {
+      const items = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
+      setLocalItems(items)
+    } catch {
+      setLocalItems([])
+    }
+  }
 
   useEffect(() => {
     loadCart()
-    const handler = () => loadCart()
-    window.addEventListener('cart-updated', handler)
-    window.addEventListener('storage', handler)
+
+    const handler = () => {
+      if (!getAuthToken()) loadLocalCart()
+    }
+    window.addEventListener("cart-updated", handler)
+    window.addEventListener("storage", handler)
 
     const openHandler = () => setIsOpen(true)
-    window.addEventListener('open-cart', openHandler)
+    window.addEventListener("open-cart", openHandler)
+
+    const loginHandler = async () => {
+      const token = getAuthToken()
+      if (token) {
+        setUsingServerCart(true)
+        const local = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
+        if (local.length > 0) {
+          try {
+            await api("/api/cart/merge", {
+              method: "POST",
+              body: JSON.stringify({ sessionItems: local }),
+            })
+            localStorage.removeItem("vkrama_cart")
+          } catch {}
+        }
+        loadCart()
+      }
+    }
+    window.addEventListener("user-logged-in", loginHandler)
 
     return () => {
-      window.removeEventListener('cart-updated', handler)
-      window.removeEventListener('storage', handler)
-      window.removeEventListener('open-cart', openHandler)
+      mounted.current = false
+      window.removeEventListener("cart-updated", handler)
+      window.removeEventListener("storage", handler)
+      window.removeEventListener("open-cart", openHandler)
+      window.removeEventListener("user-logged-in", loginHandler)
     }
   }, [loadCart])
 
   function close() {
     setAnimating(true)
     setTimeout(() => {
-      setIsOpen(false)
-      setAnimating(false)
+      if (mounted.current) {
+        setIsOpen(false)
+        setAnimating(false)
+      }
     }, 200)
   }
 
-  function updateQty(id: string, delta: number) {
-    const newCart = [...cart]
-    const item = newCart.find((i) => i.id === id)
-    if (!item) return
-    item.quantity += delta
-    if (item.quantity <= 0) {
-      const idx = newCart.indexOf(item)
-      newCart.splice(idx, 1)
+  async function updateQty(variantId: string, delta: number) {
+    setError("")
+    if (usingServerCart && token) {
+      try {
+        const action = delta > 0 ? "increment" : "decrement"
+        const data = await api("/api/cart/update", {
+          method: "POST",
+          body: JSON.stringify({ variantId, action }),
+        })
+        setCart(data)
+      } catch (e: any) {
+        setError(e.message)
+      }
+    } else {
+      const newItems = [...localItems]
+      const item = newItems.find((i: any) => i.variantId === variantId)
+      if (!item) return
+      item.quantity += delta
+      if (item.quantity <= 0) {
+        const idx = newItems.indexOf(item)
+        newItems.splice(idx, 1)
+      }
+      setLocalItems(newItems)
+      localStorage.setItem("vkrama_cart", JSON.stringify(newItems))
+      window.dispatchEvent(new Event("cart-updated"))
     }
-    setCart(newCart)
-    localStorage.setItem('vkrama_cart', JSON.stringify(newCart))
-    window.dispatchEvent(new Event('cart-updated'))
   }
 
-  function removeItem(id: string) {
-    const newCart = cart.filter((i) => i.id !== id)
-    setCart(newCart)
-    localStorage.setItem('vkrama_cart', JSON.stringify(newCart))
-    window.dispatchEvent(new Event('cart-updated'))
+  async function removeItem(variantId: string) {
+    setError("")
+    if (usingServerCart && token) {
+      try {
+        const data = await api("/api/cart/update", {
+          method: "POST",
+          body: JSON.stringify({ variantId, action: "remove" }),
+        })
+        setCart(data)
+      } catch (e: any) {
+        setError(e.message)
+      }
+    } else {
+      const newItems = localItems.filter((i: any) => i.variantId !== variantId)
+      setLocalItems(newItems)
+      localStorage.setItem("vkrama_cart", JSON.stringify(newItems))
+      window.dispatchEvent(new Event("cart-updated"))
+    }
   }
 
-  const total = cart.reduce((sum, item) => sum + item.priceCents * item.quantity, 0)
-  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const items = usingServerCart && cart ? cart.items : localItems
+  const total = items.reduce((sum: number, item: any) => sum + item.priceCents * item.quantity, 0)
+  const itemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0)
 
   if (!isOpen && !animating) return null
 
@@ -79,39 +210,44 @@ export default function CartDrawer() {
         onClick={close}
       />
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col transition-transform duration-200 ${animating ? 'translate-x-full' : 'translate-x-0'}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col transition-transform duration-200 ${animating ? "translate-x-full" : "translate-x-0"}`}
       >
         <div className="flex items-center justify-between px-4 py-4 border-b border-surface-200">
           <div>
             <h2 className="text-lg font-semibold text-surface-900">Shopping Cart</h2>
-            <p className="text-sm text-surface-500">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-surface-500">
+              {loading ? "Loading..." : `${itemCount} item${itemCount !== 1 ? "s" : ""}`}
+            </p>
           </div>
           <button onClick={close} className="btn-ghost btn-icon" aria-label="Close">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-          {cart.length === 0 ? (
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>
+          )}
+          {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-surface-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               <p className="text-surface-500 font-medium">Your cart is empty</p>
               <p className="text-surface-400 text-sm mt-1">Add some products to get started</p>
             </div>
           ) : (
-            cart.map((item) => (
-              <div key={item.id} className="flex gap-3 p-3 rounded-xl bg-surface-50 animate-fade-in">
+            items.map((item: any) => (
+              <div key={item.variantId} className="flex gap-3 p-3 rounded-xl bg-surface-50 animate-fade-in">
                 <div className="w-20 h-20 bg-surface-100 rounded-lg overflow-hidden shrink-0">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-surface-300">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
                   )}
@@ -126,20 +262,22 @@ export default function CartDrawer() {
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={() => updateQty(item.id, -1)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm"
+                      onClick={() => updateQty(item.variantId, -1)}
+                      disabled={loading}
+                      className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm disabled:opacity-50"
                     >
                       -
                     </button>
                     <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
                     <button
-                      onClick={() => updateQty(item.id, 1)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm"
+                      onClick={() => updateQty(item.variantId, 1)}
+                      disabled={loading || (item.maxQuantity && item.quantity >= item.maxQuantity)}
+                      className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm disabled:opacity-50"
                     >
                       +
                     </button>
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(item.variantId)}
                       className="ml-auto text-xs text-red-500 hover:text-red-600 font-medium"
                     >
                       Remove
@@ -151,18 +289,19 @@ export default function CartDrawer() {
           )}
         </div>
 
-        {cart.length > 0 && (
+        {items.length > 0 && (
           <div className="border-t border-surface-200 px-4 py-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-surface-600">Subtotal</span>
               <span className="text-lg font-bold text-surface-900">Rs. {(total / 100).toFixed(2)}</span>
             </div>
+            {usingServerCart && cart?.couponCode && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-green-600">Coupon: {cart.couponCode}</span>
+              </div>
+            )}
             <p className="text-xs text-surface-400">Shipping & taxes calculated at checkout</p>
-            <a
-              href="/checkout"
-              className="btn-primary w-full btn-lg"
-              onClick={close}
-            >
+            <a href="/checkout" className="btn-primary w-full btn-lg" onClick={close}>
               Checkout &rarr;
             </a>
             <button onClick={close} className="btn-secondary w-full text-sm">
