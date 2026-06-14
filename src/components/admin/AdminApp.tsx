@@ -36,22 +36,7 @@ function useAsync<T>(fn: () => Promise<T>, deps: any[] = []) {
   return { data, loading, error }
 }
 
-// --- Style helpers ---
-
-const inputS: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6,
-  fontSize: 14, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit'
-}
-const btnS = (primary = true, disabled = false): React.CSSProperties => ({
-  padding: '10px 20px', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
-  cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-  background: disabled ? '#93c5fd' : primary ? '#2563eb' : '#fff',
-  color: primary ? '#fff' : '#334155',
-  border: primary ? 'none' : '1px solid #d1d5db',
-  textDecoration: 'none', display: 'inline-block'
-})
-
-// --- Layout ---
+function cents(c: number) { return `Rs. ${(c / 100).toLocaleString()}` }
 
 function Sidebar() {
   const links = [
@@ -61,74 +46,130 @@ function Sidebar() {
     { href: '/admin/customers', label: 'Customers', icon: '👥' },
   ]
   const cur = window.location.pathname
-  return React.createElement('aside', { style: { width: 240, background: '#1e293b', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 } },
-    React.createElement('div', { style: { padding: '20px', fontSize: 18, fontWeight: 700, borderBottom: '1px solid #334155' } }, 'Vkrama'),
-    React.createElement('nav', { style: { padding: 10, flex: 1 } },
-      links.map(l =>
-        React.createElement('a', {
-          key: l.href, href: l.href,
-          style: {
-            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-            color: cur === l.href ? '#fff' : '#94a3b8',
-            background: cur === l.href ? '#334155' : 'transparent',
-            borderRadius: 8, textDecoration: 'none', marginBottom: 2, fontSize: 14
-          }
-        }, l.icon, l.label)
-      )
-    ),
-    React.createElement('div', { style: { padding: 14, borderTop: '1px solid #334155' } },
-      React.createElement('button', {
-        onClick: () => { localStorage.removeItem('vkrama_admin_token'); window.location.href = '/admin/login' },
-        style: { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13, padding: 0, fontFamily: 'inherit' }
-      }, 'Sign Out')
-    )
+  return (
+    <aside className="w-60 bg-slate-800 text-white flex flex-col shrink-0">
+      <div className="p-5 text-lg font-bold border-b border-slate-700">Vkrama Admin</div>
+      <nav className="p-2.5 flex-1">
+        {links.map(l => (
+          <a key={l.href} href={l.href}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm mb-0.5 no-underline transition-colors ${
+              cur === l.href ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+            }`}
+          >
+            <span>{l.icon}</span>
+            <span>{l.label}</span>
+          </a>
+        ))}
+      </nav>
+      <div className="p-3.5 border-t border-slate-700">
+        <button
+          onClick={() => { localStorage.removeItem('vkrama_admin_token'); window.location.href = '/admin/login' }}
+          className="bg-transparent border-none text-slate-400 cursor-pointer text-xs p-0 font-sans hover:text-white transition-colors"
+        >
+          Sign Out
+        </button>
+      </div>
+    </aside>
   )
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
-  return React.createElement('div', { style: { display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' } },
-    React.createElement(Sidebar, null),
-    React.createElement('main', { style: { flex: 1, background: '#f8fafc', overflow: 'auto', padding: 30 } }, children)
+  return (
+    <div className="flex min-h-screen font-sans">
+      <Sidebar />
+      <main className="flex-1 bg-slate-50 overflow-auto p-8">{children}</main>
+    </div>
   )
 }
 
-function Spinner() { return React.createElement('div', { style: { textAlign: 'center', color: '#64748b', padding: 40 } }, 'Loading...') }
-function Err({ msg }: { msg: string }) { return React.createElement('div', { style: { padding: 14, background: '#fef2f2', color: '#dc2626', borderRadius: 8, marginBottom: 16, fontSize: 14 } }, msg) }
+function Spinner() { return <div className="text-center text-slate-500 py-10">Loading...</div> }
+function Err({ msg }: { msg: string }) { return <div className="p-3.5 bg-red-50 text-red-600 rounded-lg mb-4 text-sm">{msg}</div> }
+
 function PageHd({ title, action }: { title: string; action?: React.ReactNode }) {
-  return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 } },
-    React.createElement('h1', { style: { fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 } }, title),
-    action || null
-  )
-}
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return React.createElement('div', { style: { background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', padding: 24, ...style } }, children)
-}
-function Table({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
-  return React.createElement('div', { style: { overflowX: 'auto' } },
-    React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 14 } },
-      React.createElement('thead', null,
-        React.createElement('tr', null, headers.map(h =>
-          React.createElement('th', { key: h, style: { textAlign: 'left', padding: '12px 16px', borderBottom: '2px solid #e2e8f0', color: '#64748b', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' } }, h)
-        ))
-      ),
-      React.createElement('tbody', null, rows.map((row, i) =>
-        React.createElement('tr', { key: i, style: { borderBottom: '1px solid #f1f5f9', background: i % 2 ? '#f8fafc' : '#fff' } },
-          row.map((cell, j) => React.createElement('td', { key: j, style: { padding: '12px 16px', color: '#334155' } }, cell))
-        )
-      ))
-    )
+  return (
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-2xl font-bold text-slate-900 m-0">{title}</h1>
+      {action || null}
+    </div>
   )
 }
 
-function cents(c: number) { return `Rs. ${(c / 100).toLocaleString()}` }
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>{children}</div>
+}
+
+function Btn({ primary = true, disabled = false, className = '', children, ...props }: any) {
+  return (
+    <button
+      disabled={disabled}
+      className={`px-5 py-2.5 rounded-lg text-sm font-semibold font-sans inline-block no-underline border transition-all ${
+        disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+      } ${
+        primary
+          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+      } ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Badge({ children, color = 'slate' }: { children: React.ReactNode; color?: string }) {
+  const colors: Record<string, string> = {
+    green: 'bg-green-100 text-green-700',
+    yellow: 'bg-yellow-100 text-yellow-700',
+    red: 'bg-red-100 text-red-700',
+    blue: 'bg-blue-100 text-blue-700',
+    purple: 'bg-purple-100 text-purple-700',
+    slate: 'bg-slate-100 text-slate-600',
+  }
+  return (
+    <span className={`px-2 py-0.5 rounded text-xs font-semibold inline-block ${colors[color] || colors.slate}`}>
+      {children}
+    </span>
+  )
+}
+
+function DataTable({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            {headers.map(h => (
+              <th key={h} className="text-left px-4 py-3 border-b-2 border-slate-200 text-slate-500 font-semibold text-xs uppercase tracking-wider">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={`border-b border-slate-100 ${i % 2 ? 'bg-slate-50' : 'bg-white'}`}>
+              {row.map((cell, j) => (
+                <td key={j} className="px-4 py-3 text-slate-700">{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Input({ className = '', ...props }: any) {
+  return <input className={`w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans box-border ${className}`} {...props} />
+}
 
 // --- Login ---
-
 function LoginPage() {
   const [email, setEmail] = React.useState('')
   const [pw, setPw] = React.useState('')
   const [err, setErr] = React.useState('')
   const [load, setLoad] = React.useState(false)
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoad(true); setErr('')
     try {
@@ -142,50 +183,57 @@ function LoginPage() {
       window.location.href = '/admin'
     } catch (e: any) { setErr(e.message) } finally { setLoad(false) }
   }
-  return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f1f5f9', fontFamily: 'system-ui, sans-serif' } },
-    React.createElement('form', { onSubmit: submit, style: { background: '#fff', padding: 40, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: 360, maxWidth: '90%' } },
-      React.createElement('h1', { style: { fontSize: 24, fontWeight: 700, marginBottom: 4, textAlign: 'center', margin: 0 } }, 'Vkrama Admin'),
-      React.createElement('p', { style: { fontSize: 14, color: '#64748b', marginBottom: 24, textAlign: 'center' } }, 'Sign in'),
-      err && React.createElement(Err, { msg: err }),
-      React.createElement('div', { style: { marginBottom: 16 } },
-        React.createElement('label', { style: { display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: '#374151' } }, 'Email'),
-        React.createElement('input', { type: 'email', value: email, required: true, onChange: e => setEmail(e.target.value), style: inputS })
-      ),
-      React.createElement('div', { style: { marginBottom: 24 } },
-        React.createElement('label', { style: { display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: '#374151' } }, 'Password'),
-        React.createElement('input', { type: 'password', value: pw, required: true, onChange: e => setPw(e.target.value), style: inputS })
-      ),
-      React.createElement('button', { type: 'submit', disabled: load, style: btnS(true, load) }, load ? 'Signing in...' : 'Sign In')
-    )
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-slate-100 font-sans">
+      <form onSubmit={submit} className="bg-white p-10 rounded-xl shadow-md w-96 max-w-[90%]">
+        <h1 className="text-2xl font-bold text-center mb-1">Vkrama Admin</h1>
+        <p className="text-sm text-slate-500 text-center mb-6">Sign in to your account</p>
+        {err && <Err msg={err} />}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1.5 text-slate-700">Email</label>
+          <Input type="email" value={email} required onChange={e => setEmail(e.target.value)} />
+        </div>
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-1.5 text-slate-700">Password</label>
+          <Input type="password" value={pw} required onChange={e => setPw(e.target.value)} />
+        </div>
+        <Btn type="submit" disabled={load} className="w-full text-center justify-center">
+          {load ? 'Signing in...' : 'Sign In'}
+        </Btn>
+      </form>
+    </div>
   )
 }
 
 // --- Dashboard ---
-
 function Dashboard() {
   const s = useAsync(() => api('/stats'), [])
-  if (s.loading) return React.createElement(Spinner, null)
-  if (s.error) return React.createElement(Err, { msg: s.error })
+  if (s.loading) return <Spinner />
+  if (s.error) return <Err msg={s.error} />
   const d = (s.data as any) || {}
   const cards = [
-    { label: 'Revenue', value: cents(d.totalRevenueCents || 0), bg: '#f0fdf4' },
-    { label: 'Orders', value: String(d.totalOrders || 0), bg: '#eef2ff' },
-    { label: 'Customers', value: String(d.totalCustomers || 0), bg: '#fefce8' },
-    { label: 'Products', value: String(d.totalProducts || 0), bg: '#eff6ff' },
+    { label: 'Revenue', value: cents(d.totalRevenueCents || 0), bg: 'bg-green-50' },
+    { label: 'Orders', value: String(d.totalOrders || 0), bg: 'bg-indigo-50' },
+    { label: 'Customers', value: String(d.totalCustomers || 0), bg: 'bg-yellow-50' },
+    { label: 'Products', value: String(d.totalProducts || 0), bg: 'bg-blue-50' },
   ]
-  return React.createElement('div', null,
-    React.createElement(PageHd, { title: 'Dashboard' }),
-    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 } },
-      cards.map(c => React.createElement(Card, { key: c.label, style: { background: c.bg } },
-        React.createElement('div', { style: { fontSize: 28, fontWeight: 700, color: '#0f172a' } }, c.value),
-        React.createElement('div', { style: { fontSize: 14, color: '#64748b', marginTop: 4 } }, c.label)
-      ))
-    )
+  return (
+    <div>
+      <PageHd title="Dashboard" />
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+        {cards.map(c => (
+          <Card key={c.label} className={c.bg}>
+            <div className="text-3xl font-bold text-slate-900">{c.value}</div>
+            <div className="text-sm text-slate-500 mt-1">{c.label}</div>
+          </Card>
+        ))}
+      </div>
+    </div>
   )
 }
 
 // --- Products ---
-
 function ImageUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [uploading, setUploading] = React.useState(false)
   const [err, setErr] = React.useState('')
@@ -207,26 +255,23 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (url: strin
     } catch (e: any) { setErr(e.message) } finally { setUploading(false) }
   }
 
-  return React.createElement('div', null,
-    React.createElement('label', { style: { display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: '#374151' } }, 'Image'),
-    React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'center' } },
-      value && React.createElement('img', { src: value, style: { width: 80, height: 80, borderRadius: 8, objectFit: 'cover', border: '1px solid #e2e8f0' } }),
-      React.createElement('label', {
-        style: {
-          padding: '10px 20px', background: uploading ? '#e2e8f0' : '#f1f5f9',
-          border: '2px dashed #d1d5db', borderRadius: 6, cursor: uploading ? 'not-allowed' : 'pointer',
-          fontSize: 13, color: '#64748b'
-        }
-      },
-        uploading ? 'Uploading...' : (value ? 'Replace' : 'Upload Image'),
-        React.createElement('input', { type: 'file', accept: 'image/jpeg,image/png,image/gif,image/webp', onChange: handleFile, disabled: uploading, style: { display: 'none' } })
-      ),
-      value && React.createElement('button', {
-        onClick: () => onChange(''),
-        style: { background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13, padding: 0, fontFamily: 'inherit' }
-      }, 'Remove')
-    ),
-    err && React.createElement('div', { style: { color: '#dc2626', fontSize: 12, marginTop: 4 } }, err)
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1.5 text-slate-700">Image</label>
+      <div className="flex gap-3 items-center">
+        {value && <img src={value} className="w-20 h-20 rounded-lg object-cover border border-slate-200" />}
+        <label className={`px-5 py-2.5 rounded-md border-2 border-dashed border-slate-300 text-sm text-slate-500 cursor-pointer ${uploading ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100'}`}>
+          {uploading ? 'Uploading...' : (value ? 'Replace' : 'Upload Image')}
+          <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleFile} disabled={uploading} className="hidden" />
+        </label>
+        {value && (
+          <button onClick={() => onChange('')} className="bg-transparent border-none text-red-600 cursor-pointer text-xs font-sans hover:underline p-0">
+            Remove
+          </button>
+        )}
+      </div>
+      {err && <div className="text-red-600 text-xs mt-1">{err}</div>}
+    </div>
   )
 }
 
@@ -234,46 +279,40 @@ function ProductsList() {
   const [q, setQ] = React.useState('')
   const [sf, setSf] = React.useState('')
   const { data, loading, error } = useAsync(() => api('/products'), [])
-  if (loading) return React.createElement(Spinner, null)
-  if (error) return React.createElement(Err, { msg: error })
+  if (loading) return <Spinner />
+  if (error) return <Err msg={error} />
   let list = (data as any[]) || []
   if (q) list = list.filter((p: any) => p.name?.toLowerCase().includes(q.toLowerCase()))
   if (sf) list = list.filter((p: any) => p.status === sf)
-  const statusBadge = (s: string) =>
-    React.createElement('span', {
-      style: {
-        padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, display: 'inline-block',
-        background: s === 'active' ? '#dcfce7' : s === 'draft' ? '#fef9c3' : '#f1f5f9',
-        color: s === 'active' ? '#16a34a' : s === 'draft' ? '#ca8a04' : '#64748b'
-      }
-    }, s || 'draft')
 
-  return React.createElement('div', null,
-    React.createElement(PageHd, {
-      title: 'Products',
-      action: React.createElement('a', { href: '/admin/products/new', style: btnS() }, '+ New Product')
-    }),
-    React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' } },
-      React.createElement('input', { placeholder: 'Search...', value: q, onChange: e => setQ(e.target.value), style: { ...inputS, width: 240 } }),
-      React.createElement('select', { value: sf, onChange: e => setSf(e.target.value), style: { ...inputS, width: 130 } },
-        React.createElement('option', { value: '' }, 'All'),
-        ['active', 'draft', 'archived'].map(s => React.createElement('option', { key: s, value: s }, s))
-      )
-    ),
-    React.createElement(Card, null,
-      list.length === 0
-        ? React.createElement('div', { style: { padding: 40, textAlign: 'center', color: '#94a3b8' } }, 'No products')
-        : React.createElement(Table, {
-          headers: ['Name', 'Price', 'Stock', 'Status', ''],
-          rows: list.map((p: any) => [
-            React.createElement('a', { href: `/admin/products/${p.id}`, style: { color: '#2563eb', textDecoration: 'none', fontWeight: 500 } }, p.name || '-'),
-            cents(p.price_cents || 0),
-            String(p.stock ?? 0),
-            statusBadge(p.status),
-            React.createElement('a', { href: `/admin/products/${p.id}`, style: { color: '#2563eb', textDecoration: 'none', fontSize: 13 } }, 'Edit')
-          ])
-        })
-    )
+  return (
+    <div>
+      <PageHd title="Products" action={<a href="/admin/products/new" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white no-underline inline-block hover:bg-blue-700">+ New Product</a>} />
+      <div className="flex gap-3 mb-5 flex-wrap">
+        <Input placeholder="Search..." value={q} onChange={e => setQ(e.target.value)} className="!w-60" />
+        <select value={sf} onChange={e => setSf(e.target.value)} className="w-32 px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+      <Card>
+        {list.length === 0
+          ? <div className="py-10 text-center text-slate-400">No products</div>
+          : <DataTable
+              headers={['Name', 'Price', 'Stock', 'Status', '']}
+              rows={list.map((p: any) => [
+                <a href={`/admin/products/${p.id}`} className="text-blue-600 no-underline font-medium">{p.name || '-'}</a>,
+                cents(p.price_cents || 0),
+                String(p.stock ?? 0),
+                <Badge color={p.status === 'active' ? 'green' : p.status === 'draft' ? 'yellow' : 'slate'}>{p.status || 'draft'}</Badge>,
+                <a href={`/admin/products/${p.id}`} className="text-blue-600 no-underline text-xs">Edit</a>
+              ])}
+            />
+        }
+      </Card>
+    </div>
   )
 }
 
@@ -330,104 +369,118 @@ function ProductForm({ id }: { id?: string }) {
     } catch (e: any) { setError(e.message); setConfirmDelete(false) } finally { setSaving(false) }
   }
 
-  if (!ready) return React.createElement(Spinner, null)
+  if (!ready) return <Spinner />
 
-  const fields = [
-    { label: 'Name', name: 'name', type: 'text' },
-    { label: 'Description', name: 'description', type: 'textarea' },
-    { label: 'Price (Rs.)', name: 'price', type: 'number' },
-    { label: 'Compare At Price (Rs.)', name: 'compareAtPrice', type: 'number' },
-    { label: 'Stock', name: 'stock', type: 'number' },
-  ]
-
-  return React.createElement('div', null,
-    React.createElement(PageHd, { title: isEdit ? 'Edit Product' : 'New Product' }),
-    error && React.createElement(Err, { msg: error }),
-    React.createElement(Card, null,
-      React.createElement('form', { onSubmit: submit, style: { maxWidth: 600 } },
-        fields.map(f =>
-          React.createElement('div', { key: f.name, style: { marginBottom: 16 } },
-            React.createElement('label', { style: { display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: '#374151' } }, f.label),
-            f.type === 'textarea'
-              ? React.createElement('textarea', { value: form[f.name], onChange: set(f.name), rows: 4, style: { ...inputS, resize: 'vertical' } } as any)
-              : React.createElement('input', { type: f.type, value: form[f.name], onChange: set(f.name), style: inputS })
-          )
-        ),
-        React.createElement('div', { style: { marginBottom: 16 } },
-          React.createElement(ImageUpload, { value: form.imageUrl, onChange: (url: string) => setForm({ ...form, imageUrl: url }) })
-        ),
-        React.createElement('div', { style: { marginBottom: 16 } },
-          React.createElement('label', { style: { display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: '#374151' } }, 'Status'),
-          React.createElement('select', { value: form.status, onChange: set('status'), style: inputS },
-            ['draft', 'active', 'archived'].map(s => React.createElement('option', { key: s, value: s }, s))
-          )
-        ),
-        React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: 24, justifyContent: 'space-between' } },
-          React.createElement('div', { style: { display: 'flex', gap: 12 } },
-            React.createElement('button', { type: 'submit', disabled: saving, style: btnS(true, saving) }, saving ? 'Saving...' : 'Save'),
-            React.createElement('a', { href: '/admin/products', style: btnS(false) }, 'Cancel')
-          ),
-          isEdit && React.createElement('button', {
-            type: 'button', disabled: saving,
-            onClick: handleDelete,
-            style: {
-              padding: '10px 20px', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              fontFamily: 'inherit', cursor: saving ? 'not-allowed' : 'pointer',
-              background: confirmDelete ? '#dc2626' : '#fff',
-              color: confirmDelete ? '#fff' : '#dc2626',
-              border: confirmDelete ? 'none' : '1px solid #fecaca'
-            }
-          }, confirmDelete ? 'Confirm Delete?' : 'Delete')
-        )
-      )
-    )
+  return (
+    <div>
+      <PageHd title={isEdit ? 'Edit Product' : 'New Product'} />
+      {error && <Err msg={error} />}
+      <Card>
+        <form onSubmit={submit} className="max-w-xl space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700">Name</label>
+            <Input value={form.name} onChange={set('name')} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700">Description</label>
+            <textarea value={form.description} onChange={set('description')} rows={4}
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans box-border resize-vertical"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Price (Rs.)</label>
+              <Input type="number" value={form.price} onChange={set('price')} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Compare At Price (Rs.)</label>
+              <Input type="number" value={form.compareAtPrice} onChange={set('compareAtPrice')} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Stock</label>
+              <Input type="number" value={form.stock} onChange={set('stock')} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Status</label>
+              <select value={form.status} onChange={set('status')}
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans box-border"
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <ImageUpload value={form.imageUrl} onChange={(url: string) => setForm({ ...form, imageUrl: url })} />
+          <div className="flex gap-3 pt-4 justify-between">
+            <div className="flex gap-3">
+              <Btn type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Btn>
+              <a href="/admin/products"><Btn type="button" primary={false}>Cancel</Btn></a>
+            </div>
+            {isEdit && (
+              <button type="button" disabled={saving} onClick={handleDelete}
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold font-sans border transition-all ${
+                  confirmDelete
+                    ? 'bg-red-600 text-white border-red-600'
+                    : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
+                } ${saving ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                {confirmDelete ? 'Confirm Delete?' : 'Delete'}
+              </button>
+            )}
+          </div>
+        </form>
+      </Card>
+    </div>
   )
 }
 
 // --- Orders ---
-
 function OrdersList() {
   const [q, setQ] = React.useState('')
   const [sf, setSf] = React.useState('')
   const { data, loading, error } = useAsync(() => api('/orders'), [])
-  if (loading) return React.createElement(Spinner, null)
-  if (error) return React.createElement(Err, { msg: error })
+  if (loading) return <Spinner />
+  if (error) return <Err msg={error} />
   let list = (data as any[]) || []
   if (q) list = list.filter((o: any) => o.email?.toLowerCase().includes(q.toLowerCase()))
   if (sf) list = list.filter((o: any) => o.status === sf)
 
   const sc: Record<string, string> = {
-    pending: '#f59e0b', paid: '#3b82f6', processing: '#8b5cf6',
-    shipped: '#3b82f6', delivered: '#10b981', cancelled: '#ef4444', refunded: '#64748b'
+    pending: 'yellow', paid: 'blue', processing: 'purple',
+    shipped: 'blue', delivered: 'green', cancelled: 'red', refunded: 'slate'
   }
 
-  return React.createElement('div', null,
-    React.createElement(PageHd, { title: 'Orders' }),
-    React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' } },
-      React.createElement('input', { placeholder: 'Search email...', value: q, onChange: e => setQ(e.target.value), style: { ...inputS, width: 240 } }),
-      React.createElement('select', { value: sf, onChange: e => setSf(e.target.value), style: { ...inputS, width: 140 } },
-        React.createElement('option', { value: '' }, 'All'),
-        ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].map(s =>
-          React.createElement('option', { key: s, value: s }, s.charAt(0).toUpperCase() + s.slice(1))
-        )
-      )
-    ),
-    React.createElement(Card, null,
-      list.length === 0
-        ? React.createElement('div', { style: { padding: 40, textAlign: 'center', color: '#94a3b8' } }, 'No orders')
-        : React.createElement(Table, {
-          headers: ['Order', 'Customer', 'Total', 'Payment', 'Status', 'Date', ''],
-          rows: list.map((o: any) => [
-            React.createElement('span', { style: { fontFamily: 'monospace', fontSize: 12, color: '#64748b' } }, o.id?.slice(0, 8) || '-'),
-            o.email || '-',
-            cents(o.total_cents || 0),
-            o.payment_method || '-',
-            React.createElement('span', { style: { padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, color: '#fff', background: sc[o.status] || '#64748b' } }, o.status || 'pending'),
-            o.created_at ? new Date(o.created_at).toLocaleDateString() : '-',
-            React.createElement('a', { href: `/admin/orders/${o.id}`, style: { color: '#2563eb', textDecoration: 'none', fontSize: 13 } }, 'View')
-          ])
-        })
-    )
+  return (
+    <div>
+      <PageHd title="Orders" />
+      <div className="flex gap-3 mb-5 flex-wrap">
+        <Input placeholder="Search email..." value={q} onChange={e => setQ(e.target.value)} className="!w-60" />
+        <select value={sf} onChange={e => setSf(e.target.value)} className="w-36 px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none">
+          <option value="">All</option>
+          {['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].map(s =>
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+          )}
+        </select>
+      </div>
+      <Card>
+        {list.length === 0
+          ? <div className="py-10 text-center text-slate-400">No orders</div>
+          : <DataTable
+              headers={['Order', 'Customer', 'Total', 'Payment', 'Status', 'Date', '']}
+              rows={list.map((o: any) => [
+                <span className="font-mono text-xs text-slate-500">{(o.id || '').slice(0, 8)}</span>,
+                o.email || '-',
+                cents(o.total_cents || 0),
+                o.payment_method || '-',
+                <Badge color={sc[o.status] || 'slate'}>{o.status || 'pending'}</Badge>,
+                o.created_at ? new Date(o.created_at).toLocaleDateString() : '-',
+                <a href={`/admin/orders/${o.id}`} className="text-blue-600 no-underline text-xs">View</a>
+              ])}
+            />
+        }
+      </Card>
+    </div>
   )
 }
 
@@ -435,11 +488,11 @@ function OrderShow() {
   const id = window.location.pathname.split('/').pop()
   const [updating, setUpdating] = React.useState(false)
   const [msg, setMsg] = React.useState('')
-  const { data, loading, error, refetch } = useAsync(() => api(`/orders/${id}`), [id])
-  if (loading) return React.createElement(Spinner, null)
-  if (error) return React.createElement(Err, { msg: error })
+  const { data, loading, error } = useAsync(() => api(`/orders/${id}`), [id])
+  if (loading) return <Spinner />
+  if (error) return <Err msg={error} />
   const o = data as any
-  if (!o) return React.createElement(Err, { msg: 'Not found' })
+  if (!o) return <Err msg="Not found" />
 
   const statuses = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
 
@@ -452,95 +505,101 @@ function OrderShow() {
     } catch (e: any) { setMsg(e.message) } finally { setUpdating(false) }
   }
 
-  const fields = [
-    { label: 'Order ID', value: o.id },
-    { label: 'Customer', value: o.email },
-    { label: 'Phone', value: o.phone },
-    { label: 'Total', value: cents(o.total_cents || 0) },
-    { label: 'Payment Method', value: o.payment_method },
-    { label: 'Shipping', value: [o.shipping_name, o.shipping_line1, o.shipping_city, o.shipping_state].filter(Boolean).join(', ') },
-    { label: 'Date', value: o.created_at ? new Date(o.created_at).toLocaleString() : '-' },
-  ]
-
-  return React.createElement('div', null,
-    React.createElement(PageHd, {
-      title: `Order #${(o.id || '').slice(0, 8)}`,
-      action: React.createElement('a', { href: '/admin/orders', style: { ...btnS(false), fontSize: 13 } }, '← Orders')
-    }),
-    msg && React.createElement(Err, { msg }),
-    React.createElement('div', { style: { display: 'grid', gap: 24, gridTemplateColumns: '1fr 1fr' } },
-      React.createElement(Card, null,
-        React.createElement('h3', { style: { fontSize: 16, fontWeight: 600, margin: '0 0 16px', color: '#0f172a' } }, 'Order Details'),
-        fields.map(f =>
-          React.createElement('div', { key: f.label, style: { display: 'flex', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 14 } },
-            React.createElement('div', { style: { width: 130, color: '#64748b', fontWeight: 500, flexShrink: 0 } }, f.label),
-            React.createElement('div', { style: { color: '#0f172a' } }, f.value || '-')
-          )
-        )
-      ),
-      React.createElement(Card, null,
-        React.createElement('h3', { style: { fontSize: 16, fontWeight: 600, margin: '0 0 16px', color: '#0f172a' } }, 'Status'),
-        React.createElement('div', { style: { fontSize: 14, color: '#64748b', marginBottom: 8 } }, 'Current: ', React.createElement('strong', { style: { color: '#0f172a' } }, o.status)),
-        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 } },
-          statuses.map(s =>
-            React.createElement('button', {
-              key: s, onClick: () => changeStatus(s), disabled: updating || s === o.status,
-              style: {
-                padding: '8px 16px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-                cursor: (updating || s === o.status) ? 'not-allowed' : 'pointer',
-                background: s === o.status ? '#e2e8f0' : '#2563eb', color: s === o.status ? '#64748b' : '#fff'
-              }
-            }, s.charAt(0).toUpperCase() + s.slice(1))
-          )
-        )
-      ),
-      React.createElement(Card, { style: { gridColumn: '1 / -1' } },
-        React.createElement('h3', { style: { fontSize: 16, fontWeight: 600, margin: '0 0 16px', color: '#0f172a' } }, 'Items'),
-        (o.items || []).length === 0
-          ? React.createElement('div', { style: { color: '#94a3b8' } }, 'No items')
-          : React.createElement(Table, {
-            headers: ['Product', 'Variant', 'Qty', 'Price', 'Total'],
-            rows: (o.items || []).map((item: any) => [
-              item.name || '-',
-              item.variant_name || '-',
-              String(item.quantity || 0),
-              cents(item.price_cents || 0),
-              cents((item.price_cents || 0) * (item.quantity || 1))
-            ])
-          })
-      )
-    )
+  return (
+    <div>
+      <PageHd title={`Order #${(o.id || '').slice(0, 8)}`} action={<a href="/admin/orders" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 no-underline inline-block hover:bg-slate-50">← Orders</a>} />
+      {msg && <Err msg={msg} />}
+      <div className="grid gap-6 grid-cols-2">
+        <Card>
+          <h3 className="text-base font-semibold mb-4 text-slate-900">Order Details</h3>
+          {[
+            { label: 'Order ID', value: o.id },
+            { label: 'Customer', value: o.email },
+            { label: 'Phone', value: o.phone },
+            { label: 'Total', value: cents(o.total_cents || 0) },
+            { label: 'Payment', value: o.payment_method },
+            { label: 'Shipping', value: [o.shipping_name, o.shipping_line1, o.shipping_city, o.shipping_state].filter(Boolean).join(', ') },
+            { label: 'Date', value: o.created_at ? new Date(o.created_at).toLocaleString() : '-' },
+          ].map(f => (
+            <div key={f.label} className="flex py-2 border-b border-slate-100 text-sm last:border-0">
+              <div className="w-32 text-slate-500 font-medium shrink-0">{f.label}</div>
+              <div className="text-slate-900">{f.value || '-'}</div>
+            </div>
+          ))}
+        </Card>
+        <Card>
+          <h3 className="text-base font-semibold mb-4 text-slate-900">Status</h3>
+          <div className="text-sm text-slate-500 mb-2">
+            Current: <strong className="text-slate-900">{o.status}</strong>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {statuses.map(s => (
+              <button key={s} onClick={() => changeStatus(s)} disabled={updating || s === o.status}
+                className={`px-4 py-2 rounded-md text-xs font-semibold font-sans border transition-all ${
+                  s === o.status
+                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed border-slate-200'
+                    : updating
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-slate-200'
+                      : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 cursor-pointer'
+                }`}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+        </Card>
+        <Card className="!col-span-2">
+          <h3 className="text-base font-semibold mb-4 text-slate-900">Items</h3>
+          {(!o.items || o.items.length === 0)
+            ? <div className="text-slate-400">No items</div>
+            : <DataTable
+                headers={['Product', 'Variant', 'Qty', 'Price', 'Total']}
+                rows={(o.items || []).map((item: any) => [
+                  item.name || '-',
+                  item.variant_name || '-',
+                  String(item.quantity || 0),
+                  cents(item.price_cents || 0),
+                  cents((item.price_cents || 0) * (item.quantity || 1))
+                ])}
+              />
+          }
+        </Card>
+      </div>
+    </div>
   )
 }
 
 // --- Customers ---
-
 function CustomersList() {
   const [q, setQ] = React.useState('')
   const { data, loading, error } = useAsync(() => api('/customers'), [])
-  if (loading) return React.createElement(Spinner, null)
-  if (error) return React.createElement(Err, { msg: error })
+  if (loading) return <Spinner />
+  if (error) return <Err msg={error} />
   let list = (data as any[]) || []
   if (q) list = list.filter((c: any) => c.email?.toLowerCase().includes(q.toLowerCase()))
-  return React.createElement('div', null,
-    React.createElement(PageHd, { title: 'Customers' }),
-    React.createElement('input', { placeholder: 'Search email...', value: q, onChange: e => setQ(e.target.value), style: { ...inputS, width: 240, marginBottom: 20 } }),
-    React.createElement(Card, null,
-      list.length === 0
-        ? React.createElement('div', { style: { padding: 40, textAlign: 'center', color: '#94a3b8' } }, 'No customers')
-        : React.createElement(Table, {
-          headers: ['Email', 'Name', 'Phone', 'Registered'],
-          rows: list.map((c: any) => [
-            c.email || '-', c.name || '-', c.phone || '-',
-            c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'
-          ])
-        })
-    )
+
+  return (
+    <div>
+      <PageHd title="Customers" />
+      <Input placeholder="Search email..." value={q} onChange={e => setQ(e.target.value)} className="!w-60 mb-5" />
+      <Card>
+        {list.length === 0
+          ? <div className="py-10 text-center text-slate-400">No customers</div>
+          : <DataTable
+              headers={['Email', 'Name', 'Phone', 'Registered', 'Orders']}
+              rows={list.map((c: any) => [
+                c.email || '-', c.name || '-', c.phone || '-',
+                c.created_at ? new Date(c.created_at).toLocaleDateString() : '-',
+                String(c.order_count || 0)
+              ])}
+            />
+        }
+      </Card>
+    </div>
   )
 }
 
 // --- Router ---
-
 function matchRoute(path: string) {
   const p = path.split('/').filter(Boolean)
   if (path === '/admin' || path === '/admin/') return { page: 'dashboard' }
@@ -565,18 +624,18 @@ export default function AdminApp() {
   const route = matchRoute(path)
   const token = localStorage.getItem('vkrama_admin_token')
   if (!token && route.page !== 'login') { window.location.href = '/admin/login'; return null }
-  if (route.page === 'login') return React.createElement(LoginPage, null)
+  if (route.page === 'login') return <LoginPage />
 
   let content: React.ReactNode
   switch (route.page) {
-    case 'dashboard': content = React.createElement(Dashboard, null); break
-    case 'products': content = React.createElement(ProductsList, null); break
-    case 'product-new': content = React.createElement(ProductForm, null); break
-    case 'product-edit': content = React.createElement(ProductForm, { id: (route.params as any).id }); break
-    case 'orders': content = React.createElement(OrdersList, null); break
-    case 'order-show': content = React.createElement(OrderShow, null); break
-    case 'customers': content = React.createElement(CustomersList, null); break
-    default: content = React.createElement(Dashboard, null)
+    case 'dashboard': content = <Dashboard />; break
+    case 'products': content = <ProductsList />; break
+    case 'product-new': content = <ProductForm />; break
+    case 'product-edit': content = <ProductForm id={(route.params as any).id} />; break
+    case 'orders': content = <OrdersList />; break
+    case 'order-show': content = <OrderShow />; break
+    case 'customers': content = <CustomersList />; break
+    default: content = <Dashboard />
   }
-  return React.createElement(Layout, null, content)
+  return <Layout>{content}</Layout>
 }

@@ -1,14 +1,15 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { c as checkAdminAuth } from '../../../../chunks/auth_rVfLOqBr.mjs';
+import { j as jsonError, g as getAuthUser, b as jsonOk } from '../../../../chunks/validation_C3-TSEuz.mjs';
 export { r as renderers } from '../../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const DELETE = async ({ params, request, locals }) => {
-  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
-  if (!env?.DB) return new Response("Not found", { status: 404 });
+  if (!env?.DB) return jsonError(404, "Not found");
+  const user = await getAuthUser(request, env.DB, "admin");
+  if (!user) return jsonError(401, "Unauthorized");
   await env.DB.prepare("DELETE FROM product_categories WHERE category_id = ?").bind(params.id).run();
   await env.DB.prepare("DELETE FROM categories WHERE id = ?").bind(params.id).run();
-  return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+  return jsonOk({ ok: true });
 };
 
 const _page = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({

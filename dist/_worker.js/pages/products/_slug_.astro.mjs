@@ -1,9 +1,10 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
 /* empty css                                        */
 import { e as createAstro, f as createComponent, k as renderComponent, l as renderScript, r as renderTemplate, m as maybeRenderHead, q as Fragment, h as addAttribute } from '../../chunks/astro/server_Ce7Lw4RO.mjs';
-import { j as jsxRuntimeExports, $ as $$Base } from '../../chunks/Base_Crt3OqvH.mjs';
+import { j as jsxRuntimeExports, $ as $$Base } from '../../chunks/Base_CyiuoItI.mjs';
 import { a as reactExports } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
+import { g as getDb, p as products, e as eq, b as categories, a as productCategories, h as productVariants, v as variantOptions } from '../../chunks/db_BOPxdIeH.mjs';
 
 function VariantSelector({ options, variants, basePriceCents, onVariantChange }) {
   const groups = reactExports.useMemo(() => {
@@ -124,14 +125,27 @@ const $$slug = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
   Astro2.self = $$slug;
   const { slug } = Astro2.params;
-  const product = await (async () => {
+  const env = Astro2.locals.runtime?.env;
+  let product = null;
+  if (env?.DB && slug) {
+    const db = getDb(env.DB);
     try {
-      const res = await fetch(`${Astro2.url.origin}/api/products/${slug}`);
-      if (res.ok) return await res.json();
+      product = await db.select().from(products).where(eq(products.slug, slug)).get();
+      if (product) {
+        const cats = await db.select({
+          id: categories.id,
+          name: categories.name,
+          slug: categories.slug
+        }).from(categories).innerJoin(productCategories, eq(categories.id, productCategories.categoryId)).where(eq(productCategories.productId, product.id)).all();
+        const variants = await db.select().from(productVariants).where(eq(productVariants.productId, product.id)).orderBy(productVariants.sortOrder).all();
+        const options = await db.select().from(variantOptions).where(eq(variantOptions.productId, product.id)).orderBy(variantOptions.sortOrder).all();
+        product.categories = cats;
+        product.variants = variants;
+        product.variantOptions = options;
+      }
     } catch {
     }
-    return null;
-  })();
+  }
   if (!product) {
     return Astro2.redirect("/404");
   }
@@ -140,14 +154,14 @@ const $$slug = createComponent(async ($$result, $$props, $$slots) => {
   const seoDesc = product.seoDescription || product.description?.slice(0, 160) || `Shop ${product.name} at vkrama`;
   const hasDiscount = product.compareAtPriceCents && product.compareAtPriceCents > product.priceCents;
   const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / product.compareAtPriceCents) * 100) : 0;
-  return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": product.name, "description": seoDesc, "image": product.imageUrl || "/og-image.png" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container-page py-8"> <!-- Breadcrumb --> <nav class="flex items-center gap-2 text-sm text-surface-500 mb-6"> <a href="/" class="hover:text-brand-600 transition-colors">Home</a> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path> </svg> <a href="/products" class="hover:text-brand-600 transition-colors">Products</a> ${product.categories?.length > 0 && renderTemplate`${renderComponent($$result2, "Fragment", Fragment, {}, { "default": async ($$result3) => renderTemplate` <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path> </svg> <a${addAttribute(`/products?category=${product.categories[0].slug}`, "href")} class="hover:text-brand-600 transition-colors"> ${product.categories[0].name} </a> ` })}`} <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path> </svg> <span class="text-surface-900 truncate max-w-[200px]">${product.name}</span> </nav> <div class="grid md:grid-cols-2 gap-8 lg:gap-12"> <!-- Left: Gallery --> ${renderComponent($$result2, "ProductGallery", ProductGallery, { "client:load": true, "images": images, "name": product.name, "client:component-hydration": "load", "client:component-path": "/home/v-krama/vkrama-store/src/components/product/ProductGallery.tsx", "client:component-export": "default" })} <!-- Right: Details --> <div class="md:sticky md:top-24 md:self-start"> ${hasDiscount && renderTemplate`<span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 mb-4">
+  return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": product.name, "description": seoDesc, "image": product.imageUrl || "/og-image.png" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container-page py-8"> <!-- Breadcrumb --> <nav class="flex items-center gap-2 text-sm text-surface-500 mb-6"> <a href="/" class="hover:text-brand-600 transition-colors">Home</a> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <a href="/products" class="hover:text-brand-600 transition-colors">Products</a> ${product.categories?.length > 0 && renderTemplate`${renderComponent($$result2, "Fragment", Fragment, {}, { "default": async ($$result3) => renderTemplate` <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <a${addAttribute(`/products?category=${product.categories[0].slug}`, "href")} class="hover:text-brand-600 transition-colors">${product.categories[0].name}</a> ` })}`} <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="text-surface-900 truncate max-w-[200px]">${product.name}</span> </nav> <div class="grid md:grid-cols-2 gap-8 lg:gap-12"> ${renderComponent($$result2, "ProductGallery", ProductGallery, { "client:load": true, "images": images, "name": product.name, "client:component-hydration": "load", "client:component-path": "/home/v-krama/vkrama-store/src/components/product/ProductGallery.tsx", "client:component-export": "default" })} <div class="md:sticky md:top-24 md:self-start"> ${hasDiscount && renderTemplate`<span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 mb-4">
 Save ${discountPercent}% — Limited time offer
-</span>`} <h1 class="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">${product.name}</h1> <div class="mt-6"> ${renderComponent($$result2, "VariantSelector", VariantSelector, { "client:load": true, "options": product.variantOptions || [], "variants": product.variants || [], "basePriceCents": product.priceCents, "client:component-hydration": "load", "client:component-path": "/home/v-krama/vkrama-store/src/components/product/VariantSelector.tsx", "client:component-export": "default" })} </div> <div class="mt-6 prose-custom text-sm"> <p>${product.description || "No description available."}</p> </div> <div class="mt-6 flex items-center gap-3 text-sm text-surface-500"> <span class="flex items-center gap-1.5"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path> </svg> ${product.stock > 0 ? `${product.stock} in stock` : "Out of stock"} </span> ${hasDiscount && renderTemplate`<span class="flex items-center gap-1.5"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path> </svg>
+</span>`} <h1 class="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">${product.name}</h1> <div class="mt-6"> ${renderComponent($$result2, "VariantSelector", VariantSelector, { "client:load": true, "options": product.variantOptions || [], "variants": product.variants || [], "basePriceCents": product.priceCents, "client:component-hydration": "load", "client:component-path": "/home/v-krama/vkrama-store/src/components/product/VariantSelector.tsx", "client:component-export": "default" })} </div> <div class="mt-6 prose-custom text-sm"> <p>${product.description || "No description available."}</p> </div> <div class="mt-6 flex items-center gap-3 text-sm text-surface-500"> <span class="flex items-center gap-1.5"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${product.stock > 0 ? `${product.stock} in stock` : "Out of stock"} </span> ${hasDiscount && renderTemplate`<span class="flex items-center gap-1.5"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
 Compare at Rs. $${(product.compareAtPriceCents / 100).toFixed(2)} </span>`} </div> <button id="add-to-cart"${addAttribute(product.slug, "data-slug")}${addAttribute(product.name, "data-name")}${addAttribute(product.priceCents, "data-price")}${addAttribute(product.imageUrl || "", "data-image")} class="btn-primary btn-lg w-full mt-8 text-base">
 Add to Cart
-</button> <div class="mt-6 grid grid-cols-2 gap-3 text-center text-xs text-surface-500"> <div class="p-3 rounded-lg bg-surface-50"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path> </svg>
+</button> <div class="mt-6 grid grid-cols-2 gap-3 text-center text-xs text-surface-500"> <div class="p-3 rounded-lg bg-surface-50"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
 Free shipping over Rs. 5,000
-</div> <div class="p-3 rounded-lg bg-surface-50"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path> </svg>
+</div> <div class="p-3 rounded-lg bg-surface-50"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
 30-day returns
 </div> </div> </div> </div> </div> ` })} ${renderScript($$result, "/home/v-krama/vkrama-store/src/pages/products/[slug].astro?astro&type=script&index=0&lang.ts")}`;
 }, "/home/v-krama/vkrama-store/src/pages/products/[slug].astro", void 0);

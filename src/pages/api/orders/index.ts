@@ -2,28 +2,23 @@ import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
 import { orders } from '../../../db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { verifyToken } from '../../../lib/auth'
+import { getAuthUser } from '../../../lib/auth'
+import { jsonError } from '../../../lib/validation'
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
+
+  const user = await getAuthUser(request, env.DB, 'customer')
+  if (!user) return jsonError(401, 'Unauthorized')
+
   const db = getDb(env.DB)
-
-  const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-  }
-
-  const payload = await verifyToken(auth.slice(7))
-  if (!payload || payload.userType !== 'customer') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-  }
 
   try {
     const result = await db
       .select()
       .from(orders)
-      .where(eq(orders.customerId, payload.userId))
+      .where(eq(orders.customerId, user.id))
       .orderBy(desc(orders.createdAt))
       .all()
 

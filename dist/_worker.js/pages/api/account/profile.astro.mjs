@@ -1,36 +1,31 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { v as verifyToken } from '../../../chunks/auth_rVfLOqBr.mjs';
+import { j as jsonError, g as getAuthUser, b as jsonOk, s as sanitizeString } from '../../../chunks/validation_C3-TSEuz.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const GET = async ({ request, locals }) => {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload || payload.userType !== "customer") {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
   const env = locals.runtime?.env;
-  if (!env?.DB) return new Response(JSON.stringify({ user: null }), { status: 200 });
-  const row = await env.DB.prepare("SELECT id, email, name, phone FROM customers WHERE id = ?").bind(payload.userId).first();
-  return new Response(JSON.stringify({ user: row }), {
-    headers: { "Content-Type": "application/json" }
-  });
+  if (!env?.DB) return jsonError(500, "Server error");
+  const user = await getAuthUser(request, env.DB, "customer");
+  if (!user) return jsonError(401, "Unauthorized");
+  const row = await env.DB.prepare(
+    "SELECT id, email, name, phone FROM customers WHERE id = ?"
+  ).bind(user.id).first();
+  return jsonOk({ user: row });
 };
 const PUT = async ({ request, locals }) => {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload || payload.userType !== "customer") return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   const env = locals.runtime?.env;
-  if (!env?.DB) return new Response(JSON.stringify({ error: "Server error" }), { status: 500 });
+  if (!env?.DB) return jsonError(500, "Server error");
+  const user = await getAuthUser(request, env.DB, "customer");
+  if (!user) return jsonError(401, "Unauthorized");
   try {
-    const { name, phone } = await request.json();
-    await env.DB.prepare("UPDATE customers SET name = ?, phone = ? WHERE id = ?").bind(name || null, phone || null, payload.userId).run();
-    return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    const body = await request.json().catch(() => null);
+    if (!body) return jsonError(400, "Invalid request body");
+    const name = sanitizeString(body.name, 100);
+    const phone = sanitizeString(body.phone, 20) || null;
+    await env.DB.prepare("UPDATE customers SET name = ?, phone = ? WHERE id = ?").bind(name, phone, user.id).run();
+    return jsonOk({ ok: true });
   } catch {
-    return new Response(JSON.stringify({ error: "Update failed" }), { status: 400 });
+    return jsonError(400, "Update failed");
   }
 };
 

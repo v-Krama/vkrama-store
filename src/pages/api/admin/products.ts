@@ -2,13 +2,15 @@ import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
 import { products } from '../../../db/schema'
 import { desc } from 'drizzle-orm'
-import { checkAdminAuth, generateId } from '../../../lib/auth'
+import { getAuthUser, generateId } from '../../../lib/auth'
+import { jsonError, sanitizeString, validatePrice, validateInteger } from '../../../lib/validation'
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  if (!(await checkAdminAuth(request))) return new Response('Unauthorized', { status: 401 })
-
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
+
+  const user = await getAuthUser(request, env.DB, 'admin')
+  if (!user) return jsonError(401, 'Unauthorized')
 
   try {
     const db = getDb(env.DB)
@@ -16,42 +18,56 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } })
   } catch (err) {
     console.error('Products GET error:', err)
-    return new Response(JSON.stringify({ error: 'Failed to load products' }), { status: 500 })
+    return jsonError(500, 'Failed to load products')
   }
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  if (!(await checkAdminAuth(request))) return new Response('Unauthorized', { status: 401 })
-
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+  if (!env?.DB) return jsonError(500, 'Server error')
+
+  const user = await getAuthUser(request, env.DB, 'admin')
+  if (!user) return jsonError(401, 'Unauthorized')
 
   try {
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
+    if (!body) return jsonError(400, 'Invalid request body')
+
+    const name = sanitizeString((body as any).name, 200)
+    if (!name) return jsonError(400, 'Product name is required')
+
+    const price = Number((body as any).price) || 0
+    const priceErr = validatePrice(price)
+    if (priceErr) return jsonError(400, priceErr.message)
+
     const id = generateId('prod')
-    const slug = (body.name as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + id.slice(-6)
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + id.slice(-6)
 
     await env.DB.prepare(
       `INSERT INTO products (id, name, slug, description, price_cents, compare_at_price_cents, stock, status, image_url, seo_title, seo_description)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      id, body.name, slug, body.description || null,
-      Math.round(body.price * 100),
-      body.compareAtPrice ? Math.round(body.compareAtPrice * 100) : null,
-      body.stock || 0, body.status || 'draft',
-      body.imageUrl || null,
-      body.seoTitle || null, body.seoDescription || null
+      id, name, slug,
+      sanitizeString((body as any).description, 5000) || null,
+      Math.round(price * 100),
+      (body as any).compareAtPrice ? Math.round(Number((body as any).compareAtPrice) * 100) : null,
+      Math.min(Math.max(0, Number((body as any).stock) || 0), 999999),
+      (body as any).status || 'draft',
+      sanitizeString((body as any).imageUrl, 500) || null,
+      sanitizeString((body as any).seoTitle, 200) || null,
+      sanitizeString((body as any).seoDescription, 300) || null
     ).run()
 
-    if (body.variantOptions && body.variantOptions.length > 0) {
-      for (const opt of body.variantOptions) {
+    if ((body as any).variantOptions && Array.isArray((body as any).variantOptions)) {
+      const variantOptions = (body as any).variantOptions as Array<{ group: string; value: string }>
+      for (const opt of variantOptions) {
         await env.DB.prepare(
           'INSERT INTO variant_options (product_id, group_name, value, sort_order) VALUES (?, ?, ?, ?)'
-        ).bind(id, opt.group, opt.value, 0).run()
+        ).bind(id, sanitizeString(opt.group, 50), sanitizeString(opt.value, 100), 0).run()
       }
 
-      const groups = [...new Set(body.variantOptions.map((o: any) => o.group))] as string[]
-      const valuesByGroup = groups.map((g) => body.variantOptions.filter((o: any) => o.group === g).map((o: any) => o.value))
+      const groups = [...new Set(variantOptions.map((o) => o.group))]
+      const valuesByGroup = groups.map((g) => variantOptions.filter((o) => o.group === g).map((o) => o.value))
 
       function cartesian(arrays: string[][]): string[][] {
         if (arrays.length === 0) return [[]]
@@ -66,12 +82,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const variantId = generateId('var')
         await env.DB.prepare(
           'INSERT INTO product_variants (id, product_id, name, stock, price_cents) VALUES (?, ?, ?, ?, ?)'
-        ).bind(variantId, id, variantName, body.stock || 0, body.price ? Math.round(body.price * 100) : null).run()
+        ).bind(variantId, id, variantName, Math.min(Math.max(0, Number((body as any).stock) || 0), 999999), Math.round(price * 100)).run()
       }
     }
 
     return new Response(JSON.stringify({ id, slug }), { headers: { 'Content-Type': 'application/json' } })
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'Failed to create product' }), { status: 400 })
+    return jsonError(400, err.message || 'Failed to create product')
   }
 }

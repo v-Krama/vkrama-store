@@ -1,25 +1,30 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as getDb, p as products, e as eq, f as productVariants, h as asc, v as variantOptions, a as categories, j as productCategories } from '../../../chunks/db_DGDNi2yE.mjs';
+import { g as getDb, p as products, e as eq, b as categories, a as productCategories, h as productVariants, v as variantOptions } from '../../../chunks/db_BOPxdIeH.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const GET = async ({ params, locals }) => {
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response("Not found", { status: 404 });
   const db = getDb(env.DB);
+  const { slug } = params;
+  if (!slug) return new Response("Not found", { status: 404 });
   try {
-    const product = await db.select().from(products).where(eq(products.slug, params.slug)).get();
+    const product = await db.select().from(products).where(eq(products.slug, slug)).get();
     if (!product || product.status !== "active") {
-      return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
+      return new Response("Not found", { status: 404 });
     }
-    const variants = await db.select().from(productVariants).where(eq(productVariants.productId, product.id)).orderBy(asc(productVariants.sortOrder)).all();
-    const opts = await db.select().from(variantOptions).where(eq(variantOptions.productId, product.id)).orderBy(asc(variantOptions.sortOrder)).all();
-    const cats = await db.select({ name: categories.name, slug: categories.slug }).from(categories).innerJoin(productCategories, eq(categories.id, productCategories.categoryId)).where(eq(productCategories.productId, product.id)).all();
-    return new Response(JSON.stringify({ ...product, variants, variantOptions: opts, categories: cats }), {
+    const cats = await db.select({
+      id: categories.id,
+      name: categories.name,
+      slug: categories.slug
+    }).from(categories).innerJoin(productCategories, eq(categories.id, productCategories.categoryId)).where(eq(productCategories.productId, product.id)).all();
+    const variants = await db.select().from(productVariants).where(eq(productVariants.productId, product.id)).orderBy(productVariants.sortOrder).all();
+    const vOptions = await db.select().from(variantOptions).where(eq(variantOptions.productId, product.id)).orderBy(variantOptions.sortOrder).all();
+    return new Response(JSON.stringify({ ...product, categories: cats, variants, variantOptions: vOptions }), {
       headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" }
     });
-  } catch (err) {
-    console.error("Product detail error:", err);
-    return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
+  } catch {
+    return new Response("Not found", { status: 404 });
   }
 };
 

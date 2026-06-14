@@ -1,28 +1,33 @@
 import type { APIRoute } from 'astro'
-import { verifyPassword, createToken, generateId, getAdminSessionExpiry } from '../../../lib/auth'
+import { verifyPassword, createToken, generateId, getAdminSessionExpiry, validateEmail } from '../../../lib/auth'
+import { rateLimitMiddleware } from '../../../lib/rate-limit'
+import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  const rl = rateLimitMiddleware(request, { maxRequests: 5, windowMs: 60_000 })
+  if (rl) return rl
+
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+  if (!env?.DB) return jsonError(500, 'Server error')
 
   try {
-    const { email, password } = await request.json()
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), { status: 400 })
-    }
+    const body = await request.json().catch(() => null)
+    if (!body) return jsonError(400, 'Invalid request body')
+
+    const email = sanitizeString((body as any).email).toLowerCase().trim()
+    const password = (body as any).password || ''
+
+    if (!email || !password) return jsonError(400, 'Email and password required')
+    if (!validateEmail(email)) return jsonError(400, 'Invalid email format')
 
     const admin = await env.DB.prepare(
       'SELECT id, email, name, password_hash, role FROM admins WHERE email = ?'
-    ).bind(email.toLowerCase().trim()).first() as any
+    ).bind(email).first() as any
 
-    if (!admin) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401 })
-    }
+    if (!admin) return jsonError(401, 'Invalid credentials')
 
     const valid = await verifyPassword(password, admin.password_hash)
-    if (!valid) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401 })
-    }
+    if (!valid) return jsonError(401, 'Invalid credentials')
 
     const sessionId = generateId('sess')
     await env.DB.prepare(
@@ -31,11 +36,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const token = await createToken({ userId: admin.id, userType: 'admin', sessionId }, 12)
 
-    return new Response(JSON.stringify({ token, email: admin.email, name: admin.name }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    console.error('Admin login error:', err)
-    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), { status: 500 })
+    return jsonOk({ token, email: admin.email, name: admin.name })
+  } catch {
+    return jsonError(500, 'An unexpected error occurred')
   }
 }

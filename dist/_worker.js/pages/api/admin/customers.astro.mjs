@@ -1,11 +1,12 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { c as checkAdminAuth } from '../../../chunks/auth_rVfLOqBr.mjs';
+import { g as getAuthUser, j as jsonError } from '../../../chunks/validation_C3-TSEuz.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const GET = async ({ request, locals }) => {
-  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 });
+  const user = await getAuthUser(request, env.DB, "admin");
+  if (!user) return jsonError(401, "Unauthorized");
   try {
     const result = await env.DB.prepare(`
       SELECT c.*, (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) as order_count
@@ -14,7 +15,7 @@ const GET = async ({ request, locals }) => {
     return new Response(JSON.stringify(result.results), { headers: { "Content-Type": "application/json" } });
   } catch (err) {
     console.error("Customers GET error:", err);
-    return new Response(JSON.stringify({ error: "Failed to load customers" }), { status: 500 });
+    return jsonError(500, "Failed to load customers");
   }
 };
 

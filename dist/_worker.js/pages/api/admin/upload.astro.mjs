@@ -1,31 +1,46 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { c as checkAdminAuth, n as nanoid } from '../../../chunks/auth_rVfLOqBr.mjs';
+import { j as jsonError, g as getAuthUser, n as nanoid } from '../../../chunks/validation_C3-TSEuz.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ALLOWED_EXTS = ["jpg", "jpeg", "png", "gif", "webp"];
+const MAX_SIZE = 5 * 1024 * 1024;
+const MAGIC_BYTES = {
+  jpeg: new Uint8Array([255, 216, 255]),
+  png: new Uint8Array([137, 80, 78, 71]),
+  gif: new Uint8Array([71, 73, 70]),
+  webp: new Uint8Array([82, 73, 70, 70])
+};
+function checkMagicBytes(buffer, ext) {
+  const magic = MAGIC_BYTES[ext];
+  if (!magic) return false;
+  const view = new Uint8Array(buffer, 0, magic.length);
+  return magic.every((b, i) => view[i] === b);
+}
 const POST = async ({ request, locals }) => {
-  if (!await checkAdminAuth(request)) return new Response("Unauthorized", { status: 401 });
   const env = locals.runtime?.env;
-  if (!env?.R2_STORE) return new Response(JSON.stringify({ error: "Storage not configured" }), { status: 500 });
+  if (!env?.R2_STORE) return jsonError(500, "Storage not configured");
+  const user = await getAuthUser(request, env.DB, "admin");
+  if (!user) return jsonError(401, "Unauthorized");
   try {
-    const formData = await request.formData();
+    const formData = await request.formData().catch(() => null);
+    if (!formData) return jsonError(400, "Invalid form data");
     const file = formData.get("file");
-    const folder = formData.get("folder") || "products";
-    if (!file) return new Response(JSON.stringify({ error: "No file provided" }), { status: 400 });
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    const allowedExts = ["jpg", "jpeg", "png", "gif", "webp"];
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return new Response(JSON.stringify({ error: "File too large. Maximum 5MB." }), { status: 400 });
-    }
-    if (!allowedTypes.includes(file.type)) {
-      return new Response(JSON.stringify({ error: "Invalid file type. Allowed: JPG, PNG, GIF, WebP." }), { status: 400 });
+    if (!file) return jsonError(400, "No file provided");
+    if (file.size > MAX_SIZE) return jsonError(400, "File too large. Maximum 5MB.");
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return jsonError(400, "Invalid file type. Allowed: JPG, PNG, GIF, WebP.");
     }
     const ext = (file.name.split(".").pop() || "").toLowerCase();
-    if (!allowedExts.includes(ext)) {
-      return new Response(JSON.stringify({ error: "Invalid file extension." }), { status: 400 });
+    if (!ALLOWED_EXTS.includes(ext)) {
+      return jsonError(400, "Invalid file extension.");
     }
-    const key = `${folder}/${nanoid(16)}.${ext}`;
     const buffer = await file.arrayBuffer();
+    if (!checkMagicBytes(buffer, ext)) {
+      return jsonError(400, "Invalid file content.");
+    }
+    const folder = String(formData.get("folder") || "products").replace(/[^a-z0-9_-]/gi, "");
+    const key = `${folder}/${nanoid(16)}.${ext}`;
     await env.R2_STORE.put(key, buffer, {
       httpMetadata: { contentType: file.type }
     });
@@ -33,7 +48,7 @@ const POST = async ({ request, locals }) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch {
-    return new Response(JSON.stringify({ error: "Upload failed" }), { status: 400 });
+    return jsonError(500, "Upload failed");
   }
 };
 

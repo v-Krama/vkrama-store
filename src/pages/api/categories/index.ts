@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
-import { categories } from '../../../db/schema'
+import { categories, productCategories } from '../../../db/schema'
+import { eq, sql } from 'drizzle-orm'
 
 export const GET: APIRoute = async ({ locals }) => {
   const env = (locals as any).runtime?.env
@@ -15,6 +16,7 @@ export const GET: APIRoute = async ({ locals }) => {
         slug: categories.slug,
         description: categories.description,
         imageUrl: categories.imageUrl,
+        productCount: sql<number>`(SELECT COUNT(*) FROM ${productCategories} WHERE ${productCategories.categoryId} = ${categories.id})`,
       })
       .from(categories)
       .all()

@@ -1,5 +1,5 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as getDb, a as categories } from '../../chunks/db_DGDNi2yE.mjs';
+import { g as getDb, s as sql, a as productCategories, b as categories } from '../../chunks/db_BOPxdIeH.mjs';
 export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const GET = async ({ locals }) => {
@@ -12,7 +12,8 @@ const GET = async ({ locals }) => {
       name: categories.name,
       slug: categories.slug,
       description: categories.description,
-      imageUrl: categories.imageUrl
+      imageUrl: categories.imageUrl,
+      productCount: sql`(SELECT COUNT(*) FROM ${productCategories} WHERE ${productCategories.categoryId} = ${categories.id})`
     }).from(categories).all();
     return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" }

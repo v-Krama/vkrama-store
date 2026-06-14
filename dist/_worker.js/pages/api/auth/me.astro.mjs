@@ -1,25 +1,13 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { v as verifyToken } from '../../../chunks/auth_rVfLOqBr.mjs';
+import { j as jsonError, g as getAuthUser, b as jsonOk } from '../../../chunks/validation_C3-TSEuz.mjs';
 export { r as renderers } from '../../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const GET = async ({ request, locals }) => {
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
   const env = locals.runtime?.env;
-  let user = null;
-  if (payload.userType === "customer" && env?.DB) {
-    const row = await env.DB.prepare("SELECT id, email, name FROM customers WHERE id = ?").bind(payload.userId).first();
-    if (row) user = row;
-  }
-  return new Response(JSON.stringify({ user, userType: payload.userType }), {
-    headers: { "Content-Type": "application/json" }
-  });
+  if (!env?.DB) return jsonError(500, "Server error");
+  const user = await getAuthUser(request, env.DB, "customer");
+  if (!user) return jsonError(401, "Unauthorized");
+  return jsonOk({ user, userType: user.userType });
 };
 
 const _page = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({

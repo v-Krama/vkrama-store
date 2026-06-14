@@ -1,10 +1,13 @@
 import type { APIRoute } from 'astro'
-import { checkAdminAuth, generateId } from '../../../lib/auth'
+import { getAuthUser, generateId } from '../../../lib/auth'
+import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  if (!(await checkAdminAuth(request))) return new Response('Unauthorized', { status: 401 })
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
+
+  const user = await getAuthUser(request, env.DB, 'admin')
+  if (!user) return jsonError(401, 'Unauthorized')
 
   try {
     const all = await env.DB.prepare(`
@@ -15,21 +18,26 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify(all.results), { headers: { 'Content-Type': 'application/json' } })
   } catch (err) {
     console.error('Categories GET error:', err)
-    return new Response(JSON.stringify({ error: 'Failed to load categories' }), { status: 500 })
+    return jsonError(500, 'Failed to load categories')
   }
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  if (!(await checkAdminAuth(request))) return new Response('Unauthorized', { status: 401 })
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+  if (!env?.DB) return jsonError(500, 'Server error')
 
-  const { name } = await request.json()
-  if (!name) return new Response(JSON.stringify({ error: 'Name required' }), { status: 400 })
+  const user = await getAuthUser(request, env.DB, 'admin')
+  if (!user) return jsonError(401, 'Unauthorized')
+
+  const body = await request.json().catch(() => null)
+  if (!body) return jsonError(400, 'Invalid request body')
+
+  const name = sanitizeString((body as any).name, 100)
+  if (!name) return jsonError(400, 'Name required')
 
   const id = generateId('cat')
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   await env.DB.prepare('INSERT INTO categories (id, name, slug) VALUES (?, ?, ?)').bind(id, name, slug).run()
 
-  return new Response(JSON.stringify({ id }), { headers: { 'Content-Type': 'application/json' } })
+  return jsonOk({ id })
 }

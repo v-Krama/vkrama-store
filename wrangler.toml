@@ -3,6 +3,10 @@ compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
+# Git integration on Cloudflare Pages dashboard
+# Build command: npm run build
+# Build output: dist
+
 [[d1_databases]]
 binding = "DB"
 database_name = "vkrama-db"
@@ -11,3 +15,6 @@ database_id = "b8665214-d54a-41e3-a392-ea536c4d1188"
 [[r2_buckets]]
 binding = "R2_STORE"
 bucket_name = "vkrama-assets"
+
+[env.production]
+vars = { NODE_VERSION = "22" }

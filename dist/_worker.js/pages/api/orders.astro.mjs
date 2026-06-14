@@ -1,22 +1,16 @@
 globalThis.process ??= {}; globalThis.process.env ??= {};
-import { g as getDb, o as orders, e as eq, d as desc } from '../../chunks/db_DGDNi2yE.mjs';
-import { v as verifyToken } from '../../chunks/auth_rVfLOqBr.mjs';
+import { g as getDb, o as orders, e as eq, d as desc } from '../../chunks/db_BOPxdIeH.mjs';
+import { g as getAuthUser, j as jsonError } from '../../chunks/validation_C3-TSEuz.mjs';
 export { r as renderers } from '../../chunks/_@astro-renderers_CzUJxHa9.mjs';
 
 const GET = async ({ request, locals }) => {
   const env = locals.runtime?.env;
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 });
+  const user = await getAuthUser(request, env.DB, "customer");
+  if (!user) return jsonError(401, "Unauthorized");
   const db = getDb(env.DB);
-  const auth = request.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
-  const payload = await verifyToken(auth.slice(7));
-  if (!payload || payload.userType !== "customer") {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
   try {
-    const result = await db.select().from(orders).where(eq(orders.customerId, payload.userId)).orderBy(desc(orders.createdAt)).all();
+    const result = await db.select().from(orders).where(eq(orders.customerId, user.id)).orderBy(desc(orders.createdAt)).all();
     return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
   } catch {
     return new Response(JSON.stringify([]), { status: 200 });

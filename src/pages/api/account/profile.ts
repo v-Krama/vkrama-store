@@ -1,42 +1,38 @@
 import type { APIRoute } from 'astro'
-import { verifyToken } from '../../../lib/auth'
+import { getAuthUser } from '../../../lib/auth'
+import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-  }
-
-  const payload = await verifyToken(auth.slice(7))
-  if (!payload || payload.userType !== 'customer') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-  }
-
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response(JSON.stringify({ user: null }), { status: 200 })
+  if (!env?.DB) return jsonError(500, 'Server error')
 
-  const row = await env.DB.prepare('SELECT id, email, name, phone FROM customers WHERE id = ?').bind(payload.userId).first()
+  const user = await getAuthUser(request, env.DB, 'customer')
+  if (!user) return jsonError(401, 'Unauthorized')
 
-  return new Response(JSON.stringify({ user: row }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  const row = await env.DB.prepare(
+    'SELECT id, email, name, phone FROM customers WHERE id = ?'
+  ).bind(user.id).first()
+
+  return jsonOk({ user: row })
 }
 
 export const PUT: APIRoute = async ({ request, locals }) => {
-  const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-
-  const payload = await verifyToken(auth.slice(7))
-  if (!payload || payload.userType !== 'customer') return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-
   const env = (locals as any).runtime?.env
-  if (!env?.DB) return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
+  if (!env?.DB) return jsonError(500, 'Server error')
+
+  const user = await getAuthUser(request, env.DB, 'customer')
+  if (!user) return jsonError(401, 'Unauthorized')
 
   try {
-    const { name, phone } = await request.json()
-    await env.DB.prepare('UPDATE customers SET name = ?, phone = ? WHERE id = ?').bind(name || null, phone || null, payload.userId).run()
-    return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } })
+    const body = await request.json().catch(() => null)
+    if (!body) return jsonError(400, 'Invalid request body')
+
+    const name = sanitizeString((body as any).name, 100)
+    const phone = sanitizeString((body as any).phone, 20) || null
+
+    await env.DB.prepare('UPDATE customers SET name = ?, phone = ? WHERE id = ?').bind(name, phone, user.id).run()
+    return jsonOk({ ok: true })
   } catch {
-    return new Response(JSON.stringify({ error: 'Update failed' }), { status: 400 })
+    return jsonError(400, 'Update failed')
   }
 }

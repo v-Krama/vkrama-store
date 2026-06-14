@@ -1,12 +1,11 @@
-import type { Config } from 'drizzle-kit'
+import { defineConfig } from 'drizzle-kit'
 
-export default {
+export default defineConfig({
   schema: './src/db/schema.ts',
   out: './src/db/migrations',
   dialect: 'sqlite',
   driver: 'd1',
   dbCredentials: {
-    wranglerConfigPath: './wrangler.toml',
-    dbName: 'vkrama-db',
-  },
-} satisfies Config
+    databaseName: 'vkrama-db',
+  }
+})
