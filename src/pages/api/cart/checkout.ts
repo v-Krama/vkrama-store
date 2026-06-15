@@ -5,10 +5,14 @@ import { eq, inArray } from "drizzle-orm"
 import { generateId, getAuthUser } from "../../../lib/auth"
 import { CURRENCY, CURRENCY_SYMBOL, SHIPPING_COST_CENTS, TAX_RATE } from "../../../lib/constants"
 import { jsonError, jsonOk } from "../../../lib/validation"
+import { rateLimitMiddleware } from "../../../lib/rate-limit"
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Database not configured")
+
+  const rl = await rateLimitMiddleware(request, env, { maxRequests: 10, windowMs: 60_000 })
+  if (rl) return rl
 
   const customer = await getAuthUser(request, env.DB, "customer")
   if (!customer) return jsonError(401, "Authentication required")

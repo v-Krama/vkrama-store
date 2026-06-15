@@ -1,16 +1,16 @@
 import type { APIRoute } from "astro"
 import { getDb } from "../../../../lib/db"
 import { products, productVariants } from "../../../../db/schema"
-import { eq, sql } from "drizzle-orm"
-import { getAuthUser } from "../../../../lib/auth"
+import { eq } from "drizzle-orm"
 import { jsonError, sanitizeString } from "../../../../lib/validation"
 import { invalidateProductCache } from "../../../../services/cache"
+import { getAdminUser, hasPermission, jsonForbidden } from "../../../../lib/admin-auth"
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Server error")
 
-  const user = await getAuthUser(request, env.DB, "admin")
+  const user = await getAdminUser(request, env.DB)
   if (!user) return jsonError(401, "Unauthorized")
 
   try {
@@ -37,8 +37,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Server error")
 
-  const user = await getAuthUser(request, env.DB, "admin")
+  const user = await getAdminUser(request, env.DB)
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "products:write")) return jsonForbidden()
 
   try {
     const body = await request.json().catch(() => null)
@@ -82,7 +83,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       headers: { "Content-Type": "application/json" },
     })
   } catch (err: any) {
-    return jsonError(400, err.message || "Failed to update product")
+    console.error("Product update error:", err)
+    return jsonError(400, "Failed to update product")
   }
 }
 
@@ -90,20 +92,26 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Server error")
 
-  const user = await getAuthUser(request, env.DB, "admin")
+  const user = await getAdminUser(request, env.DB)
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "products:delete")) return jsonForbidden()
 
   try {
     const product = await getDb(env.DB).select().from(products).where(eq(products.id, params.id!)).get()
     if (!product) return jsonError(404, "Product not found")
 
+    await env.DB.prepare("DELETE FROM product_variants WHERE product_id = ?").bind(params.id!).run()
+    await env.DB.prepare("DELETE FROM variant_options WHERE product_id = ?").bind(params.id!).run()
+    await env.DB.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(params.id!).run()
+    await env.DB.prepare("DELETE FROM collection_products WHERE product_id = ?").bind(params.id!).run()
     await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(params.id!).run()
     await invalidateProductCache(env.CACHE, product.slug)
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
     })
-  } catch {
+  } catch (err) {
+    console.error("Product delete error:", err)
     return jsonError(500, "Failed to delete product")
   }
 }

@@ -42,9 +42,7 @@ export async function rateLimitMiddleware(
   env: { CACHE: KVNamespace },
   config?: RateLimitConfig
 ): Promise<Response | null> {
-  const ip = request.headers.get("CF-Connecting-IP")
-    || request.headers.get("X-Forwarded-For")
-    || "anonymous"
+  const ip = request.headers.get("CF-Connecting-IP") || "anonymous"
   const key = `${request.method}:${new URL(request.url).pathname}:${ip}`
   const result = await checkRateLimit(env, key, config)
 

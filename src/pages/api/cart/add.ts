@@ -1,28 +1,15 @@
 import type { APIRoute } from "astro"
-import { getAuthUser } from "../../../lib/auth"
 import { jsonError } from "../../../lib/validation"
 import { getDb } from "../../../lib/db"
 import { productVariants, products } from "../../../db/schema"
 import { eq } from "drizzle-orm"
-
-function getCartId(request: Request): string {
-  const cookie = request.headers.get("Cookie") || ""
-  const match = cookie.match(/vkrama_cart_id=([^;]+)/)
-  if (match) return match[1]
-
-  const sessionHeader = request.headers.get("X-Cart-Session")
-  if (sessionHeader) return sessionHeader
-
-  const auth = request.headers.get("Authorization")
-  if (auth?.startsWith("Bearer ")) return "auth-" + auth.slice(7, 32)
-  return "anon"
-}
+import { getCartIdFromRequest, setCartCookie } from "../../../lib/cart"
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Server error")
 
-  const cartId = getCartId(request)
+  const cartId = getCartIdFromRequest(request, env.DB)
   const body = await request.json().catch(() => null)
   if (!body) return jsonError(400, "Invalid request")
 
@@ -69,7 +56,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   return new Response(JSON.stringify(cart), {
     headers: {
       "Content-Type": "application/json",
-      "Set-Cookie": `vkrama_cart_id=${cartId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7776000`,
+      "Set-Cookie": setCartCookie(cartId),
     },
   })
 }

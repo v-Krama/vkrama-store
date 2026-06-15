@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro"
 import { getAuthUser } from "../../../lib/auth"
 import { jsonError } from "../../../lib/validation"
+import { setCartCookie } from "../../../lib/cart"
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -26,7 +27,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   return new Response(JSON.stringify(cart), {
     headers: {
       "Content-Type": "application/json",
-      "Set-Cookie": `vkrama_cart_id=${userCartId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=7776000`,
+      "Set-Cookie": setCartCookie(userCartId),
     },
   })
 }

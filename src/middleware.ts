@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware'
+import { csrfProtection } from './lib/csrf'
 
 function getCsp(env: Record<string, unknown> | undefined) {
   const r2PublicUrl = env?.PUBLIC_R2_PUBLIC_URL as string | undefined
@@ -27,6 +28,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
         process.env[key] = env[key]
       }
     }
+  }
+
+  if (context.url.pathname.startsWith('/api/') && !context.url.pathname.startsWith('/api/auth/')) {
+    const csrfResult = csrfProtection(context.request)
+    if (csrfResult) return csrfResult
   }
 
   const response = await next()

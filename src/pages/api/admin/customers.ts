@@ -1,17 +1,22 @@
 import type { APIRoute } from 'astro'
-import { getAuthUser } from '../../../lib/auth'
 import { jsonError } from '../../../lib/validation'
+import { getAdminUser, hasPermission } from '../../../lib/admin-auth'
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
 
-  const user = await getAuthUser(request, env.DB, 'admin')
+  const user = await getAdminUser(request, env.DB)
   if (!user) return jsonError(401, 'Unauthorized')
+  if (!hasPermission(user.role, 'customers:read')) {
+    return jsonError(403, 'Insufficient permissions')
+  }
 
   try {
     const result = await env.DB.prepare(`
-      SELECT c.*, (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) as order_count
+      SELECT c.id, c.email, c.name, c.phone, c.is_verified, c.is_active, c.accepts_marketing,
+             c.tags, c.last_login_at, c.created_at, c.updated_at,
+             (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) as order_count
       FROM customers c ORDER BY c.created_at DESC
     `).all()
 

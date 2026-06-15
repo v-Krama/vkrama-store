@@ -39,6 +39,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const newHash = await hashPassword(newPassword)
     await env.DB.prepare('UPDATE customers SET password_hash = ? WHERE id = ?').bind(newHash, user.id).run()
 
+    await env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND user_type = 'customer'").bind(user.id).run()
+
     return jsonOk({ ok: true })
   } catch {
     return jsonError(500, 'Failed to change password')

@@ -2,15 +2,16 @@ import type { APIRoute } from "astro"
 import { getDb } from "../../../lib/db"
 import { products, productVariants } from "../../../db/schema"
 import { desc, eq, sql } from "drizzle-orm"
-import { getAuthUser, generateId } from "../../../lib/auth"
+import { generateId } from "../../../lib/auth"
 import { jsonError, sanitizeString } from "../../../lib/validation"
 import { invalidateProductCache } from "../../../services/cache"
+import { getAdminUser, hasPermission, jsonForbidden } from "../../../lib/admin-auth"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return new Response(JSON.stringify([]), { status: 200 })
 
-  const user = await getAuthUser(request, env.DB, "admin")
+  const user = await getAdminUser(request, env.DB)
   if (!user) return jsonError(401, "Unauthorized")
 
   try {
@@ -56,8 +57,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Server error")
 
-  const user = await getAuthUser(request, env.DB, "admin")
+  const user = await getAdminUser(request, env.DB)
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "products:write")) return jsonForbidden()
 
   try {
     const body = await request.json().catch(() => null)
