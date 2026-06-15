@@ -42,7 +42,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ).bind(sessionId, customer.id, 'customer', token, getCustomerSessionExpiry()).run()
 
     return jsonOk({ token, email: customer.email, name: customer.name, redirect: '/account/orders' })
-  } catch {
-    return jsonError(400, 'Invalid request')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('Customer login error:', msg, err instanceof Error ? err.stack : '')
+    return jsonError(400, msg)
   }
 }
