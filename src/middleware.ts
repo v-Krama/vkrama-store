@@ -20,16 +20,6 @@ function getCsp(env: Record<string, unknown> | undefined) {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const env = (context.locals as any).runtime?.env
-
-  if (env) {
-    for (const key of Object.keys(env)) {
-      if (typeof env[key] === 'string') {
-        process.env[key] = env[key]
-      }
-    }
-  }
-
   if (context.url.pathname.startsWith('/api/') && !context.url.pathname.startsWith('/api/auth/')) {
     const csrfResult = csrfProtection(context.request)
     if (csrfResult) return csrfResult
@@ -37,6 +27,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const response = await next()
 
+  const env = (context.locals as any).runtime?.env
   const securityHeaders: Record<string, string> = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',

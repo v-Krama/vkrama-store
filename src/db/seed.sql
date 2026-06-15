@@ -1,12 +1,13 @@
 -- Seed data for Vkrama ecommerce platform
 
 -- Admin user (password: Admin@123)
+-- PBKDF2 hash: generate with node using the hashPassword function in src/lib/auth.ts
 INSERT INTO admins (id, email, name, password_hash, role, permissions)
 VALUES (
   lower(hex(randomblob(16))),
   'admin@vkrama.com.np',
   'Super Admin',
-  '$2b$12$KRD/vi91TRFs8aM/niDqyOLY.WNF4IXMm7q3KtGkkDV6GZCDLWm7i',
+  'pbkdf2:100000:pOOYUuME44Ed0YRAcjHHnKdYnjf7zgKo26e9knAPeSQ=:ANY4ejV4z8Z002yzm/LyIfnFzzg3qSkWh3sMiw7QbrVuyr/pelbgxnY926nKsjrIRCVb+W3KPwd5Xo48y7Uhbw==',
   'superadmin',
   '["products", "orders", "customers", "settings", "admins", "marketing", "content"]'
 );
@@ -160,7 +161,7 @@ SELECT cl.id, p.id FROM collections cl, products p WHERE cl.slug = 'special-offe
 
 -- Customer (password: Customer@123)
 INSERT INTO customers (id, email, name, phone, password_hash, is_verified, accepts_marketing)
-VALUES (lower(hex(randomblob(16))), 'customer@vkrama.com.np', 'Test Customer', '+977-98XXXXXXXX', '$2b$12$KRD/vi91TRFs8aM/niDqyOLY.WNF4IXMm7q3KtGkkDV6GZCDLWm7i', 1, 1);
+VALUES (lower(hex(randomblob(16))), 'customer@vkrama.com.np', 'Test Customer', '+977-98XXXXXXXX', 'pbkdf2:100000:lRd52xb+nAUL9VGRVa5Q+l0oxogKj9JEkZKtItaKlAE=:tb64+F0xj3vZ0/FB9Vtmj8gcVdFqP93Wsw9uZSGcxn4WL+G+ucXzl/tGrKcdxyJ8FFEYVvdba0wyY5zZZ9aRkg==', 1, 1);
 
 -- Navigation menus
 INSERT INTO menus (id, name, location, is_active) VALUES

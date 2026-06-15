@@ -39,12 +39,13 @@ export async function checkRateLimit(
 
 export async function rateLimitMiddleware(
   request: Request,
-  env: { CACHE: KVNamespace },
+  env: { CACHE?: KVNamespace },
   config?: RateLimitConfig
 ): Promise<Response | null> {
+  if (!env?.CACHE) return null
   const ip = request.headers.get("CF-Connecting-IP") || "anonymous"
   const key = `${request.method}:${new URL(request.url).pathname}:${ip}`
-  const result = await checkRateLimit(env, key, config)
+  const result = await checkRateLimit(env as { CACHE: KVNamespace }, key, config)
 
   if (!result.allowed) {
     return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
