@@ -591,6 +591,16 @@ export const admins = sqliteTable("admins", {
   updatedAt: timestamp("updated_at"),
 })
 
+export const verificationTokens = sqliteTable("verification_tokens", {
+  id: ulid(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  type: text("type", { enum: ["email_verify", "password_reset"] }).notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: optionalTimestamp("used_at"),
+  createdAt: timestamp("created_at"),
+})
+
 export const activityLog = sqliteTable("activity_log", {
   id: ulid(),
   actorType: text("actor_type", { enum: ["customer", "admin", "system"] }).notNull(),

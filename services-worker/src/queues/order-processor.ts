@@ -100,12 +100,30 @@ async function sendConfirmation(orderId: string, env: Env) {
 
   if (!order) throw new Error(`Order ${orderId} not found`)
 
-  // Send confirmation via email queue
+  const items = await env.DB.prepare(
+    "SELECT name, variant_name, quantity, price_cents, image_url FROM order_items WHERE order_id = ?",
+  ).bind(orderId).all<{ name: string; variant_name: string; quantity: number; price_cents: number; image_url: string }>()
+
+  const itemsData = items.results.map(i => ({
+    name: i.name,
+    variant: i.variant_name,
+    qty: i.quantity,
+    price: i.price_cents,
+    image: i.image_url,
+  }))
+
   await env.EMAIL_QUEUE.send({
     type: "order_confirmation",
-    orderId: order.id,
-    email: order.email || order.customer_email,
-    orderNumber: order.order_number,
+    to: order.email || order.customer_email,
+    data: {
+      orderNumber: order.order_number,
+      totalCents: order.total_cents,
+      customerName: order.customer_name || "Customer",
+      items: itemsData,
+      shippingName: order.shipping_name,
+      shippingCity: order.shipping_city,
+      paymentMethod: order.payment_method,
+    },
   })
 
   await logActivity(env, {

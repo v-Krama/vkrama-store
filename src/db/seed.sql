@@ -6,7 +6,7 @@ VALUES (
   lower(hex(randomblob(16))),
   'admin@vkrama.com.np',
   'Super Admin',
-  '$2a$12$LJ3m4ys3Lk0TSwHnbfOMiOXPm1Qlq5Gz0nY9q8G0v5p3x2y1z4a6O',
+  '$2b$12$KRD/vi91TRFs8aM/niDqyOLY.WNF4IXMm7q3KtGkkDV6GZCDLWm7i',
   'superadmin',
   '["products", "orders", "customers", "settings", "admins", "marketing", "content"]'
 );
@@ -160,7 +160,7 @@ SELECT cl.id, p.id FROM collections cl, products p WHERE cl.slug = 'special-offe
 
 -- Customer (password: Customer@123)
 INSERT INTO customers (id, email, name, phone, password_hash, is_verified, accepts_marketing)
-VALUES (lower(hex(randomblob(16))), 'customer@vkrama.com.np', 'Test Customer', '+977-98XXXXXXXX', '$2a$12$LJ3m4ys3Lk0TSwHnbfOMiOXPm1Qlq5Gz0nY9q8G0v5p3x2y1z4a6O', 1, 1);
+VALUES (lower(hex(randomblob(16))), 'customer@vkrama.com.np', 'Test Customer', '+977-98XXXXXXXX', '$2b$12$KRD/vi91TRFs8aM/niDqyOLY.WNF4IXMm7q3KtGkkDV6GZCDLWm7i', 1, 1);
 
 -- Navigation menus
 INSERT INTO menus (id, name, location, is_active) VALUES

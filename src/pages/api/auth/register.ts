@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
-import { customers } from '../../../db/schema'
+import { customers, verificationTokens } from '../../../db/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword, createToken, generateId, getCustomerSessionExpiry, validateEmail, validatePassword } from '../../../lib/auth'
 import { rateLimitMiddleware } from '../../../lib/rate-limit'
@@ -49,6 +49,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ).bind(sessionId, customerId, 'customer', getCustomerSessionExpiry()).run()
 
     const token = await createToken({ userId: customerId, userType: 'customer', sessionId }, 24)
+
+    const verifyToken = generateId('vrf')
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    await env.DB.prepare(
+      'INSERT INTO verification_tokens (id, email, token, type, expires_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(generateId('vrf'), email, verifyToken, 'email_verify', expiresAt).run()
+
+    const siteUrl = env.SITE_URL || 'https://vkrama.com.np'
+    const verifyUrl = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
+
+    await env.QUEUE.send('send-email', {
+      to: email,
+      subject: 'Verify your email - vkrama',
+      html: `<p>Hi ${name || 'there'},</p><p>Please verify your email by clicking the link below:</p><p><a href="${verifyUrl}">Verify Email</a></p><p>This link expires in 24 hours.</p>`,
+    }).catch(() => {})
 
     return jsonOk({ token, email, name, redirect: '/account/orders' })
   } catch {

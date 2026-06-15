@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
-import { orders, orderItems } from '../../../db/schema'
+import { orders, orderItems, shipments } from '../../../db/schema'
 import { eq } from 'drizzle-orm'
 import { getAuthUser } from '../../../lib/auth'
 import { jsonError } from '../../../lib/validation'
@@ -29,7 +29,13 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       .where(eq(orderItems.orderId, order.id))
       .all()
 
-    return new Response(JSON.stringify({ ...order, items }), { headers: { 'Content-Type': 'application/json' } })
+    const shipmentsList = await db
+      .select()
+      .from(shipments)
+      .where(eq(shipments.orderId, order.id))
+      .all()
+
+    return new Response(JSON.stringify({ ...order, items, shipments: shipmentsList }), { headers: { 'Content-Type': 'application/json' } })
   } catch {
     return jsonError(404, 'Not found')
   }

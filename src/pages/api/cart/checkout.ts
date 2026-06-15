@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro"
 import { getDb } from "../../../lib/db"
-import { customers, products, productVariants, orders } from "../../../db/schema"
+import { customers, products, productVariants, orders, coupons } from "../../../db/schema"
 import { eq, inArray } from "drizzle-orm"
 import { generateId, getAuthUser } from "../../../lib/auth"
 import { CURRENCY, CURRENCY_SYMBOL, SHIPPING_COST_CENTS, TAX_RATE } from "../../../lib/constants"
@@ -102,8 +102,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const orderNumber = "VK-" + Date.now().toString(36).toUpperCase() + "-" + orderId.slice(-4).toUpperCase()
     const shippingCents = SHIPPING_COST_CENTS
     const taxCents = lineItems.reduce((s, i) => s + i.taxCents * i.quantity, 0)
-    const discountCents = 0
-    const totalCents = subtotalCents + shippingCents + taxCents - discountCents
+
+    let discountCents = 0
+    let appliedCouponId = null
+    if (couponCode) {
+      const now = new Date().toISOString()
+      const coupon = await db.select().from(coupons).where(eq(coupons.code, couponCode.toUpperCase().trim())).get()
+      if (coupon && coupon.isActive && (!coupon.startsAt || coupon.startsAt <= now) && (!coupon.endsAt || coupon.endsAt >= now)) {
+        if (!coupon.usageLimit || coupon.usedCount < coupon.usageLimit) {
+          if (!coupon.minOrderCents || subtotalCents >= coupon.minOrderCents) {
+            if (coupon.type === 'percent' && coupon.valuePercent) {
+              discountCents = Math.round(subtotalCents * (coupon.valuePercent / 100))
+            } else if (coupon.type === 'fixed' && coupon.valueCents) {
+              discountCents = coupon.valueCents
+            }
+            if (coupon.maxDiscountCents && discountCents > coupon.maxDiscountCents) {
+              discountCents = coupon.maxDiscountCents
+            }
+            discountCents = Math.min(discountCents, subtotalCents)
+            appliedCouponId = coupon.id
+          }
+        }
+      }
+    }
+
+    const totalCents = Math.max(0, subtotalCents + shippingCents + taxCents - discountCents)
 
     const orderInsert = env.DB.prepare(
       `INSERT INTO orders (id, order_number, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, discount_cents, total_cents, currency, payment_method, payment_status, shipping_cost_cents, coupon_code, gift_note, notes, ip_address, user_agent, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country, billing_name, billing_phone, billing_line1, billing_line2, billing_city, billing_state, billing_postal_code, billing_country, is_gift)
@@ -180,7 +203,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       "INSERT INTO order_status_history (order_id, from_status, to_status, created_by) VALUES (?, NULL, ?, ?)",
     ).bind(orderId, "pending", customer.id)
 
-    const batchOps = [orderInsert, statusStatement, ...itemStatements, ...stockStatements]
+    const batchOps: any[] = [orderInsert, statusStatement, ...itemStatements, ...stockStatements]
+
+    if (appliedCouponId) {
+      batchOps.push(
+        env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?").bind(appliedCouponId)
+      )
+      batchOps.push(
+        env.DB.prepare("INSERT INTO coupon_usages (id, coupon_id, order_id, customer_id, discount_cents) VALUES (?, ?, ?, ?, ?)").bind(
+          generateId('coup'), appliedCouponId, orderId, customer.id, discountCents
+        )
+      )
+    }
+
     const batchResults = await env.DB.batch(batchOps)
 
     const stockFailures = batchResults.filter(

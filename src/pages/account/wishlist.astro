@@ -1,0 +1,105 @@
+---
+import Base from '../../layouts/Base.astro'
+---
+
+<Base title="My Wishlist" description="Your saved products at vkrama">
+  <div class="relative min-h-[80vh] bg-surface-50/50">
+    <div class="container-page py-8 lg:py-12">
+      <div class="max-w-4xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 class="text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">My Wishlist</h1>
+            <p class="text-sm text-surface-500 mt-1">Products you've saved for later</p>
+          </div>
+        </div>
+
+        <div id="wishlist-container">
+          <div class="rounded-2xl bg-white border border-surface-200 p-12 text-center text-surface-500">
+            <div class="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p class="text-sm">Loading wishlist...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  const e = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
+
+  async function loadWishlist() {
+    const token = localStorage.getItem('vkrama_token')
+    if (!token) { window.location.href = '/auth/login'; return }
+
+    const container = document.getElementById('wishlist-container')!
+    try {
+      const res = await fetch('/api/wishlist', { headers: { Authorization: `Bearer ${token}` } })
+      if (res.status === 401) { localStorage.removeItem('vkrama_token'); window.location.href = '/auth/login'; return }
+      const items = await res.json()
+
+      if (!Array.isArray(items) || items.length === 0) {
+        container.innerHTML = `
+          <div class="rounded-2xl bg-white border border-surface-200 p-12 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-100 flex items-center justify-center">
+              <svg class="w-8 h-8 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            </div>
+            <p class="text-surface-900 font-semibold mb-1">Your wishlist is empty</p>
+            <p class="text-surface-500 text-sm mb-6">Save products you love by clicking the heart icon</p>
+            <a href="/products" class="btn-primary">Browse Products</a>
+          </div>
+        `
+        return
+      }
+
+      let html = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">'
+      for (const item of items) {
+        const hasDiscount = item.productCompareAt && item.productCompareAt > item.productPrice
+        html += `
+          <div class="group rounded-2xl bg-white border border-surface-200 overflow-hidden hover:border-surface-300 hover:shadow-md transition-all duration-200">
+            <a href="/products/${e(item.productSlug)}" class="block aspect-square bg-surface-100 relative overflow-hidden">
+              ${item.productImage ? `<img src="${item.productImage}" alt="${e(item.productName)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />` : '<div class="w-full h-full flex items-center justify-center text-surface-300"><svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>'}
+              ${hasDiscount ? '<span class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Sale</span>' : ''}
+            </a>
+            <div class="p-4">
+              <a href="/products/${e(item.productSlug)}" class="font-semibold text-surface-900 hover:text-brand-600 transition-colors line-clamp-2 text-sm">${e(item.productName)}</a>
+              <div class="flex items-center gap-2 mt-2">
+                <span class="font-bold text-surface-900">${fp(item.productPrice)}</span>
+                ${hasDiscount ? `<span class="text-sm text-surface-400 line-through">${fp(item.productCompareAt)}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-2 mt-3">
+                <a href="/products/${e(item.productSlug)}" class="flex-1 btn-primary btn-sm text-center text-xs">View Product</a>
+                <button onclick="removeFromWishlist('${e(item.productId)}')" class="btn-ghost btn-sm text-red-500 hover:text-red-600 hover:bg-red-50 px-2" aria-label="Remove from wishlist">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `
+      }
+      html += '</div>'
+      container.innerHTML = html
+    } catch {
+      container.innerHTML = `
+        <div class="rounded-2xl bg-white border border-red-200 p-8 text-center">
+          <p class="text-red-600 font-medium">Failed to load wishlist</p>
+          <p class="text-sm text-red-500 mt-1">Please try again or refresh the page</p>
+        </div>`
+    }
+  }
+
+  (window as any).removeFromWishlist = async (productId) => {
+    const token = localStorage.getItem('vkrama_token')
+    if (!token) return
+    try {
+      await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ productId }),
+      })
+      loadWishlist()
+    } catch {}
+  }
+
+  loadWishlist()
+</script>
