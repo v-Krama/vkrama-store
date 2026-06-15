@@ -3,59 +3,52 @@ compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-# D1 Database — transactional commerce data
-[[d1_databases]]
+[env.production]
+vars = { NODE_VERSION = "22" }
+
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "vkrama-db"
 database_id = "b8665214-d54a-41e3-a392-ea536c4d1188"
 
-# R2 Object Storage — product images, uploads, backups
-[[r2_buckets]]
+[[env.production.r2_buckets]]
 binding = "R2_STORE"
 bucket_name = "vkrama-assets"
 
-# KV — cache layer, rate limiting, session store, feature flags
-[[kv_namespaces]]
+[[env.production.kv_namespaces]]
 binding = "CACHE"
 id = "b5cb9dd451db4a6fb595fed867a8f3a7"
 
-# Vectorize — semantic product search, recommendations
-[[vectorize]]
+[[env.production.vectorize]]
 binding = "VECTORIZE"
 index_name = "vkrama-products"
 
-# Durable Objects — Pages connects to DOs hosted in the services Worker
-[[durable_objects.bindings]]
+[[env.production.durable_objects.bindings]]
 name = "CART_DO"
 class_name = "CartDO"
 script_name = "vkrama-services"
 
-[[durable_objects.bindings]]
+[[env.production.durable_objects.bindings]]
 name = "INVENTORY_DO"
 class_name = "InventoryDO"
 script_name = "vkrama-services"
 
-[[durable_objects.bindings]]
+[[env.production.durable_objects.bindings]]
 name = "NOTIFICATION_DO"
 class_name = "NotificationDO"
 script_name = "vkrama-services"
 
-# Queues — async processing (Pages produces, services Worker consumes)
-[[queues.producers]]
+[[env.production.queues.producers]]
 queue = "vkrama-order-processor"
 binding = "ORDER_QUEUE"
 
-[[queues.producers]]
+[[env.production.queues.producers]]
 queue = "vkrama-email"
 binding = "EMAIL_QUEUE"
 
-[[queues.producers]]
+[[env.production.queues.producers]]
 queue = "vkrama-analytics"
 binding = "ANALYTICS_QUEUE"
 
-# Workers AI — recommendations, search, chatbot
-[ai]
+[env.production.ai]
 binding = "AI"
-
-[env.production]
-vars = { NODE_VERSION = "22" }
