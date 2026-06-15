@@ -161,7 +161,7 @@ SELECT cl.id, p.id FROM collections cl, products p WHERE cl.slug = 'special-offe
 
 -- Customer (password: Customer@123)
 INSERT INTO customers (id, email, name, phone, password_hash, is_verified, accepts_marketing)
-VALUES (lower(hex(randomblob(16))), 'customer@vkrama.com.np', 'Test Customer', '+977-98XXXXXXXX', 'pbkdf2:100000:lRd52xb+nAUL9VGRVa5Q+l0oxogKj9JEkZKtItaKlAE=:tb64+F0xj3vZ0/FB9Vtmj8gcVdFqP93Wsw9uZSGcxn4WL+G+ucXzl/tGrKcdxyJ8FFEYVvdba0wyY5zZZ9aRkg==', 1, 1);
+VALUES (lower(hex(randomblob(16))), 'customer@vkrama.com.np', 'Test Customer', '+977-98XXXXXXXX', 'pbkdf2:100000:9eOa/EcsBzFFb0pZWiFO0FUOx9YziSehGfdkuZKJ2R0=:1m/7OFYT4MX1fT8FuJUk4Bpu8GFA5f9CY+xm8RwDLu3FAhGOic9JccnLvgFYD7PIHUZuXbSv6IzqQBh39B5ehw==', 1, 1);
 
 -- Navigation menus
 INSERT INTO menus (id, name, location, is_active) VALUES

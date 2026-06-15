@@ -1,7 +1,4 @@
 import type { APIRoute } from 'astro'
-import { getDb } from '../../../lib/db'
-import { customers } from '../../../db/schema'
-import { eq } from 'drizzle-orm'
 import { verifyPassword, createToken, generateId, getCustomerSessionExpiry, validateEmail } from '../../../lib/auth'
 import { rateLimitMiddleware } from '../../../lib/rate-limit'
 import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
@@ -23,16 +20,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!email || !password) return jsonError(400, 'Email and password required')
     if (!validateEmail(email)) return jsonError(400, 'Invalid email format')
 
-    const db = getDb(env.DB)
-    const customer = await db
-      .select()
-      .from(customers)
-      .where(eq(customers.email, email))
-      .get()
+    const customer = await env.DB.prepare(
+      'SELECT id, email, name, password_hash FROM customers WHERE email = ?'
+    ).bind(email).first() as any
 
     if (!customer) return jsonError(401, 'Invalid email or password')
 
-    const valid = await verifyPassword(password, customer.passwordHash)
+    const valid = await verifyPassword(password, customer.password_hash)
     if (!valid) return jsonError(401, 'Invalid email or password')
 
     const sessionId = generateId('sess')
@@ -42,9 +36,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ).bind(sessionId, customer.id, 'customer', token, getCustomerSessionExpiry()).run()
 
     return jsonOk({ token, email: customer.email, name: customer.name, redirect: '/account/orders' })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('Customer login error:', msg, err instanceof Error ? err.stack : '')
-    return jsonError(400, msg)
+  } catch {
+    return jsonError(400, 'Invalid request')
   }
 }
