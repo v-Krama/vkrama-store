@@ -37,7 +37,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const token = await createToken({ userId: admin.id, userType: 'admin', sessionId }, 12)
 
     return jsonOk({ token, email: admin.email, name: admin.name })
-  } catch {
-    return jsonError(500, 'An unexpected error occurred')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('Admin login error:', msg, err instanceof Error ? err.stack : '')
+    return jsonError(500, msg)
   }
 }
