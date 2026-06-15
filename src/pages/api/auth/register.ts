@@ -44,11 +44,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ).bind(customerId, email, name || null, passwordHash).run()
 
     const sessionId = generateId('sess')
-    await env.DB.prepare(
-      'INSERT INTO sessions (id, user_id, user_type, expires_at) VALUES (?, ?, ?, ?)'
-    ).bind(sessionId, customerId, 'customer', getCustomerSessionExpiry()).run()
-
     const token = await createToken({ userId: customerId, userType: 'customer', sessionId }, 24)
+    await env.DB.prepare(
+      'INSERT INTO sessions (id, user_id, user_type, token, expires_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(sessionId, customerId, 'customer', token, getCustomerSessionExpiry()).run()
 
     const verifyToken = generateId('vrf')
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()

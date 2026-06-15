@@ -30,16 +30,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!valid) return jsonError(401, 'Invalid credentials')
 
     const sessionId = generateId('sess')
-    await env.DB.prepare(
-      'INSERT INTO sessions (id, user_id, user_type, expires_at) VALUES (?, ?, ?, ?)'
-    ).bind(sessionId, admin.id, 'admin', getAdminSessionExpiry()).run()
-
     const token = await createToken({ userId: admin.id, userType: 'admin', sessionId }, 12)
+    await env.DB.prepare(
+      'INSERT INTO sessions (id, user_id, user_type, token, expires_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(sessionId, admin.id, 'admin', token, getAdminSessionExpiry()).run()
 
     return jsonOk({ token, email: admin.email, name: admin.name })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('Admin login error:', msg, err instanceof Error ? err.stack : '')
-    return jsonError(500, msg)
+  } catch {
+    return jsonError(500, 'An unexpected error occurred')
   }
 }

@@ -36,11 +36,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!valid) return jsonError(401, 'Invalid email or password')
 
     const sessionId = generateId('sess')
-    await env.DB.prepare(
-      'INSERT INTO sessions (id, user_id, user_type, expires_at) VALUES (?, ?, ?, ?)'
-    ).bind(sessionId, customer.id, 'customer', getCustomerSessionExpiry()).run()
-
     const token = await createToken({ userId: customer.id, userType: 'customer', sessionId }, 720)
+    await env.DB.prepare(
+      'INSERT INTO sessions (id, user_id, user_type, token, expires_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(sessionId, customer.id, 'customer', token, getCustomerSessionExpiry()).run()
 
     return jsonOk({ token, email: customer.email, name: customer.name, redirect: '/account/orders' })
   } catch {
