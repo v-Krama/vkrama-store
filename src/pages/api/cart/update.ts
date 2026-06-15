@@ -5,6 +5,10 @@ function getCartId(request: Request): string {
   const cookie = request.headers.get("Cookie") || ""
   const match = cookie.match(/vkrama_cart_id=([^;]+)/)
   if (match) return match[1]
+
+  const sessionHeader = request.headers.get("X-Cart-Session")
+  if (sessionHeader) return sessionHeader
+
   const auth = request.headers.get("Authorization")
   if (auth?.startsWith("Bearer ")) return "auth-" + auth.slice(7, 32)
   return "anon"

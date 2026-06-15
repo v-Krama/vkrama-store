@@ -7,10 +7,10 @@ import { rateLimitMiddleware } from '../../../lib/rate-limit'
 import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const rl = rateLimitMiddleware(request, { maxRequests: 3, windowMs: 60_000 })
+  const env = (locals as any).runtime?.env
+  const rl = await rateLimitMiddleware(request, env, { maxRequests: 3, windowMs: 60_000 })
   if (rl) return rl
 
-  const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, 'Server error')
 
   try {

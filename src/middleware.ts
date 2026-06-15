@@ -6,7 +6,7 @@ function getCsp(env: Record<string, unknown> | undefined) {
 
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network https://static.cloudflareinsights.com",
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://m.stripe.network https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "frame-src 'self' https://js.stripe.com https://m.stripe.network",
     `img-src 'self' data: blob: https:${r2Domain ? ` ${r2Domain}` : ""}`,
@@ -41,8 +41,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (!context.url.pathname.startsWith('/api/')) {
     securityHeaders['Content-Security-Policy'] = getCsp(env)
-    securityHeaders['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+  } else {
+    securityHeaders['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'none'"
   }
+  securityHeaders['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
 
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value)

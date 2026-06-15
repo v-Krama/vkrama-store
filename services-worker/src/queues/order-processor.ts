@@ -87,9 +87,6 @@ async function reserveInventory(orderId: string, env: Env) {
     if (item.stock < item.quantity) {
       throw new Error(`Insufficient stock for variant ${item.variant_id}`)
     }
-    await env.DB.prepare(
-      "UPDATE product_variants SET stock = stock - ? WHERE id = ?",
-    ).bind(item.quantity, item.variant_id).run()
   }
 }
 

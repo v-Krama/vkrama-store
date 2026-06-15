@@ -13,9 +13,11 @@ declare global {
     R2_STORE: R2Bucket
     CACHE: KVNamespace
     AI: Ai
+    EMAIL_QUEUE: Queue
     CART_DO: DurableObjectNamespace
     INVENTORY_DO: DurableObjectNamespace
     NOTIFICATION_DO: DurableObjectNamespace
+    RESEND_API_KEY: string
   }
 }
 

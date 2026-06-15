@@ -28,18 +28,34 @@ async function sendEmail(
   to: string,
   data: Record<string, unknown>,
 ) {
-  const { subject, html } = buildEmail(type, data)
+  const { subject, html, text } = buildEmail(type, data)
 
-  try {
-    await env.EMAIL.send({
+  const apiKey = (env as any).RESEND_API_KEY
+
+  if (!apiKey) {
+    console.log(`[EMAIL MOCK] To: ${to}, Subject: ${subject}`)
+    console.log(`[EMAIL MOCK] HTML: ${html.slice(0, 200)}...`)
+    return
+  }
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       from: "Vkrama <noreply@vkrama.com.np>",
-      to,
+      to: [to],
       subject: subject || "Notification from Vkrama",
       html,
-    })
-  } catch (error) {
-    console.error(`Failed to send email via Cloudflare Email Sending:`, error)
-    throw error
+      text,
+    }),
+  })
+
+  if (!res.ok) {
+    const error = await res.text()
+    throw new Error(`Resend API error: ${error}`)
   }
 }
 
@@ -66,6 +82,7 @@ function buildEmail(type: string, data: Record<string, unknown>) {
             </div>
           </div>
         `,
+        text: `Order Confirmed - #${data.orderNumber}\n\nThank you for your order!\nYour order #${data.orderNumber} has been confirmed.\nOrder Total: Rs. ${(data.totalCents as number / 100).toFixed(2)}\n\nWe'll notify you when your order ships.\n\nVkrama Group Private Limited`,
       }
 
     case "shipping_update":
@@ -84,6 +101,7 @@ function buildEmail(type: string, data: Record<string, unknown>) {
             </div>
           </div>
         `,
+        text: `Shipping Update - #${data.orderNumber}\n\nYour order has been shipped!\nOrder #${data.orderNumber} is on its way.\n${data.trackingNumber ? `Tracking: ${data.trackingNumber}` : ""}\n${data.trackingUrl ? `Track your package: ${data.trackingUrl}` : ""}`,
       }
 
     case "payment_receipt":
@@ -100,12 +118,14 @@ function buildEmail(type: string, data: Record<string, unknown>) {
             </div>
           </div>
         `,
+        text: `Payment Receipt - #${data.orderNumber}\n\nPayment Received\nPayment of Rs. ${(data.amountCents as number / 100).toFixed(2)} for order #${data.orderNumber} has been received.`,
       }
 
     default:
       return {
         subject: "Notification from Vkrama",
         html: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;"><div style="padding: 32px;"><p>${data.message || "You have a new notification from Vkrama."}</p></div></div>`,
+        text: `${data.message || "You have a new notification from Vkrama."}`,
       }
   }
 }

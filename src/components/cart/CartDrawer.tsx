@@ -20,8 +20,6 @@ interface CartState {
   updatedAt: number
 }
 
-const CART_COOKIE = "vkrama_cart_id"
-
 function getAuthToken(): string | null {
   return localStorage.getItem("vkrama_token")
 }
@@ -55,57 +53,25 @@ export default function CartDrawer() {
   const [cart, setCart] = useState<CartState | null>(null)
   const [animating, setAnimating] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [checkingOut, setCheckingOut] = useState(false)
-  const [usingServerCart, setUsingServerCart] = useState(!!getAuthToken())
-  const [localItems, setLocalItems] = useState<any[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
-    } catch {
-      return []
-    }
-  })
   const [error, setError] = useState("")
   const mounted = useRef(true)
 
-  const token = getAuthToken()
-
   const loadCart = useCallback(async () => {
-    if (token) {
-      setUsingServerCart(true)
-      setLoading(true)
-      try {
-        const data = await api("/api/cart")
-        setCart(data)
-        setLocalItems([])
-      } catch {
-        setUsingServerCart(false)
-        loadLocalCart()
-      } finally {
-        setLoading(false)
-      }
-    } else {
-      setUsingServerCart(false)
-      loadLocalCart()
-    }
-  }, [token])
-
-  function loadLocalCart() {
+    setLoading(true)
     try {
-      const items = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
-      setLocalItems(items)
+      const data = await api("/api/cart")
+      setCart(data)
     } catch {
-      setLocalItems([])
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadCart()
 
-    const handler = () => {
-      if (!getAuthToken()) loadLocalCart()
-    }
+    const handler = () => loadCart()
     window.addEventListener("cart-updated", handler)
-    window.addEventListener("storage", handler)
 
     const openHandler = () => setIsOpen(true)
     window.addEventListener("open-cart", openHandler)
@@ -113,7 +79,6 @@ export default function CartDrawer() {
     const loginHandler = async () => {
       const token = getAuthToken()
       if (token) {
-        setUsingServerCart(true)
         const local = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
         if (local.length > 0) {
           try {
@@ -132,7 +97,6 @@ export default function CartDrawer() {
     return () => {
       mounted.current = false
       window.removeEventListener("cart-updated", handler)
-      window.removeEventListener("storage", handler)
       window.removeEventListener("open-cart", openHandler)
       window.removeEventListener("user-logged-in", loginHandler)
     }
@@ -150,55 +114,40 @@ export default function CartDrawer() {
 
   async function updateQty(variantId: string, delta: number) {
     setError("")
-    if (usingServerCart && token) {
-      try {
-        const action = delta > 0 ? "increment" : "decrement"
-        const data = await api("/api/cart/update", {
-          method: "POST",
-          body: JSON.stringify({ variantId, action }),
-        })
-        setCart(data)
-      } catch (e: any) {
-        setError(e.message)
-      }
-    } else {
-      const newItems = [...localItems]
-      const item = newItems.find((i: any) => i.variantId === variantId)
-      if (!item) return
-      item.quantity += delta
-      if (item.quantity <= 0) {
-        const idx = newItems.indexOf(item)
-        newItems.splice(idx, 1)
-      }
-      setLocalItems(newItems)
-      localStorage.setItem("vkrama_cart", JSON.stringify(newItems))
-      window.dispatchEvent(new Event("cart-updated"))
+    setLoading(true)
+    try {
+      const action = delta > 0 ? "increment" : "decrement"
+      const data = await api("/api/cart/update", {
+        method: "POST",
+        body: JSON.stringify({ variantId, action }),
+      })
+      setCart(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
     }
   }
 
   async function removeItem(variantId: string) {
     setError("")
-    if (usingServerCart && token) {
-      try {
-        const data = await api("/api/cart/update", {
-          method: "POST",
-          body: JSON.stringify({ variantId, action: "remove" }),
-        })
-        setCart(data)
-      } catch (e: any) {
-        setError(e.message)
-      }
-    } else {
-      const newItems = localItems.filter((i: any) => i.variantId !== variantId)
-      setLocalItems(newItems)
-      localStorage.setItem("vkrama_cart", JSON.stringify(newItems))
-      window.dispatchEvent(new Event("cart-updated"))
+    setLoading(true)
+    try {
+      const data = await api("/api/cart/update", {
+        method: "POST",
+        body: JSON.stringify({ variantId, action: "remove" }),
+      })
+      setCart(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const items = usingServerCart && cart ? cart.items : localItems
-  const total = items.reduce((sum: number, item: any) => sum + item.priceCents * item.quantity, 0)
-  const itemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0)
+  const items = cart?.items || []
+  const total = items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0)
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   if (!isOpen && !animating) return null
 
@@ -239,7 +188,7 @@ export default function CartDrawer() {
               <p className="text-surface-400 text-sm mt-1">Add some products to get started</p>
             </div>
           ) : (
-            items.map((item: any) => (
+            items.map((item) => (
               <div key={item.variantId} className="flex gap-3 p-3 rounded-xl bg-surface-50 animate-fade-in">
                 <div className="w-20 h-20 bg-surface-100 rounded-lg overflow-hidden shrink-0">
                   {item.imageUrl ? (
@@ -271,7 +220,7 @@ export default function CartDrawer() {
                     <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
                     <button
                       onClick={() => updateQty(item.variantId, 1)}
-                      disabled={loading || (item.maxQuantity && item.quantity >= item.maxQuantity)}
+                      disabled={loading || (item.maxQuantity != null && item.quantity >= item.maxQuantity)}
                       className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm disabled:opacity-50"
                     >
                       +
@@ -295,7 +244,7 @@ export default function CartDrawer() {
               <span className="text-sm text-surface-600">Subtotal</span>
               <span className="text-lg font-bold text-surface-900">Rs. {(total / 100).toFixed(2)}</span>
             </div>
-            {usingServerCart && cart?.couponCode && (
+            {cart?.couponCode && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-green-600">Coupon: {cart.couponCode}</span>
               </div>

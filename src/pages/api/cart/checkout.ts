@@ -201,6 +201,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }).catch(() => {})
 
     await env.ORDER_QUEUE.send({
+      type: "reserve_inventory",
+      orderId,
+    }).catch(() => {})
+
+    await env.ORDER_QUEUE.send({
       type: "send_confirmation",
       orderId,
     }).catch(() => {})

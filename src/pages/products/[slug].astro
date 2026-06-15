@@ -304,7 +304,7 @@ const hasRelated = relatedProducts.length > 0
   // Add to cart
   const btn = document.getElementById('add-to-cart') as HTMLButtonElement
   if (btn) {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const variantData = document.getElementById('variant-data')
       const hasVariants = variantData?.dataset.hasVariants === 'true'
       const variantId = variantData?.dataset.variantId
@@ -321,34 +321,38 @@ const hasRelated = relatedProducts.length > 0
         return
       }
 
-      const priceCents = variantPrice ? parseInt(variantPrice) : parseInt(btn.dataset.price!)
-      const name = variantName ? `${btn.dataset.name!} (${variantName})` : btn.dataset.name!
+      const originalHtml = btn.innerHTML
+      btn.disabled = true
+      btn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>'
 
-      const cart: any[] = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
-      const existingIdx = cart.findIndex((item) => item.slug === btn.dataset.slug! && item.variantId === variantId)
-
-      if (existingIdx >= 0) {
-        cart[existingIdx].quantity += qty
-      } else {
-        cart.push({
-          id: generateCartId(),
-          slug: btn.dataset.slug!,
-          name,
-          priceCents,
-          quantity: qty,
-          imageUrl: btn.dataset.image || '',
-          variantId: variantId || undefined,
-          variantName: variantName || undefined,
+      try {
+        const res = await fetch('/api/cart/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            variantId,
+            quantity: qty,
+          }),
         })
-      }
 
-      localStorage.setItem('vkrama_cart', JSON.stringify(cart))
-      window.dispatchEvent(new Event('cart-updated'))
-      window.dispatchEvent(new CustomEvent('open-cart'))
-      ;(btn as HTMLButtonElement).innerHTML = '<svg class="w-5 h-5 animate-scale-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Added!'
-      setTimeout(() => {
-        btn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Add to Cart'
-      }, 1500)
+        const data = await res.json()
+        if (data.items) {
+          window.dispatchEvent(new Event('cart-updated'))
+          window.dispatchEvent(new CustomEvent('open-cart'))
+          btn.innerHTML = '<svg class="w-5 h-5 animate-scale-in" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Added!'
+          setTimeout(() => {
+            btn.innerHTML = originalHtml
+          }, 1500)
+        } else {
+          alert(data.error || 'Failed to add to cart')
+          btn.innerHTML = originalHtml
+        }
+      } catch {
+        alert('Network error. Please try again.')
+        btn.innerHTML = originalHtml
+      } finally {
+        btn.disabled = false
+      }
     })
   }
 
