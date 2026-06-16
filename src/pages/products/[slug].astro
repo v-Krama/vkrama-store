@@ -5,7 +5,7 @@ import ProductGallery from '../../components/product/ProductGallery.tsx'
 import ProductCard from '../../components/product/ProductCard.astro'
 import { getDb } from '../../lib/db'
 import { products, categories, productCategories, productVariants, variantOptions } from '../../db/schema'
-import { eq, desc, sql, ne } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 
 const { slug } = Astro.params
 const env = (Astro.locals as any).runtime?.env
@@ -52,11 +52,15 @@ if (env?.DB && slug) {
         relatedProducts = await db
           .select({
             id: products.id, name: products.name, slug: products.slug,
-            priceCents: products.priceCents, compareAtPriceCents: products.compareAtPriceCents,
-            stock: products.stock, imageUrl: products.imageUrl, status: products.status,
+            priceCents: sql<number>`MIN(${productVariants.priceCents})`,
+            compareAtPriceCents: sql<number>`MAX(${productVariants.compareAtPriceCents})`,
+            stock: sql<number>`COALESCE(SUM(${productVariants.stock}), 0)`,
+            imageUrl: sql<string>`MIN(${productVariants.imageUrl})`,
+            status: products.status,
           })
           .from(products)
           .innerJoin(productCategories, eq(products.id, productCategories.productId))
+          .innerJoin(productVariants, eq(products.id, productVariants.productId))
           .where(sql`${productCategories.categoryId} IN (${sql.join(cats.map(c => c.id), sql`, `)}) AND ${products.id} != ${product.id}`)
           .groupBy(products.id)
           .limit(4)
@@ -70,11 +74,23 @@ if (!product) {
   return Astro.redirect('/404')
 }
 
-const images = [product.imageUrl, ...(JSON.parse(product.images || '[]') as string[])].filter(Boolean)
+const primaryVariant = product.variants?.[0] || {}
+const defaultPriceCents = primaryVariant.priceCents || 0
+const defaultCompareAtPrice = primaryVariant.compareAtPriceCents
+const defaultStock = primaryVariant.stock ?? 0
+
+const images = [
+  primaryVariant.imageUrl,
+  ...(product.variants || []).slice(1).map((v: any) => v.imageUrl).filter(Boolean)
+].filter(Boolean)
+
 const seoTitle = product.seoTitle || product.name
 const seoDesc = product.seoDescription || product.description?.slice(0, 160) || `Shop ${product.name} at vkrama`
-const hasDiscount = product.compareAtPriceCents && product.compareAtPriceCents > product.priceCents
-const discountPercent = hasDiscount ? Math.round((1 - product.priceCents / product.compareAtPriceCents) * 100) : 0
+const hasDiscount = defaultCompareAtPrice && defaultCompareAtPrice > defaultPriceCents
+const discountPercent = hasDiscount ? Math.round((1 - defaultPriceCents / defaultCompareAtPrice!) * 100) : 0
+const primaryImage = images[0] || ''
+const isPrebooking = product.prebookingStatus === 'prebooking' || product.prebookingStatus === 'scheduled'
+const prebookingDate = product.prebookingReleaseDate
 const hasRelated = relatedProducts.length > 0
 
 const productSchema = {
@@ -82,7 +98,7 @@ const productSchema = {
   "@type": "Product",
   "name": product.name,
   "description": product.description || seoDesc,
-  "image": images.length > 0 ? images : [product.imageUrl].filter(Boolean),
+  "image": images.length > 0 ? images : [primaryImage],
   "sku": product.variants?.[0]?.sku || undefined,
   "gtin": product.gtin || undefined,
   "brand": product.brand ? { "@type": "Brand", "name": product.brand } : undefined,
@@ -105,7 +121,7 @@ const productSchema = {
 }
 ---
 
-<Base title={product.name} description={seoDesc} image={product.imageUrl || '/og-image.png'}>
+<Base title={product.name} description={seoDesc} image={primaryImage || '/og-image.png'}>
   <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
   <div class="container-page py-6 lg:py-8">
     <!-- Breadcrumb -->
@@ -133,7 +149,13 @@ const productSchema = {
       <!-- Product Info -->
       <div class="flex flex-col">
         <!-- Badge -->
-        {hasDiscount && (
+        {isPrebooking && (
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 text-purple-700 px-3.5 py-1 text-xs font-semibold border border-purple-200/50 mb-4 w-fit">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Pre-order{prebookingDate ? ` — Releases ${new Date(prebookingDate).toLocaleDateString()}` : ''}
+          </span>
+        )}
+        {hasDiscount && !isPrebooking && (
           <span class="inline-flex items-center gap-1.5 rounded-full bg-accent-50 text-accent-700 px-3.5 py-1 text-xs font-semibold border border-accent-200/50 mb-4 w-fit">
             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             Save {discountPercent}% — Limited time offer
@@ -154,10 +176,10 @@ const productSchema = {
 
         <!-- Price -->
         <div class="flex items-baseline gap-3 mt-5">
-          <span class="text-3xl md:text-4xl font-bold text-surface-900 tracking-tight">Rs. {(product.priceCents / 100).toFixed(2)}</span>
+          <span class="text-3xl md:text-4xl font-bold text-surface-900 tracking-tight">Rs. {(defaultPriceCents / 100).toFixed(2)}</span>
           {hasDiscount && (
             <>
-              <span class="text-xl text-surface-400 line-through">Rs. {(product.compareAtPriceCents / 100).toFixed(2)}</span>
+              <span class="text-xl text-surface-400 line-through">Rs. {(defaultCompareAtPrice / 100).toFixed(2)}</span>
               <span class="badge-red text-xs font-bold">-{discountPercent}%</span>
             </>
           )}
@@ -184,11 +206,11 @@ const productSchema = {
         {/* Stock & Compare */}
         <div class="flex items-center gap-4 mt-5 text-sm">
           <span class="flex items-center gap-1.5">
-            <span class={`w-2 h-2 rounded-full ${product.stock > 0 ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-            <span class="text-surface-600">{product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}</span>
+            <span class={`w-2 h-2 rounded-full ${defaultStock > 0 && !isPrebooking ? 'bg-emerald-500' : isPrebooking ? 'bg-purple-500' : 'bg-red-500'}`}></span>
+            <span class="text-surface-600">{isPrebooking ? 'Pre-order now — Ships on release date' : defaultStock > 0 ? `In Stock (${defaultStock} available)` : 'Out of Stock'}</span>
           </span>
-          {hasDiscount && (
-            <span class="text-surface-400">Was <span class="line-through">Rs. {(product.compareAtPriceCents / 100).toFixed(2)}</span></span>
+          {hasDiscount && !isPrebooking && (
+            <span class="text-surface-400">Was <span class="line-through">Rs. {(defaultCompareAtPrice / 100).toFixed(2)}</span></span>
           )}
         </div>
 
@@ -208,7 +230,7 @@ const productSchema = {
             data-slug={product.slug}
             data-name={product.name}
             data-price={product.priceCents}
-            data-image={product.imageUrl || ''}
+            data-image={primaryImage}
             class="flex-1 inline-flex items-center justify-center gap-2 bg-brand-600 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-brand-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 text-sm"
           >
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>

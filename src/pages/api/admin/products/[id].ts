@@ -48,8 +48,10 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     const b = body as any
     const productId = params.id!
 
+    const prebookingStatus = b.prebookingStatus === 'prebooking' || b.prebookingStatus === 'scheduled' ? b.prebookingStatus : 'none'
+
     await env.DB.prepare(
-      `UPDATE products SET name = ?, description = ?, brand = ?, tags = ?, is_featured = ?, is_physical = ?, status = ?, sort_order = ?, seo_title = ?, seo_description = ?, gtin = ?, hs_code = ?, origin_country = ?, weight = ?, weight_unit = ?, min_order_qty = ?, max_order_qty = ?, updated_at = datetime('now')
+      `UPDATE products SET name = ?, description = ?, brand = ?, tags = ?, is_featured = ?, is_physical = ?, status = ?, sort_order = ?, seo_title = ?, seo_description = ?, gtin = ?, hs_code = ?, origin_country = ?, weight = ?, weight_unit = ?, min_order_qty = ?, max_order_qty = ?, prebooking_status = ?, prebooking_release_date = ?, updated_at = datetime('now')
        WHERE id = ?`,
     )
       .bind(
@@ -70,6 +72,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
         b.weightUnit || "kg",
         Math.max(1, Number(b.minOrderQty) || 1),
         b.maxOrderQty ? Math.max(1, Number(b.maxOrderQty)) : null,
+        prebookingStatus,
+        b.prebookingReleaseDate || null,
         productId,
       )
       .run()

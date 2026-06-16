@@ -27,6 +27,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
         isFeatured: products.isFeatured,
         isPhysical: products.isPhysical,
         status: products.status,
+        prebookingStatus: products.prebookingStatus,
+        prebookingReleaseDate: products.prebookingReleaseDate,
         sortOrder: products.sortOrder,
         seoTitle: products.seoTitle,
         seoDescription: products.seoDescription,
@@ -72,9 +74,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const id = generateId("prod")
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + id.slice(-6)
 
+    const prebookingStatus = b.prebookingStatus === 'prebooking' || b.prebookingStatus === 'scheduled' ? b.prebookingStatus : 'none'
+
     await env.DB.prepare(
-      `INSERT INTO products (id, name, slug, description, brand, tags, is_featured, is_physical, status, sort_order, gtin, hs_code, origin_country, seo_title, seo_description, weight, weight_unit, min_order_qty, max_order_qty)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (id, name, slug, description, brand, tags, is_featured, is_physical, status, sort_order, gtin, hs_code, origin_country, seo_title, seo_description, weight, weight_unit, min_order_qty, max_order_qty, prebooking_status, prebooking_release_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(
         id,
@@ -96,6 +100,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         b.weightUnit || "kg",
         Math.max(1, Number(b.minOrderQty) || 1),
         b.maxOrderQty ? Math.max(1, Number(b.maxOrderQty)) : null,
+        prebookingStatus,
+        b.prebookingReleaseDate || null,
       )
       .run()
 
