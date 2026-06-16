@@ -1,5 +1,3 @@
-import { escapeHtml } from './escape'
-
 export interface ValidationError {
   field: string
   message: string
@@ -9,7 +7,7 @@ export type ValidationResult<T> = { valid: true; data: T } | { valid: false; err
 
 export function sanitizeString(input: unknown, maxLength = 5000): string {
   if (typeof input !== 'string') return ''
-  return escapeHtml(input.trim().slice(0, maxLength))
+  return input.trim().slice(0, maxLength)
 }
 
 export function sanitizeOptionalString(input: unknown, maxLength = 5000): string | null {

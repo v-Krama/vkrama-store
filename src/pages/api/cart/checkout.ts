@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const orderId = generateId("ord")
-    const orderNumber = "VK-" + Date.now().toString(36).toUpperCase() + "-" + orderId.slice(-4).toUpperCase()
+    const orderNumber = "VK-" + Date.now().toString(36).toUpperCase() + "-" + orderId.slice(-4).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase()
     const shippingCents = SHIPPING_COST_CENTS
     const taxCents = lineItems.reduce((s, i) => s + i.taxCents * i.quantity, 0)
 
@@ -218,18 +218,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const batchResults = await env.DB.batch(batchOps)
 
-    const stockFailures = batchResults.filter(
-      (r, i) => i >= 2 + itemStatements.length && r.meta?.changes === 0,
-    )
-    if (stockFailures.length > 0) {
-      await env.DB.batch(
-        lineItems.map((item) =>
-          env.DB.prepare("UPDATE product_variants SET stock = stock + ? WHERE id = ?").bind(
-            item.quantity,
-            item.variantId,
+    const stockStartIdx = 2 + itemStatements.length
+    const failedItems = lineItems.filter((_, i) => {
+      const result = batchResults[stockStartIdx + i]
+      return !result || result.meta?.changes === 0
+    })
+    if (failedItems.length > 0) {
+      // Only restore stock for items that were successfully decremented
+      const succeededItems = lineItems.filter((_, i) => {
+        const result = batchResults[stockStartIdx + i]
+        return result && result.meta?.changes > 0
+      })
+      if (succeededItems.length > 0) {
+        await env.DB.batch(
+          succeededItems.map((item) =>
+            env.DB.prepare("UPDATE product_variants SET stock = stock + ? WHERE id = ?").bind(
+              item.quantity,
+              item.variantId,
+            ),
           ),
-        ),
-      )
+        )
+      }
       return jsonError(409, "Stock changed, please review your cart")
     }
 
@@ -237,17 +246,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await env.ORDER_QUEUE.send({
       type: "validate",
       orderId,
-    }).catch(() => {})
-
-    await env.ORDER_QUEUE.send({
-      type: "reserve_inventory",
-      orderId,
-    }).catch(() => {})
+    }).catch((err) => { console.error("Order validate queue failed:", err) })
 
     await env.ORDER_QUEUE.send({
       type: "send_confirmation",
       orderId,
-    }).catch(() => {})
+    }).catch((err) => { console.error("Order confirmation queue failed:", err) })
 
     return jsonOk({
       orderId,

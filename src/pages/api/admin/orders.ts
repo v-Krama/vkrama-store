@@ -59,7 +59,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
     if (['shipped', 'delivered', 'cancelled'].includes(newStatus)) {
       const customer = await env.DB.prepare('SELECT email, name FROM customers WHERE id = ?').bind(order.customer_id).first()
-      await env.QUEUE.send('send-email', {
+      await env.EMAIL_QUEUE.send({
         type: 'order_status_update',
         to: customer?.email || order.email,
         data: {
@@ -69,7 +69,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
           customerName: customer?.name || 'Customer',
           note,
         },
-      }).catch(() => {})
+      }).catch((err) => { console.error('Queue send failed:', err) })
     }
 
     return jsonOk({ success: true })

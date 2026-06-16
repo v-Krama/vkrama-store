@@ -20,7 +20,7 @@ interface CartState {
   updatedAt: number
 }
 
-export class CartDO extends DurableObject<CartState> {
+export class CartDO extends DurableObject<Env, CartState> {
   private items: CartItem[] = []
   private customerId: string | null = null
   private sessionId: string = ""
@@ -60,15 +60,26 @@ export class CartDO extends DurableObject<CartState> {
   }
 
   async addItem(item: CartItem) {
+    // Re-verify price and stock against DB
+    const dbVariant = await this.env.DB.prepare(
+      "SELECT pv.price_cents, pv.stock, p.name as product_name FROM product_variants pv JOIN products p ON pv.product_id = p.id WHERE pv.id = ? AND p.status = 'active'"
+    ).bind(item.variantId).first<{ price_cents: number; stock: number; product_name: string }>()
+    if (!dbVariant) throw new Error("Product not found or unavailable")
+    if (dbVariant.stock < item.quantity) throw new Error(`Insufficient stock for ${dbVariant.product_name}`)
+
     const existing = this.items.find((i) => i.variantId === item.variantId)
     if (existing) {
       const newQty = existing.quantity + item.quantity
-      if (item.maxQuantity && newQty > item.maxQuantity) {
-        throw new Error(`Maximum quantity for ${item.name} is ${item.maxQuantity}`)
+      if (dbVariant.stock < newQty) {
+        throw new Error(`Maximum quantity for ${item.name} is ${dbVariant.stock}`)
       }
       existing.quantity = newQty
+      existing.priceCents = dbVariant.price_cents
     } else {
-      this.items.push(item)
+      this.items.push({
+        ...item,
+        priceCents: dbVariant.price_cents,
+      })
     }
     await this.persist()
     return this.getCart()

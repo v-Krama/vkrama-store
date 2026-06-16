@@ -11,13 +11,18 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const user = await getAuthUser(request, env.DB, "admin")
   if (!user) return jsonError(401, "Unauthorized")
   try {
+    const url = new URL(request.url)
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '50')))
+    const offset = (page - 1) * limit
+
     const rows = await env.DB.prepare(
       `SELECT r.*, p.name as product_name, c.name as customer_name
        FROM reviews r
        LEFT JOIN products p ON r.product_id = p.id
        LEFT JOIN customers c ON r.customer_id = c.id
-       ORDER BY r.created_at DESC`
-    ).all<any>()
+       ORDER BY r.created_at DESC LIMIT ? OFFSET ?`
+    ).bind(limit, offset).all<any>()
     return new Response(JSON.stringify(rows.results), { headers: { "Content-Type": "application/json" } })
   } catch { return jsonError(500, "Failed to load reviews") }
 }

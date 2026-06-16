@@ -36,11 +36,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const siteUrl = env.SITE_URL || 'https://vkrama.com.np'
     const resetUrl = `${siteUrl}/account/reset-password?token=${resetToken}`
 
-    await env.QUEUE.send('send-email', {
+    await env.EMAIL_QUEUE.send({
+      type: 'password_reset',
       to: email,
-      subject: 'Reset your password - vkrama',
-      html: `<p>Hi,</p><p>You requested a password reset. Click the link below to set a new password:</p><p><a href="${resetUrl}">Reset Password</a></p><p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>`,
-    }).catch(() => {})
+      data: {
+        resetUrl,
+        message: `Hi,\n\nYou requested a password reset. Click the link below to set a new password:\n${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.`,
+      },
+    }).catch((err) => { console.error('Queue send failed:', err) })
 
     return jsonOk({ message: 'If an account exists, a reset email was sent.' })
   } catch {

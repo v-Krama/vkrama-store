@@ -7,7 +7,7 @@ interface StockEntry {
 
 type ReservationMap = Record<string, number>
 
-export class InventoryDO extends DurableObject<Record<string, StockEntry>> {
+export class InventoryDO extends DurableObject<Env, Record<string, StockEntry>> {
   private stock: Map<string, StockEntry> = new Map()
   private reservations: Map<string, ReservationMap> = new Map()
 

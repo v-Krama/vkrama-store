@@ -1,6 +1,5 @@
 node_modules
 dist
-.env
 .wrangler
 .astro
 .env
@@ -8,3 +7,4 @@ dist
 .env.production
 .DS_Store
 *.log
+worker-configuration.d.ts

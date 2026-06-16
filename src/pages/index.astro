@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro'
 import ProductCard from '../components/product/ProductCard.astro'
 import { getDb } from '../lib/db'
-import { products, categories } from '../db/schema'
+import { products, categories, productVariants } from '../db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 
 const env = (Astro.locals as any).runtime?.env
@@ -17,16 +17,18 @@ if (env?.DB) {
         id: products.id,
         name: products.name,
         slug: products.slug,
-        priceCents: products.priceCents,
-        compareAtPriceCents: products.compareAtPriceCents,
-        stock: products.stock,
-        imageUrl: products.imageUrl,
+        priceCents: sql<number>`MIN(${productVariants.priceCents})`,
+        compareAtPriceCents: sql<number>`MAX(${productVariants.compareAtPriceCents})`,
+        stock: sql<number>`COALESCE(SUM(${productVariants.stock}), 0)`,
+        imageUrl: sql<string>`MIN(${productVariants.imageUrl})`,
         status: products.status,
         description: products.description,
         createdAt: products.createdAt,
       })
       .from(products)
+      .innerJoin(productVariants, eq(productVariants.productId, products.id))
       .where(eq(products.status, 'active'))
+      .groupBy(products.id)
       .orderBy(desc(products.createdAt))
       .limit(8)
       .all()

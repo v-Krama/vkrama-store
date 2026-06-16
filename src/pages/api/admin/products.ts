@@ -15,6 +15,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!user) return jsonError(401, "Unauthorized")
 
   try {
+    const url = new URL(request.url)
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '50')))
+    const offset = (page - 1) * limit
+
     const db = getDb(env.DB)
     const result = await db
       .select({
@@ -44,6 +49,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .leftJoin(productVariants, eq(products.id, productVariants.productId))
       .groupBy(products.id)
       .orderBy(desc(products.createdAt))
+      .limit(limit)
+      .offset(offset)
       .all()
 
     return new Response(JSON.stringify(result), {

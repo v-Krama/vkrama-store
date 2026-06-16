@@ -32,3 +32,7 @@ export function getEnv(key: string): string | undefined {
   }
   return undefined
 }
+
+export function getRuntimeEnv(locals: Record<string, unknown>): Env | undefined {
+  return (locals as Record<string, unknown>).runtime as any
+}

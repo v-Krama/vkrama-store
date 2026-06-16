@@ -1,4 +1,19 @@
-import type { Order } from "../db/schema"
+interface Order {
+  id: string
+  order_number: string
+  email: string | null
+  customer_id: string | null
+  total_cents: number
+  subtotal_cents: number
+  shipping_cents: number
+  tax_cents: number
+  discount_cents: number
+  payment_method: string | null
+  shipping_name: string | null
+  shipping_city: string | null
+  status: string
+  created_at: string
+}
 
 interface OrderProcessingMessage {
   type: "validate" | "process_payment" | "reserve_inventory" | "send_confirmation" | "fulfill"

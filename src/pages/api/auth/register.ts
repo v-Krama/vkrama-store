@@ -3,6 +3,7 @@ import { getDb } from '../../../lib/db'
 import { customers, verificationTokens } from '../../../db/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword, createToken, generateId, getCustomerSessionExpiry, validateEmail, validatePassword } from '../../../lib/auth'
+import { SESSION_EXPIRY_DAYS } from '../../../lib/constants'
 import { rateLimitMiddleware } from '../../../lib/rate-limit'
 import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
 
@@ -44,7 +45,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ).bind(customerId, email, name || null, passwordHash).run()
 
     const sessionId = generateId('sess')
-    const token = await createToken({ userId: customerId, userType: 'customer', sessionId }, 24)
+    const token = await createToken({ userId: customerId, userType: 'customer', sessionId }, SESSION_EXPIRY_DAYS * 24)
     await env.DB.prepare(
       'INSERT INTO sessions (id, user_id, user_type, token, expires_at) VALUES (?, ?, ?, ?, ?)'
     ).bind(sessionId, customerId, 'customer', token, getCustomerSessionExpiry()).run()
@@ -58,11 +59,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const siteUrl = env.SITE_URL || 'https://vkrama.com.np'
     const verifyUrl = `${siteUrl}/api/auth/verify-email?token=${verifyToken}`
 
-    await env.QUEUE.send('send-email', {
+    await env.EMAIL_QUEUE.send({
+      type: 'welcome',
       to: email,
       subject: 'Verify your email - vkrama',
-      html: `<p>Hi ${name || 'there'},</p><p>Please verify your email by clicking the link below:</p><p><a href="${verifyUrl}">Verify Email</a></p><p>This link expires in 24 hours.</p>`,
-    }).catch(() => {})
+      data: {
+        customerName: name,
+        message: `Hi ${name || 'there'},\n\nPlease verify your email by clicking the link below:\n${verifyUrl}\n\nThis link expires in 24 hours.`,
+      },
+    }).catch((err) => { console.error('Queue send failed:', err) })
 
     return jsonOk({ token, email, name, redirect: '/account/orders' })
   } catch {

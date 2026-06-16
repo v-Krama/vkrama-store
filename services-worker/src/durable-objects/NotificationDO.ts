@@ -15,7 +15,7 @@ interface UserSession {
   customerId: string | null
 }
 
-export class NotificationDO extends DurableObject<{ notifications: Notification[] }> {
+export class NotificationDO extends DurableObject<Env, { notifications: Notification[] }> {
   private notifications: Notification[] = []
   private sessions: Map<string, UserSession> = new Map()
   private alarmScheduled = false
@@ -29,7 +29,7 @@ export class NotificationDO extends DurableObject<{ notifications: Notification[
   }
 
   private async persist() {
-    await this.ctx.storage.put("notifications", this.notifications.slice(-100))
+    await this.ctx.storage.put("notifications", this.notifications.slice(-500))
   }
 
   private async scheduleAlarm() {
@@ -41,19 +41,23 @@ export class NotificationDO extends DurableObject<{ notifications: Notification[
 
   async alarm() {
     this.alarmScheduled = false
+    const stale: string[] = []
     for (const [userId, session] of this.sessions) {
       try {
-        session.ws.ping()
+        ;(session.ws as any).ping()
       } catch {
-        this.sessions.delete(userId)
+        stale.push(userId)
       }
+    }
+    for (const id of stale) {
+      this.sessions.delete(id)
     }
     if (this.sessions.size > 0) {
       await this.scheduleAlarm()
     }
   }
 
-  async connect(userId: string, customerId: string | null): Promise<WebSocket> {
+  async connectUser(userId: string, customerId: string | null): Promise<WebSocket> {
     const pair = new WebSocketPair()
     const [client, server] = Object.values(pair)
 

@@ -14,7 +14,7 @@ export interface Props {
 const { slug, name, priceCents, compareAtPriceCents, imageUrl, status, rating = 0, reviewCount = 0, prebookingStatus } = Astro.props
 const hasDiscount = compareAtPriceCents && compareAtPriceCents > priceCents
 const discountPercent = hasDiscount ? Math.round((1 - priceCents / compareAtPriceCents!) * 100) : 0
-const inStock = status !== 'out_of_stock' && status !== 'discontinued'
+const inStock = status === 'active'
 const isPrebooking = prebookingStatus === 'prebooking' || prebookingStatus === 'scheduled'
 ---
 

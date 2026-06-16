@@ -1,5 +1,5 @@
 export function formatPrice(cents: number): string {
-  return `Rs. ${(cents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `Rs. ${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export const CURRENCY = 'npr'
