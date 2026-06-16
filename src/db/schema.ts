@@ -36,8 +36,7 @@ export const products = sqliteTable("products", {
   status: text("status", { enum: ["draft", "active", "archived"] })
     .notNull()
     .default("draft"),
-  prebookingStatus: text("prebooking_status", { enum: ["none", "prebooking", "scheduled"] })
-    .default("none"),
+  prebookingStatus: text("prebooking_status").default("none"),
   prebookingReleaseDate: text("prebooking_release_date"),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at"),
