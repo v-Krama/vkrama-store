@@ -3,7 +3,7 @@ import { getDb } from "../../../lib/db"
 import { customers, products, productVariants, orders, coupons } from "../../../db/schema"
 import { eq, inArray } from "drizzle-orm"
 import { generateId, getAuthUser } from "../../../lib/auth"
-import { CURRENCY, CURRENCY_SYMBOL, SHIPPING_COST_CENTS, TAX_RATE } from "../../../lib/constants"
+import { CURRENCY, CURRENCY_SYMBOL, SHIPPING_COST_CENTS, FREE_SHIPPING_MINIMUM_CENTS, TAX_RATE } from "../../../lib/constants"
 import { jsonError, jsonOk } from "../../../lib/validation"
 import { rateLimitMiddleware } from "../../../lib/rate-limit"
 
@@ -16,6 +16,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const customer = await getAuthUser(request, env.DB, "customer")
   if (!customer) return jsonError(401, "Authentication required")
+
+  const custRow = await env.DB.prepare('SELECT is_verified FROM customers WHERE id = ?').bind(customer.id).first() as any
+  if (custRow && !custRow.is_verified) return jsonError(403, "Please verify your email before placing an order")
 
   const db = getDb(env.DB)
 
@@ -30,27 +33,65 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     if (items.length > 50) return jsonError(400, "Too many items in cart")
 
-    const variantIds = items.map((i: any) => String(i.variantId || i.slug).slice(0, 200))
-    const variantRows = await db
-      .select({
-        id: productVariants.id,
-        productId: productVariants.productId,
-        name: productVariants.name,
-        priceCents: productVariants.priceCents,
-        compareAtPriceCents: productVariants.compareAtPriceCents,
-        stock: productVariants.stock,
-        imageUrl: productVariants.imageUrl,
-        sku: productVariants.sku,
-        productName: products.name,
-        productSlug: products.slug,
-        productStatus: products.status,
-      })
-      .from(productVariants)
-      .innerJoin(products, eq(productVariants.productId, products.id))
-      .where(inArray(productVariants.id, variantIds))
-      .all()
+    const vidItems = items.filter((i: any) => i.variantId)
+    const slugItems = items.filter((i: any) => !i.variantId)
 
-    const variantMap = new Map(variantRows.map((v) => [v.id, v]))
+    let variantRows: any[] = []
+
+    if (vidItems.length > 0) {
+      const ids = vidItems.map((i: any) => String(i.variantId).slice(0, 200))
+      variantRows = await db
+        .select({
+          id: productVariants.id,
+          productId: productVariants.productId,
+          name: productVariants.name,
+          priceCents: productVariants.priceCents,
+          compareAtPriceCents: productVariants.compareAtPriceCents,
+          stock: productVariants.stock,
+          imageUrl: productVariants.imageUrl,
+          sku: productVariants.sku,
+          productName: products.name,
+          productSlug: products.slug,
+          productStatus: products.status,
+        })
+        .from(productVariants)
+        .innerJoin(products, eq(productVariants.productId, products.id))
+        .where(inArray(productVariants.id, ids))
+        .all()
+    }
+
+    if (slugItems.length > 0) {
+      const slugs = slugItems.map((i: any) => String(i.slug).slice(0, 200))
+      const rows = await db
+        .select({
+          id: productVariants.id,
+          productId: productVariants.productId,
+          name: productVariants.name,
+          priceCents: productVariants.priceCents,
+          compareAtPriceCents: productVariants.compareAtPriceCents,
+          stock: productVariants.stock,
+          imageUrl: productVariants.imageUrl,
+          sku: productVariants.sku,
+          productName: products.name,
+          productSlug: products.slug,
+          productStatus: products.status,
+        })
+        .from(productVariants)
+        .innerJoin(products, eq(productVariants.productId, products.id))
+        .where(inArray(products.slug, slugs))
+        .all()
+
+      const firstBySlug = new Map<string, any>()
+      for (const row of rows) {
+        if (!firstBySlug.has(row.productSlug)) {
+          firstBySlug.set(row.productSlug, row)
+        }
+      }
+      variantRows.push(...Array.from(firstBySlug.values()))
+    }
+
+    const variantMap = new Map(variantRows.map((v: any) => [v.id, v]))
+    const slugMap = new Map(variantRows.map((v: any) => [v.productSlug, v]))
 
     let subtotalCents = 0
     const lineItems: Array<{
@@ -70,10 +111,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     for (const item of items) {
       const qty = Math.min(Math.max(1, Number(item.quantity) || 1), 100)
-      const v = variantMap.get(item.variantId)
+      const v = variantMap.get(item.variantId) || slugMap.get(item.slug)
 
       if (!v || v.productStatus !== "active") {
-        return jsonError(400, `Product not available: ${item.variantId}`)
+        return jsonError(400, `Product not available: ${item.variantId || item.slug}`)
       }
       if (v.stock < qty) {
         return jsonError(400, `Insufficient stock for ${v.productName} (${v.name})`)
@@ -100,7 +141,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const orderId = generateId("ord")
     const orderNumber = "VK-" + Date.now().toString(36).toUpperCase() + "-" + orderId.slice(-4).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase()
-    const shippingCents = SHIPPING_COST_CENTS
+    const shippingCents = subtotalCents >= FREE_SHIPPING_MINIMUM_CENTS ? 0 : SHIPPING_COST_CENTS
     const taxCents = lineItems.reduce((s, i) => s + i.taxCents * i.quantity, 0)
 
     let discountCents = 0
@@ -128,6 +169,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const totalCents = Math.max(0, subtotalCents + shippingCents + taxCents - discountCents)
 
+    const pm = paymentMethod || "qr"
+    const isCod = pm === "cash" || pm === "cod"
+    const orderStatus = isCod ? "pending" : "awaiting_payment"
+
     const orderInsert = env.DB.prepare(
       `INSERT INTO orders (id, order_number, customer_id, email, phone, status, subtotal_cents, shipping_cents, tax_cents, discount_cents, total_cents, currency, payment_method, payment_status, shipping_cost_cents, coupon_code, gift_note, notes, ip_address, user_agent, shipping_name, shipping_phone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country, billing_name, billing_phone, billing_line1, billing_line2, billing_city, billing_state, billing_postal_code, billing_country, is_gift)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -137,15 +182,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       customer.id,
       customer.email,
       phone || null,
-      "pending",
+      orderStatus,
       subtotalCents,
       shippingCents,
       taxCents,
       discountCents,
       totalCents,
       CURRENCY,
-      paymentMethod || "qr",
-      paymentMethod === "cash" ? "pending" : "pending",
+      pm,
+      isCod ? "pending" : "pending",
       shippingCents,
       couponCode || null,
       giftNote || null,
@@ -191,19 +236,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ),
     )
 
-    const stockStatements = lineItems.map((item) =>
-      env.DB.prepare("UPDATE product_variants SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(
-        item.quantity,
-        item.variantId,
-        item.quantity,
-      ),
-    )
-
     const statusStatement = env.DB.prepare(
       "INSERT INTO order_status_history (order_id, from_status, to_status, created_by) VALUES (?, NULL, ?, ?)",
-    ).bind(orderId, "pending", customer.id)
+    ).bind(orderId, orderStatus, customer.id)
 
-    const batchOps: any[] = [orderInsert, statusStatement, ...itemStatements, ...stockStatements]
+    const batchOps: any[] = [orderInsert, statusStatement, ...itemStatements]
 
     if (appliedCouponId) {
       batchOps.push(
@@ -216,30 +253,44 @@ export const POST: APIRoute = async ({ request, locals }) => {
       )
     }
 
-    const batchResults = await env.DB.batch(batchOps)
-
-    const stockStartIdx = 2 + itemStatements.length
-    const failedItems = lineItems.filter((_, i) => {
-      const result = batchResults[stockStartIdx + i]
-      return !result || result.meta?.changes === 0
-    })
-    if (failedItems.length > 0) {
-      // Only restore stock for items that were successfully decremented
-      const succeededItems = lineItems.filter((_, i) => {
-        const result = batchResults[stockStartIdx + i]
-        return result && result.meta?.changes > 0
-      })
-      if (succeededItems.length > 0) {
-        await env.DB.batch(
-          succeededItems.map((item) =>
-            env.DB.prepare("UPDATE product_variants SET stock = stock + ? WHERE id = ?").bind(
-              item.quantity,
-              item.variantId,
-            ),
+    // For COD: deduct stock immediately. For QR: payment must be confirmed first.
+    if (isCod) {
+      for (const item of lineItems) {
+        batchOps.push(
+          env.DB.prepare("UPDATE product_variants SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(
+            item.quantity,
+            item.variantId,
+            item.quantity,
           ),
         )
       }
-      return jsonError(409, "Stock changed, please review your cart")
+    }
+
+    const batchResults = await env.DB.batch(batchOps)
+
+    if (isCod) {
+      const stockStartIdx = 2 + itemStatements.length + (appliedCouponId ? 2 : 0)
+      const failedItems = lineItems.filter((_, i) => {
+        const result = batchResults[stockStartIdx + i]
+        return !result || result.meta?.changes === 0
+      })
+      if (failedItems.length > 0) {
+        const succeededItems = lineItems.filter((_, i) => {
+          const result = batchResults[stockStartIdx + i]
+          return result && result.meta?.changes > 0
+        })
+        if (succeededItems.length > 0) {
+          await env.DB.batch(
+            succeededItems.map((item) =>
+              env.DB.prepare("UPDATE product_variants SET stock = stock + ? WHERE id = ?").bind(
+                item.quantity,
+                item.variantId,
+              ),
+            ),
+          )
+        }
+        return jsonError(409, "Stock changed, please review your cart")
+      }
     }
 
     // Queue async processing

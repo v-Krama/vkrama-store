@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
 import { coupons } from '../../../db/schema'
 import { eq, and, lte, gte, or } from 'drizzle-orm'
+import { getAuthUser } from '../../../lib/auth'
 import { jsonError, jsonOk } from '../../../lib/validation'
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -39,6 +40,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (coupon.minOrderCents && subtotalCents < coupon.minOrderCents) {
       return jsonError(400, `Minimum order of Rs. ${(coupon.minOrderCents / 100).toFixed(0)} required`)
+    }
+
+    if (coupon.perCustomerLimit) {
+      const user = await getAuthUser(request, env.DB, 'customer')
+      if (user) {
+        const usageCount = await env.DB.prepare(
+          'SELECT COUNT(*) as count FROM coupon_usages WHERE coupon_id = ? AND customer_id = ?'
+        ).bind(coupon.id, user.id).first() as any
+        if (usageCount && usageCount.count >= coupon.perCustomerLimit) {
+          return jsonError(400, 'You have already used this coupon')
+        }
+      }
     }
 
     let discountCents = 0

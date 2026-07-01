@@ -92,8 +92,20 @@
     const input = e.currentTarget.querySelector('input[type="email"]') as HTMLInputElement
     const msg = document.getElementById('newsletter-msg')!
     msg.classList.remove('hidden')
-    msg.textContent = 'Thanks for subscribing!'
-    msg.classList.add('text-emerald-400')
-    input.value = ''
+    try {
+      const res = await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: input.value }) })
+      if (res.ok) {
+        msg.textContent = 'Thanks for subscribing!'
+        msg.classList.add('text-emerald-400')
+        input.value = ''
+      } else {
+        const data = await res.json()
+        msg.textContent = data.error || 'Something went wrong'
+        msg.classList.add('text-red-400')
+      }
+    } catch {
+      msg.textContent = 'Network error, please try again'
+      msg.classList.add('text-red-400')
+    }
   })
 </script>

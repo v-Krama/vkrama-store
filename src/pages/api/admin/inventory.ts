@@ -1,12 +1,14 @@
 import type { APIRoute } from "astro"
 import { getAuthUser } from "../../../lib/auth"
 import { jsonError } from "../../../lib/validation"
+import { hasPermission, jsonForbidden } from "../../../lib/admin-auth"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
   if (!env?.DB) return jsonError(500, "Server error")
   const user = await getAuthUser(request, env.DB, "admin")
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "inventory:write")) return jsonForbidden()
   try {
     const rows = await env.DB.prepare(
       `SELECT inv.*, pv.name as variant_name, pv.sku, p.name as product_name, il.name as location_name

@@ -30,17 +30,6 @@ import Base from '../../layouts/Base.astro'
 <script>
   const fp = (c) => `Rs. ${(c / 100).toFixed(2)}`
 
-  interface CartItem {
-    id: string
-    slug: string
-    name: string
-    priceCents: number
-    quantity: number
-    imageUrl: string
-    variantId?: string
-    variantName?: string
-  }
-
   const TOKEN = localStorage.getItem('vkrama_token')
 
   if (!TOKEN) {
@@ -58,6 +47,7 @@ import Base from '../../layouts/Base.astro'
       if (!data.user) throw new Error('No user')
       CURRENT_USER = data.user
       renderCheckout()
+      togglePaymentDetails()
     } catch {
       localStorage.removeItem('vkrama_token')
       window.location.href = '/auth/login?redirect=/checkout'
@@ -82,7 +72,7 @@ import Base from '../../layouts/Base.astro'
       return
     }
 
-    const total = cart.reduce((sum, item) => sum + item.priceCents * item.quantity, 0)
+    const total = cart.reduce((sum, item) => sum + (item.price || item.priceCents || 0) * item.quantity, 0)
     const subtotal = total
     const shippingCents = subtotal >= 500000 ? 0 : 50000
     const taxCents = Math.round(subtotal * 0.13)
@@ -93,13 +83,13 @@ import Base from '../../layouts/Base.astro'
       itemsHtml += `
         <div class="flex items-center gap-3 py-3 border-b border-surface-100 last:border-0">
           <div class="w-14 h-14 bg-surface-100 rounded-lg overflow-hidden shrink-0 ring-1 ring-surface-200/50">
-            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover" />` : '<div class="w-full h-full flex items-center justify-center text-surface-300"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>'}
+            ${(item.imageUrl || item.image) ? `<img src="${item.imageUrl || item.image}" alt="${item.name}" class="w-full h-full object-cover" />` : '<div class="w-full h-full flex items-center justify-center text-surface-300"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>'}
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-surface-900 truncate">${item.name}</p>
-            <p class="text-xs text-surface-500">Qty: ${item.quantity} &times; ${fp(item.priceCents)}</p>
+            <p class="text-xs text-surface-500">Qty: ${item.quantity} &times; ${fp(item.price || item.priceCents)}</p>
           </div>
-          <p class="text-sm font-semibold text-surface-900">${fp(item.priceCents * item.quantity)}</p>
+          <p class="text-sm font-semibold text-surface-900">${fp((item.price || item.priceCents) * item.quantity)}</p>
         </div>
       `
     }
@@ -175,7 +165,7 @@ import Base from '../../layouts/Base.astro'
             <h2 class="text-base font-semibold text-surface-900 mb-4">Payment Method</h2>
             <div class="space-y-3">
               <label class="flex items-center gap-3 p-3.5 rounded-xl border border-surface-200 cursor-pointer hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50 transition-all">
-                <input type="radio" name="payment" value="qr" checked class="accent-brand-600 w-4 h-4" />
+                <input type="radio" name="payment" value="qr" checked class="accent-brand-600 w-4 h-4" onchange="togglePaymentDetails()" />
                 <div class="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center shrink-0">
                   <svg class="w-5 h-5 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                 </div>
@@ -185,7 +175,7 @@ import Base from '../../layouts/Base.astro'
                 </div>
               </label>
               <label class="flex items-center gap-3 p-3.5 rounded-xl border border-surface-200 cursor-pointer hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50 transition-all">
-                <input type="radio" name="payment" value="cod" class="accent-brand-600 w-4 h-4" />
+                <input type="radio" name="payment" value="cod" class="accent-brand-600 w-4 h-4" onchange="togglePaymentDetails()" />
                 <div class="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center shrink-0">
                   <svg class="w-5 h-5 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
@@ -194,6 +184,38 @@ import Base from '../../layouts/Base.astro'
                   <p class="text-xs text-surface-500">Pay when you receive your items</p>
                 </div>
               </label>
+            </div>
+            <div id="qr-payment-details" class="mt-5 pt-5 border-t border-surface-200">
+              <div class="flex flex-col sm:flex-row items-start gap-5">
+                <div class="w-48 h-48 rounded-xl bg-white border border-surface-200 overflow-hidden shrink-0 flex items-center justify-center p-2">
+                  <img src="/payment-qr.jpeg" alt="Payment QR" class="w-full h-full object-contain" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-semibold text-surface-900 text-sm mb-3">Bank Transfer Details</h3>
+                  <div class="bg-surface-50 rounded-xl p-4 space-y-2 text-sm">
+                    <div class="flex justify-between gap-4">
+                      <span class="text-surface-500 shrink-0">Account Name</span>
+                      <span class="font-medium text-surface-900 text-right">VKRAMA GROUP PVT.LTD.</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                      <span class="text-surface-500 shrink-0">Account Type</span>
+                      <span class="font-medium text-surface-900">CURRENT ACCOUNT GENERAL</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                      <span class="text-surface-500 shrink-0">Account Number</span>
+                      <span class="font-mono font-bold text-surface-900 text-base tracking-wider">19101017501227</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                      <span class="text-surface-500 shrink-0">Bank</span>
+                      <span class="font-medium text-surface-900">Nabil Bank Limited</span>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    After payment, place your order and we'll confirm it manually.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -237,6 +259,12 @@ import Base from '../../layouts/Base.astro'
       </div>
     `
     document.getElementById('place-order-btn')?.addEventListener('click', placeOrder)
+  }
+
+  function togglePaymentDetails() {
+    const el = document.getElementById('qr-payment-details')
+    const qr = document.querySelector('input[name="payment"][value="qr"]') as HTMLInputElement
+    if (el) el.style.display = qr?.checked ? '' : 'none'
   }
 
   async function placeOrder() {

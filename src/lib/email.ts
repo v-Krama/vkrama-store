@@ -72,6 +72,44 @@ export function sendOrderConfirmationEmail(params: { email: string; orderId: str
   })
 }
 
+export function sendPaymentRequestEmail(params: { email: string; orderId: string; orderNumber: string; totalCents: number; customerName: string }) {
+  return sendEmail({
+    to: params.email,
+    subject: `Payment Request Ready #${params.orderNumber} — ${APP_NAME}`,
+    html: `
+      <html><head><style>${baseStyles}</style></head><body>
+        <div class="container">
+          <div class="header"><div class="logo">${APP_NAME}</div></div>
+          <div class="card">
+            <h1 style="margin:0 0 8px; font-size:24px; color:#111827;">Hi ${params.customerName},</h1>
+            <p style="color:#64748b; margin:0 0 24px;">A payment request has been created for your order <strong>#${params.orderNumber}</strong>.</p>
+            <table style="width:100%; margin-bottom:24px;">
+              <tr><td style="color:#64748b; padding:8px 0;">Order</td><td style="font-weight:600; text-align:right;">#${params.orderNumber}</td></tr>
+              <tr><td style="color:#64748b; padding:8px 0;">Total</td><td style="font-weight:600; text-align:right; font-size:18px;">${formatPrice(params.totalCents)}</td></tr>
+            </table>
+            <div style="background:#fef3c7; border-radius:12px; padding:16px; margin-bottom:24px;">
+              <p style="margin:0; color:#92400e; font-size:14px;">
+                <strong>How to pay:</strong> Use your payment app to complete the payment using the request sent to your account. 
+                The exact amount is pre-set — no need to type anything.
+              </p>
+            </div>
+            <div style="text-align:center;">
+              <a href="${APP_URL}/account/orders/${params.orderId}" class="btn">View Order</a>
+            </div>
+            <p style="color:#94a3b8; font-size:13px; text-align:center; margin-top:24px;">
+              Your order will be processed once payment is confirmed.
+            </p>
+          </div>
+          <div class="footer">
+            <p>${APP_NAME} — Quality products, fair prices.</p>
+            <p style="margin:4px 0 0;">${APP_URL}</p>
+          </div>
+        </div>
+      </body></html>
+    `,
+  })
+}
+
 export function sendShippingUpdateEmail(params: { email: string; orderId: string; status: string }) {
   const statusLabels: Record<string, string> = {
     processing: 'is being processed',

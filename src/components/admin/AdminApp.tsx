@@ -125,13 +125,13 @@ function Dashboard() {
 }
 
 // ---------- Image Upload ----------
-function ImageUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function ImageUpload({ value, onChange, hideLabel }: { value: string; onChange: (url: string) => void; hideLabel?: boolean }) {
   const [uploading, setUploading] = React.useState(false); const [err, setErr] = React.useState("")
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return; setUploading(true); setErr("")
     try { const fd = new FormData(); fd.append("file", file); const res = await fetch(`${API}/upload`, { method: "POST", headers: authHeaders() as Record<string, string>, body: fd }); if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Upload failed") }; const d = await res.json(); onChange(d.url) } catch (e: any) { setErr(e.message) } finally { setUploading(false) }
   }
-  return <div><label className="block text-sm font-medium mb-1.5 text-slate-700">Image</label><div className="flex gap-3 items-center">{value && <img src={value} className="w-20 h-20 rounded-lg object-cover border border-slate-200" />}<label className={`px-5 py-2.5 rounded-md border-2 border-dashed border-slate-300 text-sm text-slate-500 cursor-pointer ${uploading ? "bg-slate-100 cursor-not-allowed" : "bg-slate-50 hover:bg-slate-100"}`}>{uploading ? "Uploading..." : value ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleFile} disabled={uploading} className="hidden" /></label>{value && <button onClick={() => onChange("")} className="bg-transparent border-none text-red-600 cursor-pointer text-xs font-sans hover:underline p-0">Remove</button>}</div>{err && <div className="text-red-600 text-xs mt-1">{err}</div>}</div>
+  return <div>{!hideLabel && <label className="block text-sm font-medium mb-1.5 text-slate-700">Image</label>}<div className="flex gap-3 items-center">{value && <img src={value} className="w-20 h-20 rounded-lg object-cover border border-slate-200" />}<label className={`px-5 py-2.5 rounded-md border-2 border-dashed border-slate-300 text-sm text-slate-500 cursor-pointer ${uploading ? "bg-slate-100 cursor-not-allowed" : "bg-slate-50 hover:bg-slate-100"}`}>{uploading ? "Uploading..." : value ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleFile} disabled={uploading} className="hidden" /></label>{value && <button onClick={() => onChange("")} className="bg-transparent border-none text-red-600 cursor-pointer text-xs font-sans hover:underline p-0">Remove</button>}</div>{err && <div className="text-red-600 text-xs mt-1">{err}</div>}</div>
 }
 
 // ---------- Products ----------
@@ -177,33 +177,40 @@ function ProductsList() {
 function ProductForm({ id }: { id?: string }) {
   const isEdit = !!id
   const [form, setForm] = React.useState<any>({ name: "", description: "", brand: "", tags: "", status: "draft", sortOrder: 0, isFeatured: false, isPhysical: true, gtin: "", hsCode: "", originCountry: "", seoTitle: "", seoDescription: "", weight: "", weightUnit: "kg", minOrderQty: 1, maxOrderQty: "", prebookingStatus: "none", prebookingReleaseDate: "" })
-  const [variants, setVariants] = React.useState<any[]>([{ name: "Default", sku: "", priceCents: "", compareAtPriceCents: "", costCents: "", stock: "", imageUrl: "" }])
+  const [variants, setVariants] = React.useState<any[]>([{ name: "Default", sku: "", priceCents: "", compareAtPriceCents: "", costCents: "", stock: "", imageUrls: [""] }])
   const [saving, setSaving] = React.useState(false); const [error, setError] = React.useState(""); const [ready, setReady] = React.useState(!isEdit); const [confirmDelete, setConfirmDelete] = React.useState(false)
-  React.useEffect(() => { if (id) { api(`/products/${id}`).then((d: any) => { setForm({ name: d.name || "", description: d.description || "", brand: d.brand || "", tags: (d.tags || []).join(", "), status: d.status || "draft", sortOrder: d.sortOrder || 0, isFeatured: !!d.isFeatured, isPhysical: d.isPhysical !== false, gtin: d.gtin || "", hsCode: d.hsCode || "", originCountry: d.originCountry || "", seoTitle: d.seoTitle || "", seoDescription: d.seoDescription || "", weight: d.weight ?? "", weightUnit: d.weightUnit || "kg", minOrderQty: d.minOrderQty || 1, maxOrderQty: d.maxOrderQty ?? "", prebookingStatus: d.prebookingStatus || "none", prebookingReleaseDate: d.prebookingReleaseDate || "" }); if (d.variants?.length) setVariants(d.variants.map((v: any) => ({ ...v, priceCents: v.priceCents ?? "", compareAtPriceCents: v.compareAtPriceCents ?? "", costCents: v.costCents ?? "", stock: v.stock ?? "" }))); setReady(true) }).catch(e => setError(e.message)) } }, [id])
+  const [allCategories, setAllCategories] = React.useState<any[]>([]); const [selectedCategoryIds, setSelectedCategoryIds] = React.useState<string[]>([])
+  React.useEffect(() => { api("/categories").then(setAllCategories).catch(() => {}) }, [])
+  React.useEffect(() => { if (id) { api(`/products/${id}`).then((d: any) => { setForm({ name: d.name || "", description: d.description || "", brand: d.brand || "", tags: (d.tags || []).join(", "), status: d.status || "draft", sortOrder: d.sortOrder || 0, isFeatured: !!d.isFeatured, isPhysical: d.isPhysical !== false, gtin: d.gtin || "", hsCode: d.hsCode || "", originCountry: d.originCountry || "", seoTitle: d.seoTitle || "", seoDescription: d.seoDescription || "", weight: d.weight ?? "", weightUnit: d.weightUnit || "kg", minOrderQty: d.minOrderQty || 1, maxOrderQty: d.maxOrderQty ?? "", prebookingStatus: d.prebookingStatus || "none", prebookingReleaseDate: d.prebookingReleaseDate || "" }); if (d.variants?.length) setVariants(d.variants.map(parseImageUrlForVariant)); if (d.categoryIds) setSelectedCategoryIds(d.categoryIds); setReady(true) }).catch(e => setError(e.message)) } }, [id])
   const set = (f: string) => (e: any) => setForm({ ...form, [f]: e.target.value })
   const setVariant = (i: number, f: string) => (e: any) => { const v = [...variants]; v[i] = { ...v[i], [f]: e.target.value }; setVariants(v) }
-  const addVariant = () => setVariants([...variants, { name: "", sku: "", priceCents: "", compareAtPriceCents: "", costCents: "", stock: "", imageUrl: "" }])
+  const addVariant = () => setVariants([...variants, { name: "", sku: "", priceCents: "", compareAtPriceCents: "", costCents: "", stock: "", imageUrls: [""] }])
   const removeVariant = (i: number) => { if (variants.length > 1) setVariants(variants.filter((_, idx) => idx !== i)) }
-  const submit = async (e: React.FormEvent) => { e.preventDefault(); setSaving(true); setError(""); try { const body = { ...form, tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [], variants: variants.map(v => ({ ...v, priceCents: Number(v.priceCents) || 0, compareAtPriceCents: v.compareAtPriceCents ? Number(v.compareAtPriceCents) : null, costCents: v.costCents ? Number(v.costCents) : null, stock: Number(v.stock) || 0 })), weight: form.weight ? Number(form.weight) : null, minOrderQty: Math.max(1, Number(form.minOrderQty) || 1), maxOrderQty: form.maxOrderQty ? Math.max(1, Number(form.maxOrderQty)) : null, sortOrder: Math.max(0, Number(form.sortOrder) || 0) }; if (isEdit) await api(`/products/${id}`, { method: "PUT", body: JSON.stringify(body) }); else await api("/products", { method: "POST", body: JSON.stringify(body) }); window.location.href = "/admin/products" } catch (e: any) { setError(e.message) } finally { setSaving(false) } }
+  const setVariantImageUrl = (i: number, imgIdx: number, url: string) => { const v = [...variants]; v[i].imageUrls[imgIdx] = url; setVariants(v) }
+  const addVariantImage = (i: number) => { const v = [...variants]; v[i].imageUrls.push(""); setVariants(v) }
+  const removeVariantImage = (i: number, imgIdx: number) => { const v = [...variants]; v[i].imageUrls.splice(imgIdx, 1); if (!v[i].imageUrls.length) v[i].imageUrls.push(""); setVariants(v) }
+  const parseImageUrlForVariant = (v: any) => { let imgUrls: string[]; try { const p = JSON.parse(v.imageUrl); imgUrls = Array.isArray(p) ? p.filter(Boolean) : [v.imageUrl] } catch(e) { imgUrls = v.imageUrl ? [v.imageUrl] : [""] }; return { ...v, imageUrls: imgUrls.length ? imgUrls : [""], priceCents: v.priceCents ?? "", compareAtPriceCents: v.compareAtPriceCents ?? "", costCents: v.costCents ?? "", stock: v.stock ?? "" } }
+  const toggleCategory = (catId: string) => { setSelectedCategoryIds(prev => prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]) }
+  const submit = async (e: React.FormEvent) => { e.preventDefault(); setSaving(true); setError(""); try { const body = { ...form, categoryIds: selectedCategoryIds, tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [], variants: variants.map(v => { const imgs = v.imageUrls.filter(Boolean); return { ...v, imageUrl: imgs[0] || '', imageUrls: imgs, priceCents: Number(v.priceCents) || 0, compareAtPriceCents: v.compareAtPriceCents ? Number(v.compareAtPriceCents) : null, costCents: v.costCents ? Number(v.costCents) : null, stock: Number(v.stock) || 0 } }), weight: form.weight ? Number(form.weight) : null, minOrderQty: Math.max(1, Number(form.minOrderQty) || 1), maxOrderQty: form.maxOrderQty ? Math.max(1, Number(form.maxOrderQty)) : null, sortOrder: Math.max(0, Number(form.sortOrder) || 0) }; if (isEdit) await api(`/products/${id}`, { method: "PUT", body: JSON.stringify(body) }); else await api("/products", { method: "POST", body: JSON.stringify(body) }); window.location.href = "/admin/products" } catch (e: any) { setError(e.message) } finally { setSaving(false) } }
   const handleDelete = async () => { if (!confirmDelete) { setConfirmDelete(true); return }; setSaving(true); try { await api(`/products/${id}`, { method: "DELETE" }); window.location.href = "/admin/products" } catch (e: any) { setError(e.message); setConfirmDelete(false) } finally { setSaving(false) } }
   if (!ready) return <Spinner />
-  return <div><PageHd title={isEdit ? "Edit Product" : "New Product"} />{error && <Err msg={error} />}<Card><form onSubmit={submit} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Name</label><Input value={form.name} onChange={set("name")} required /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Brand</label><Input value={form.brand} onChange={set("brand")} /></div></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Description</label><TextArea value={form.description} onChange={set("description")} rows={3} /></div><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Status</label><Select value={form.status} onChange={set("status")} options={[{ value: "draft", label: "Draft" }, { value: "active", label: "Active" }, { value: "archived", label: "Archived" }]} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Sort Order</label><Input type="number" value={form.sortOrder} onChange={set("sortOrder")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Tags (comma separated)</label><Input value={form.tags} onChange={set("tags")} /></div></div><div className="grid grid-cols-2 gap-4"><Toggle value={form.isFeatured} onChange={v => setForm({ ...form, isFeatured: v })} label="Featured Product" /><Toggle value={form.isPhysical} onChange={v => setForm({ ...form, isPhysical: v })} label="Physical Product" /></div><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">GTIN</label><Input value={form.gtin} onChange={set("gtin")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">HS Code</label><Input value={form.hsCode} onChange={set("hsCode")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Origin Country</label><Input value={form.originCountry} onChange={set("originCountry")} /></div></div><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Weight</label><Input type="number" value={form.weight} onChange={set("weight")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Weight Unit</label><Select value={form.weightUnit} onChange={set("weightUnit")} options={[{ value: "kg", label: "kg" }, { value: "g", label: "g" }, { value: "lb", label: "lb" }]} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Min Order Qty</label><Input type="number" value={form.minOrderQty} onChange={set("minOrderQty")} /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Prebooking Status</label><Select value={form.prebookingStatus} onChange={set("prebookingStatus")} options={[{ value: "none", label: "None" }, { value: "prebooking", label: "Prebooking" }, { value: "scheduled", label: "Scheduled" }]} /></div>{form.prebookingStatus !== "none" && <div><label className="block text-sm font-medium mb-1.5 text-slate-700">Release Date</label><Input type="date" value={form.prebookingReleaseDate} onChange={set("prebookingReleaseDate")} /></div>}</div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">SEO Title</label><Input value={form.seoTitle} onChange={set("seoTitle")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">SEO Description</label><Input value={form.seoDescription} onChange={set("seoDescription")} /></div></div><div className="border-t pt-4"><h3 className="text-base font-semibold mb-3">Variants</h3>{variants.map((v, i) => <div key={i} className="p-3 bg-slate-50 rounded-lg mb-2"><div className="grid grid-cols-4 gap-2 items-end"><div><label className="block text-xs font-medium mb-1 text-slate-600">Name</label><Input value={v.name} onChange={setVariant(i, "name")} /></div><div><label className="block text-xs font-medium mb-1 text-slate-600">SKU</label><Input value={v.sku} onChange={setVariant(i, "sku")} /></div><div><label className="block text-xs font-medium mb-1 text-slate-600">Price (cents)</label><Input type="number" value={v.priceCents} onChange={setVariant(i, "priceCents")} /></div><div className="flex gap-2 items-end"><div className="flex-1"><label className="block text-xs font-medium mb-1 text-slate-600">Stock</label><Input type="number" value={v.stock} onChange={setVariant(i, "stock")} /></div>                    {variants.length > 1 && <button type="button" onClick={() => removeVariant(i)} className="px-2 py-2.5 text-red-600 text-xs hover:bg-red-50 rounded border border-red-200">✕</button>}</div></div><div className="grid grid-cols-3 gap-2 mt-2"><Input placeholder="Compare at" type="number" value={v.compareAtPriceCents} onChange={setVariant(i, "compareAtPriceCents")} /><Input placeholder="Cost" type="number" value={v.costCents} onChange={setVariant(i, "costCents")} /><ImageUpload value={v.imageUrl} onChange={(url) => { const nv = [...variants]; nv[i] = { ...nv[i], imageUrl: url }; setVariants(nv) }} /></div></div>)}<Btn type="button" primary={false} onClick={addVariant}>+ Add Variant</Btn></div><div className="flex gap-3 pt-4 justify-between"><div className="flex gap-3"><Btn type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Btn><a href="/admin/products"><Btn type="button" primary={false}>Cancel</Btn></a></div>{isEdit && <button type="button" disabled={saving} onClick={handleDelete} className={`px-5 py-2.5 rounded-lg text-sm font-semibold font-sans border transition-all ${confirmDelete ? "bg-red-600 text-white border-red-600" : "bg-white text-red-600 border-red-200 hover:bg-red-50"} ${saving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}>{confirmDelete ? "Confirm Delete?" : "Delete"}</button>}</div></form></Card></div>
+  return <div><PageHd title={isEdit ? "Edit Product" : "New Product"} />{error && <Err msg={error} />}<Card><form onSubmit={submit} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Name</label><Input value={form.name} onChange={set("name")} required /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Brand</label><Input value={form.brand} onChange={set("brand")} /></div></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Description</label><TextArea value={form.description} onChange={set("description")} rows={3} /></div><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Status</label><Select value={form.status} onChange={set("status")} options={[{ value: "draft", label: "Draft" }, { value: "active", label: "Active" }, { value: "archived", label: "Archived" }]} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Sort Order</label><Input type="number" value={form.sortOrder} onChange={set("sortOrder")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Tags (comma separated)</label><Input value={form.tags} onChange={set("tags")} /></div></div><div className="grid grid-cols-2 gap-4"><Toggle value={form.isFeatured} onChange={v => setForm({ ...form, isFeatured: v })} label="Featured Product" /><Toggle value={form.isPhysical} onChange={v => setForm({ ...form, isPhysical: v })} label="Physical Product" /></div><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">GTIN</label><Input value={form.gtin} onChange={set("gtin")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">HS Code</label><Input value={form.hsCode} onChange={set("hsCode")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Origin Country</label><Input value={form.originCountry} onChange={set("originCountry")} /></div></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Categories</label><div className="flex flex-wrap gap-3 mt-1">{allCategories.map(cat => (<label key={cat.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer"><input type="checkbox" checked={selectedCategoryIds.includes(cat.id)} onChange={() => toggleCategory(cat.id)} className="rounded border-slate-300" />{cat.name}</label>))}</div></div><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Weight</label><Input type="number" value={form.weight} onChange={set("weight")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Weight Unit</label><Select value={form.weightUnit} onChange={set("weightUnit")} options={[{ value: "kg", label: "kg" }, { value: "g", label: "g" }, { value: "lb", label: "lb" }]} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Min Order Qty</label><Input type="number" value={form.minOrderQty} onChange={set("minOrderQty")} /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">Prebooking Status</label><Select value={form.prebookingStatus} onChange={set("prebookingStatus")} options={[{ value: "none", label: "None" }, { value: "prebooking", label: "Prebooking" }, { value: "scheduled", label: "Scheduled" }]} /></div>{form.prebookingStatus !== "none" && <div><label className="block text-sm font-medium mb-1.5 text-slate-700">Release Date</label><Input type="date" value={form.prebookingReleaseDate} onChange={set("prebookingReleaseDate")} /></div>}</div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1.5 text-slate-700">SEO Title</label><Input value={form.seoTitle} onChange={set("seoTitle")} /></div><div><label className="block text-sm font-medium mb-1.5 text-slate-700">SEO Description</label><Input value={form.seoDescription} onChange={set("seoDescription")} /></div></div><div className="border-t pt-4"><h3 className="text-base font-semibold mb-3">Variants</h3>{variants.map((v, i) => <div key={i} className="p-3 bg-slate-50 rounded-lg mb-2"><div className="grid grid-cols-4 gap-2 items-end"><div><label className="block text-xs font-medium mb-1 text-slate-600">Name</label><Input value={v.name} onChange={setVariant(i, "name")} /></div><div><label className="block text-xs font-medium mb-1 text-slate-600">SKU</label><Input value={v.sku} onChange={setVariant(i, "sku")} /></div><div><label className="block text-xs font-medium mb-1 text-slate-600">Price (cents)</label><Input type="number" value={v.priceCents} onChange={setVariant(i, "priceCents")} /></div><div className="flex gap-2 items-end"><div className="flex-1"><label className="block text-xs font-medium mb-1 text-slate-600">Stock</label><Input type="number" value={v.stock} onChange={setVariant(i, "stock")} /></div>                    {variants.length > 1 && <button type="button" onClick={() => removeVariant(i)} className="px-2 py-2.5 text-red-600 text-xs hover:bg-red-50 rounded border border-red-200">✕</button>}</div></div><div className="grid grid-cols-3 gap-2 mt-2"><Input placeholder="Compare at" type="number" value={v.compareAtPriceCents} onChange={setVariant(i, "compareAtPriceCents")} /><Input placeholder="Cost" type="number" value={v.costCents} onChange={setVariant(i, "costCents")} /></div><div className="mt-2"><label className="block text-sm font-medium mb-1.5 text-slate-700">Images</label><div className="flex flex-wrap gap-3">{(v.imageUrls || []).map((url: string, imgIdx: number) => (<div key={imgIdx} className="relative"><ImageUpload value={url} onChange={(newUrl) => setVariantImageUrl(i, imgIdx, newUrl)} hideLabel />{(v.imageUrls || []).length > 1 && <button type="button" onClick={() => removeVariantImage(i, imgIdx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600">x</button>}</div>))}</div><button type="button" onClick={() => addVariantImage(i)} className="mt-2 text-sm text-brand-600 hover:underline">+ Add Image</button></div></div>)}<Btn type="button" primary={false} onClick={addVariant}>+ Add Variant</Btn></div><div className="flex gap-3 pt-4 justify-between"><div className="flex gap-3"><Btn type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Btn><a href="/admin/products"><Btn type="button" primary={false}>Cancel</Btn></a></div>{isEdit && <button type="button" disabled={saving} onClick={handleDelete} className={`px-5 py-2.5 rounded-lg text-sm font-semibold font-sans border transition-all ${confirmDelete ? "bg-red-600 text-white border-red-600" : "bg-white text-red-600 border-red-200 hover:bg-red-50"} ${saving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}>{confirmDelete ? "Confirm Delete?" : "Delete"}</button>}</div></form></Card></div>
 }
 
 // ---------- Orders ----------
 function OrdersList() {
-  const [q, setQ] = React.useState(""); const [sf, setSf] = React.useState("")
-  const { data, loading, error } = useAsync(() => api("/orders"), [])
+  const [q, setQ] = React.useState(""); const [sf, setSf] = React.useState(""); const { data, loading, error } = useAsync(() => api("/orders"), [])
   if (loading) return <Spinner />; if (error) return <Err msg={error} />
-  let list = (data as any[]) || []; if (q) list = list.filter((o: any) => o.email?.toLowerCase().includes(q.toLowerCase())); if (sf) list = list.filter((o: any) => o.status === sf)
-  const sc: Record<string, string> = { pending: "yellow", confirmed: "blue", processing: "purple", shipped: "blue", delivered: "green", cancelled: "red", refunded: "slate", partially_refunded: "yellow" }
-  const statusOpts = [{ value: "", label: "All" }, ...Object.keys(sc).map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))]
+  let list = (data as any[]) || []; if (q) list = list.filter((o: any) => o.email?.toLowerCase().includes(q.toLowerCase()) || (o.order_number || "").toLowerCase().includes(q.toLowerCase())); if (sf) list = list.filter((o: any) => o.status === sf)
+  const sc: Record<string, string> = { pending: "yellow", awaiting_payment: "yellow", payment_requested: "blue", paid: "green", confirmed: "blue", processing: "purple", shipped: "blue", delivered: "green", cancelled: "red", refunded: "slate", partially_refunded: "yellow" }
+  const sl: Record<string, string> = { pending: "Pending", awaiting_payment: "Awaiting Payment", payment_requested: "Payment Requested", paid: "Paid", confirmed: "Confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled", refunded: "Refunded", partially_refunded: "Partial Refund" }
+  const statusOpts = [{ value: "", label: "All" }, ...Object.keys(sc).map(s => ({ value: s, label: sl[s] || s.charAt(0).toUpperCase() + s.slice(1) }))]
   return (
     <div>
       <PageHd title="Orders" />
       <div className="flex gap-3 mb-5 flex-wrap">
-        <Input placeholder="Search email..." value={q} onChange={e => setQ(e.target.value)} className="!w-60" />
-        <select value={sf} onChange={e => setSf(e.target.value)} className="w-36 px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none">
+        <Input placeholder="Search email or order #..." value={q} onChange={e => setQ(e.target.value)} className="!w-60" />
+        <select value={sf} onChange={e => setSf(e.target.value)} className="w-44 px-3 py-2.5 border border-slate-300 rounded-md text-sm outline-none">
           {statusOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
@@ -211,15 +218,19 @@ function OrdersList() {
         {list.length === 0
           ? <div className="py-10 text-center text-slate-400">No orders</div>
           : <DataTable headers={["Order #", "Customer", "Total", "Payment", "Status", "Date", ""]}
-              rows={list.map((o: any) => [
-                <span className="font-mono text-xs text-slate-500">{o.order_number || (o.id || "").slice(0, 8)}</span>,
-                o.email || "-",
-                cents(o.total_cents || 0),
-                o.payment_method || "-",
-                <Badge color={sc[o.status] || "slate"}>{o.status || "pending"}</Badge>,
-                o.created_at ? new Date(o.created_at).toLocaleDateString() : "-",
-                <a href={`/admin/orders/${o.id}`} className="text-blue-600 no-underline text-xs">View</a>
-              ])}
+              rows={list.map((o: any) => {
+                const pmLabel = o.payment_method === "qr" ? "QR" : o.payment_method === "cash" ? "COD" : o.payment_method || "-"
+                const pmColor = o.payment_status === "paid" ? "green" : "yellow"
+                return [
+                  <span className="font-mono text-xs text-slate-500">{o.order_number || (o.id || "").slice(0, 8)}</span>,
+                  o.email || "-",
+                  cents(o.total_cents || 0),
+                  <span className="text-xs">{pmLabel} <span className={`${pmColor === "green" ? "text-green-500" : "text-yellow-500"}`}>({o.payment_status})</span></span>,
+                  <Badge color={sc[o.status] || "slate"}>{sl[o.status] || o.status}</Badge>,
+                  o.created_at ? new Date(o.created_at).toLocaleDateString() : "-",
+                  <a href={`/admin/orders/${o.id}`} className="text-blue-600 no-underline text-xs">View</a>
+                ]
+              })}
             />
         }
       </Card>
@@ -228,11 +239,151 @@ function OrdersList() {
 }
 function OrderShow() {
   const id = window.location.pathname.split("/").pop()
-  const [updating, setUpdating] = React.useState(false); const [msg, setMsg] = React.useState(""); const { data, loading, error } = useAsync(() => api(`/orders/${id}`), [id])
+  const [updating, setUpdating] = React.useState(false); const [msg, setMsg] = React.useState(""); const [txId, setTxId] = React.useState(""); const { data, loading, error } = useAsync(() => api(`/orders/${id}`), [id])
   if (loading) return <Spinner />; if (error) return <Err msg={error} />; const o = data as any; if (!o) return <Err msg="Not found" />
-  const statuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"]
+  const sc: Record<string, string> = { pending: "yellow", awaiting_payment: "yellow", payment_requested: "blue", paid: "green", confirmed: "blue", processing: "purple", shipped: "blue", delivered: "green", cancelled: "red", refunded: "slate", partially_refunded: "yellow" }
+  const sl: Record<string, string> = { pending: "Pending", awaiting_payment: "Awaiting Payment", payment_requested: "Payment Requested", paid: "Paid", confirmed: "Confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled", refunded: "Refunded", partially_refunded: "Partially Refunded" }
+  const isQrPayment = o.payment_method === "qr" || o.payment_method === "bank_transfer"
   const changeStatus = async (status: string) => { setUpdating(true); setMsg(""); try { await api(`/orders/${id}`, { method: "PUT", body: JSON.stringify({ status }) }); setMsg("Updated"); setTimeout(() => window.location.reload(), 1000) } catch (e: any) { setMsg(e.message) } finally { setUpdating(false) } }
-  return <div><PageHd title={`Order #${o.order_number || (o.id || "").slice(0, 8)}`} action={<a href="/admin/orders" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 no-underline inline-block hover:bg-slate-50">← Orders</a>} />{msg && <Err msg={msg} />}<div className="grid gap-6 grid-cols-2"><Card><h3 className="text-base font-semibold mb-4 text-slate-900">Details</h3>{[{ label: "Order #", value: o.order_number }, { label: "Email", value: o.email }, { label: "Phone", value: o.phone }, { label: "Subtotal", value: cents(o.subtotal_cents) }, { label: "Shipping", value: cents(o.shipping_cents) }, { label: "Tax", value: cents(o.tax_cents) }, { label: "Discount", value: cents(o.discount_cents) }, { label: "Total", value: cents(o.total_cents) }, { label: "Payment", value: o.payment_method }, { label: "Payment Status", value: o.payment_status }, { label: "Shipping", value: [o.shipping_name, o.shipping_line1, o.shipping_city].filter(Boolean).join(", ") }, { label: "Date", value: o.created_at ? new Date(o.created_at).toLocaleString() : "-" }].map(f => <div key={f.label} className="flex py-2 border-b border-slate-100 text-sm last:border-0"><div className="w-32 text-slate-500 font-medium shrink-0">{f.label}</div><div className="text-slate-900">{f.value || "-"}</div></div>)}</Card><Card><h3 className="text-base font-semibold mb-4 text-slate-900">Status</h3><div className="text-sm text-slate-500 mb-3">Current: <strong className="text-slate-900">{o.status}</strong></div><div className="flex flex-wrap gap-2">{statuses.map(s => <button key={s} onClick={() => changeStatus(s)} disabled={updating || s === o.status} className={`px-4 py-2 rounded-md text-xs font-semibold font-sans border transition-all ${s === o.status ? "bg-slate-200 text-slate-500 cursor-not-allowed border-slate-200" : updating ? "bg-slate-200 text-slate-400 cursor-not-allowed border-slate-200" : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 cursor-pointer"}`}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>)}</div><div className="mt-4"><h4 className="text-sm font-semibold mb-2">Status History</h4>{(o.status_history || []).map((h: any) => <div key={h.id} className="text-xs text-slate-500 py-1 border-b border-slate-100">{h.from_status || "—"} → {h.to_status} <span className="text-slate-400">({h.created_at ? new Date(h.created_at).toLocaleString() : ""})</span></div>)}</div></Card><Card className="!col-span-2"><h3 className="text-base font-semibold mb-4">Items</h3>{(o.items?.length ? <DataTable headers={["Product", "Variant", "SKU", "Qty", "Price", "Total"]} rows={(o.items || []).map((item: any) => [item.name || "-", item.variant_name || "-", item.sku || "-", String(item.quantity || 0), cents(item.price_cents || 0), cents((item.price_cents || 0) * (item.quantity || 1))])} /> : <div className="text-slate-400">No items</div>)}</Card></div></div>
+  const requestPayment = async () => { setUpdating(true); setMsg(""); try { await api(`/orders/${id}`, { method: "PUT", body: JSON.stringify({ action: "request_payment" }) }); setMsg("Payment request sent to customer"); setTimeout(() => window.location.reload(), 1500) } catch (e: any) { setMsg(e.message) } finally { setUpdating(false) } }
+  const confirmPayment = async () => { if (!txId.trim()) { setMsg("Enter transaction reference"); return }; setUpdating(true); setMsg(""); try { await api(`/orders/${id}`, { method: "PUT", body: JSON.stringify({ action: "confirm_payment", transactionId: txId }) }); setMsg("Payment confirmed"); setTimeout(() => window.location.reload(), 1500) } catch (e: any) { setMsg(e.message) } finally { setUpdating(false) } }
+  const actionBtns = () => {
+    if (o.status === "awaiting_payment" && isQrPayment) {
+      return <button onClick={requestPayment} disabled={updating} className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white border-none hover:bg-blue-700 cursor-pointer font-sans">Request Payment</button>
+    }
+    if (o.status === "payment_requested") {
+      return <div className="flex gap-2 items-end"><div className="flex-1"><label className="block text-xs font-medium text-slate-500 mb-1">Transaction Reference</label><input value={txId} onChange={e => setTxId(e.target.value)} placeholder="Portal reference ID" className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-blue-500 font-sans box-border" /></div><button onClick={confirmPayment} disabled={updating} className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-green-600 text-white border-none hover:bg-green-700 cursor-pointer font-sans whitespace-nowrap">Confirm Payment</button></div>
+    }
+    return null
+  }
+  return (
+    <div>
+      <PageHd title={`Order #${o.order_number || (o.id || "").slice(0, 8)}`} action={<a href="/admin/orders" className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 no-underline inline-block hover:bg-slate-50">← Orders</a>} />
+      {msg && <Err msg={msg} />}
+      <div className="grid gap-6 grid-cols-2">
+        <Card>
+          <h3 className="text-base font-semibold mb-4 text-slate-900">Details</h3>
+          {[
+            { label: "Order #", value: o.order_number },
+            { label: "Email", value: o.email },
+            { label: "Phone", value: o.phone },
+            { label: "Subtotal", value: cents(o.subtotal_cents) },
+            { label: "Shipping", value: cents(o.shipping_cents) },
+            { label: "Tax", value: cents(o.tax_cents) },
+            { label: "Discount", value: cents(o.discount_cents) },
+            { label: "Total", value: cents(o.total_cents) },
+            { label: "Payment Method", value: o.payment_method },
+            { label: "Payment Status", value: o.payment_status },
+            { label: "Shipping", value: [o.shipping_name, o.shipping_line1, o.shipping_city].filter(Boolean).join(", ") || "-" },
+            { label: "Date", value: o.created_at ? new Date(o.created_at).toLocaleString() : "-" },
+          ].map(f => (
+            <div key={f.label} className="flex py-2 border-b border-slate-100 text-sm last:border-0">
+              <div className="w-32 text-slate-500 font-medium shrink-0">{f.label}</div>
+              <div className="text-slate-900">{f.value || "-"}</div>
+            </div>
+          ))}
+          {o.notes && <div className="mt-3 pt-3 border-t border-slate-200"><div className="text-xs text-slate-400 mb-1">Customer Notes</div><div className="text-sm text-slate-700">{o.notes}</div></div>}
+          {o.gift_note && <div className="mt-2"><div className="text-xs text-slate-400 mb-1">Gift Note</div><div className="text-sm text-slate-700 italic">{o.gift_note}</div></div>}
+        </Card>
+
+        <div className="space-y-4">
+          <Card>
+            <h3 className="text-base font-semibold mb-4 text-slate-900">Status</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-slate-500">Current:</span>
+              <span className={`px-2 py-0.5 rounded text-xs font-semibold inline-block ${sc[o.status] ? `bg-${sc[o.status]}-100 text-${sc[o.status]}-700` : "bg-slate-100 text-slate-600"}`}>{sl[o.status] || o.status}</span>
+            </div>
+            {actionBtns()}
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wider">Quick Status Change</div>
+              <div className="flex flex-wrap gap-2">
+                {["pending","confirmed","processing","shipped","delivered","cancelled","refunded"].map(s => (
+                  <button key={s} onClick={() => changeStatus(s)} disabled={updating || s === o.status}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold font-sans border transition-all ${
+                      s === o.status
+                        ? "bg-slate-200 text-slate-500 cursor-not-allowed border-slate-200"
+                        : updating
+                          ? "bg-slate-200 text-slate-400 cursor-not-allowed border-slate-200"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 cursor-pointer"
+                    }`}
+                  >{sl[s] || s}</button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {o.payments?.length > 0 && (
+            <Card>
+              <h3 className="text-base font-semibold mb-4 text-slate-900">Payments</h3>
+              {o.payments.map((p: any) => (
+                <div key={p.id} className="flex justify-between py-2 border-b border-slate-100 text-sm last:border-0">
+                  <div>
+                    <div className="text-slate-900 font-medium">{p.method}</div>
+                    <div className="text-slate-400 text-xs">ID: {p.transaction_id || "-"}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-slate-900">{cents(p.amount_cents)}</div>
+                    <div className={`text-xs ${p.status === "succeeded" ? "text-green-600" : "text-yellow-600"}`}>{p.status}</div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {o.statusHistory?.length > 0 && (
+            <Card>
+              <h3 className="text-base font-semibold mb-4 text-slate-900">Status History</h3>
+              <div className="space-y-2">
+                {o.statusHistory.map((h: any) => (
+                  <div key={h.id} className="flex items-start gap-3 text-sm">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-slate-700">
+                        {sl[h.from_status] || h.from_status || "—"} → <strong>{sl[h.to_status] || h.to_status}</strong>
+                      </div>
+                      <div className="text-slate-400 text-xs">{h.created_at ? new Date(h.created_at).toLocaleString() : ""}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <Card className="mt-6">
+        <h3 className="text-base font-semibold mb-4 text-slate-900">Order Items</h3>
+        {(o.items || []).length === 0
+          ? <div className="text-slate-400 text-sm">No items</div>
+          : <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead><tr>
+                  <th className="text-left px-3 py-2 border-b-2 border-slate-200 text-slate-500 font-semibold text-xs uppercase">Item</th>
+                  <th className="text-left px-3 py-2 border-b-2 border-slate-200 text-slate-500 font-semibold text-xs uppercase">SKU</th>
+                  <th className="text-right px-3 py-2 border-b-2 border-slate-200 text-slate-500 font-semibold text-xs uppercase">Price</th>
+                  <th className="text-right px-3 py-2 border-b-2 border-slate-200 text-slate-500 font-semibold text-xs uppercase">Qty</th>
+                  <th className="text-right px-3 py-2 border-b-2 border-slate-200 text-slate-500 font-semibold text-xs uppercase">Total</th>
+                </tr></thead>
+                <tbody>
+                  {o.items.map((item: any) => (
+                    <tr key={item.id} className="border-b border-slate-100">
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-slate-900">{item.name}</div>
+                        {item.variant_name && <div className="text-slate-400 text-xs">{item.variant_name}</div>}
+                      </td>
+                      <td className="px-3 py-2 text-slate-500">{item.sku || "-"}</td>
+                      <td className="px-3 py-2 text-right text-slate-700">{cents(item.price_cents)}</td>
+                      <td className="px-3 py-2 text-right text-slate-700">{item.quantity}</td>
+                      <td className="px-3 py-2 text-right font-medium text-slate-900">{cents(item.price_cents * item.quantity)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+        }
+      </Card>
+    </div>
+  )
 }
 
 // ---------- Customers ----------

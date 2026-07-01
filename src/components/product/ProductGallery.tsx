@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface ProductGalleryProps {
   images: string[]
@@ -8,6 +8,21 @@ interface ProductGalleryProps {
 export default function ProductGallery({ images, name }: ProductGalleryProps) {
   const [selected, setSelected] = useState(0)
   const displayImages = images.length > 0 ? images : ['']
+
+  useEffect(() => {
+    const el = document.getElementById('variant-data')
+    if (!el || displayImages.length <= 1) return
+    const handler = () => {
+      const url = el.dataset.variantImageUrl
+      if (url) {
+        const idx = displayImages.indexOf(url)
+        if (idx !== -1) setSelected(idx)
+      }
+    }
+    const mo = new MutationObserver(handler)
+    mo.observe(el, { attributes: true, attributeFilter: ['data-variant-image-url'] })
+    return () => mo.disconnect()
+  }, [displayImages])
 
   return (
     <div className="grid gap-4">

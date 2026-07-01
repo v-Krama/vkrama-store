@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { getAuthUser, generateId } from '../../../lib/auth'
 import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
+import { hasPermission, jsonForbidden } from '../../../lib/admin-auth'
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -28,6 +29,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const user = await getAuthUser(request, env.DB, 'admin')
   if (!user) return jsonError(401, 'Unauthorized')
+  if (!hasPermission(user.role, 'products:write')) return jsonForbidden()
 
   const body = await request.json().catch(() => null)
   if (!body) return jsonError(400, 'Invalid request body')

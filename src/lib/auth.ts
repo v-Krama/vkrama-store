@@ -179,11 +179,45 @@ export function getCustomerSessionExpiry(): string {
 
 export function getEnv(key: string, fallback = ''): string {
   if (typeof process !== 'undefined' && process.env?.[key]) return process.env[key]
-  if (typeof import.meta !== 'undefined') {
-    const meta = import.meta as any
-    if (meta.env?.[key]) return meta.env[key]
-  }
   return fallback
+}
+
+export async function checkAccountLockout(env: { CACHE: KVNamespace }, identifier: string): Promise<{ locked: boolean; remainingMinutes: number } | null> {
+  if (!env?.CACHE) return null
+  const key = `lockout:${identifier}`
+  const data = await env.CACHE.get(key, { type: 'json' }) as { count: number; until: number } | null
+  if (!data) return { locked: false, remainingMinutes: 0 }
+  if (Date.now() > data.until) {
+    await env.CACHE.delete(key)
+    return { locked: false, remainingMinutes: 0 }
+  }
+  return { locked: true, remainingMinutes: Math.ceil((data.until - Date.now()) / 60000) }
+}
+
+export async function recordFailedAttempt(env: { CACHE: KVNamespace }, identifier: string, maxAttempts = 5, lockoutMinutes = 15): Promise<void> {
+  if (!env?.CACHE) return
+  const key = `lockout:${identifier}`
+  const data = await env.CACHE.get(key, { type: 'json' }) as { count: number; until: number } | null
+  const now = Date.now()
+  if (data && now < data.until) {
+    data.count++
+    await env.CACHE.put(key, JSON.stringify(data), { expirationTtl: Math.ceil((data.until - now) / 1000) })
+  } else if (data && now >= data.until) {
+    const until = now + lockoutMinutes * 60 * 1000
+    await env.CACHE.put(key, JSON.stringify({ count: 1, until }), { expirationTtl: lockoutMinutes * 60 })
+  } else {
+    const until = now + lockoutMinutes * 60 * 1000
+    await env.CACHE.put(key, JSON.stringify({ count: 1, until }), { expirationTtl: lockoutMinutes * 60 })
+  }
+  if (data && data.count >= maxAttempts) {
+    const until = now + lockoutMinutes * 60 * 1000
+    await env.CACHE.put(key, JSON.stringify({ count: data.count, until }), { expirationTtl: lockoutMinutes * 60 })
+  }
+}
+
+export async function clearAccountLockout(env: { CACHE: KVNamespace }, identifier: string): Promise<void> {
+  if (!env?.CACHE) return
+  await env.CACHE.delete(`lockout:${identifier}`)
 }
 
 export function validateEmail(email: string): boolean {

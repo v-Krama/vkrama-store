@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { getDb } from '../../../lib/db'
 import { reviews, customers } from '../../../db/schema'
-import { eq, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { getAuthUser, generateId } from '../../../lib/auth'
 import { rateLimitMiddleware } from '../../../lib/rate-limit'
 import { jsonError, jsonOk } from '../../../lib/validation'
@@ -77,7 +77,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const existing = await db
       .select()
       .from(reviews)
-      .where(eq(reviews.productId, productId))
+      .where(and(eq(reviews.productId, productId), eq(reviews.customerId, user.id)))
       .get()
 
     if (existing) return jsonError(409, 'You have already reviewed this product')

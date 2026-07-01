@@ -2,53 +2,51 @@ name = "vkrama-store"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
-
-[env.production]
 vars = { NODE_VERSION = "22" }
 
-[[env.production.d1_databases]]
+[[d1_databases]]
 binding = "DB"
 database_name = "vkrama-db"
 database_id = "b8665214-d54a-41e3-a392-ea536c4d1188"
 
-[[env.production.r2_buckets]]
+[[r2_buckets]]
 binding = "R2_STORE"
 bucket_name = "vkrama-assets"
 
-[[env.production.kv_namespaces]]
+[[kv_namespaces]]
 binding = "CACHE"
 id = "b5cb9dd451db4a6fb595fed867a8f3a7"
 
-[[env.production.vectorize]]
+[[vectorize]]
 binding = "VECTORIZE"
 index_name = "vkrama-products"
 
-[[env.production.durable_objects.bindings]]
+[[durable_objects.bindings]]
 name = "CART_DO"
 class_name = "CartDO"
 script_name = "vkrama-services"
 
-[[env.production.durable_objects.bindings]]
+[[durable_objects.bindings]]
 name = "INVENTORY_DO"
 class_name = "InventoryDO"
 script_name = "vkrama-services"
 
-[[env.production.durable_objects.bindings]]
+[[durable_objects.bindings]]
 name = "NOTIFICATION_DO"
 class_name = "NotificationDO"
 script_name = "vkrama-services"
 
-[[env.production.queues.producers]]
+[[queues.producers]]
 queue = "vkrama-order-processor"
 binding = "ORDER_QUEUE"
 
-[[env.production.queues.producers]]
+[[queues.producers]]
 queue = "vkrama-email"
 binding = "EMAIL_QUEUE"
 
-[[env.production.queues.producers]]
+[[queues.producers]]
 queue = "vkrama-analytics"
 binding = "ANALYTICS_QUEUE"
 
-[env.production.ai]
+[ai]
 binding = "AI"

@@ -22,8 +22,8 @@ try {
 
 const qrImageUrl = PAYMENT_QR_IMAGE_URL
 const pm = order?.payment_method
-const isCod = pm === 'cod'
-const isQr = pm === 'qr' || !pm
+const isCod = pm === 'cash' || pm === 'cod'
+const isQr = pm === 'qr' || pm === 'bank_transfer' || !pm
 ---
 
 <Base title={order ? 'Order Placed' : 'Order Not Found'}>
@@ -48,8 +48,35 @@ const isQr = pm === 'qr' || !pm
         <div class="grid md:grid-cols-2 gap-6 mb-8">
           {isQr && (
             <div class="card p-6 flex flex-col items-center">
-              <h2 class="font-semibold text-surface-900 mb-4">Scan & Pay</h2>
-              <OrderQR client:load imageUrl={qrImageUrl} />
+              <h2 class="font-semibold text-surface-900 mb-4">Payment Request Pending</h2>
+              <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p class="text-surface-600 text-sm text-center mb-4">
+                We'll send you a payment request shortly. You'll receive an email with payment instructions.
+                The exact amount will be pre-set — no need to type anything.
+              </p>
+              <div class="w-full pt-4 border-t border-surface-200">
+                <h3 class="font-semibold text-surface-900 text-sm mb-3">Bank Transfer Details (Reference)</h3>
+                <div class="bg-surface-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-surface-500">Account Name</span>
+                    <span class="font-medium text-surface-900 text-right">VKRAMA GROUP PVT.LTD.</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-surface-500">Account Type</span>
+                    <span class="font-medium text-surface-900">CURRENT ACCOUNT GENERAL</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-surface-500">Account Number</span>
+                    <span class="font-mono font-bold text-surface-900 text-base tracking-wider">19101017501227</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-surface-500">Bank</span>
+                    <span class="font-medium text-surface-900">Nabil Bank Limited</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -97,13 +124,13 @@ const isQr = pm === 'qr' || !pm
               <div class="card p-4 bg-amber-50 border-amber-200">
                 <h3 class="font-semibold text-amber-800 text-sm mb-2 flex items-center gap-1.5">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  Payment Instructions
+                  What Happens Next
                 </h3>
                 <ol class="text-sm text-amber-700 space-y-1 list-decimal list-inside">
-                  <li>Open your payment app</li>
-                  <li>Scan the QR code</li>
-                  <li>Complete the payment</li>
-                  <li>Order will be processed once confirmed</li>
+                  <li>We'll review your order and create a payment request</li>
+                  <li>You'll receive an email with payment instructions</li>
+                  <li>Complete the payment using the request — amount is pre-set</li>
+                  <li>Order will be processed once payment is confirmed</li>
                 </ol>
               </div>
             )}

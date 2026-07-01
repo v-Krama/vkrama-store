@@ -26,10 +26,6 @@ export function validateEnv(env: Record<string, string | undefined>): { valid: b
 
 export function getEnv(key: string): string | undefined {
   if (typeof process !== 'undefined' && process.env?.[key]) return process.env[key]
-  if (typeof import.meta !== 'undefined') {
-    const meta = import.meta as any
-    if (meta.env?.[key]) return meta.env[key]
-  }
   return undefined
 }
 

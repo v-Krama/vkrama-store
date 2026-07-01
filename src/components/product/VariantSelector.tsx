@@ -50,12 +50,14 @@ export default function VariantSelector({ options, variants, basePriceCents, onV
         el.dataset.variantPrice = String(matchedVariant.priceCents ?? basePriceCents)
         el.dataset.variantStock = String(matchedVariant.stock)
         el.dataset.variantInStock = matchedVariant.stock > 0 ? 'true' : 'false'
+        el.dataset.variantImageUrl = matchedVariant.imageUrl || ''
       } else {
         delete el.dataset.variantId
         delete el.dataset.variantName
         delete el.dataset.variantPrice
         delete el.dataset.variantStock
         delete el.dataset.variantInStock
+        delete el.dataset.variantImageUrl
       }
     }
     if (onVariantChange) {
@@ -79,7 +81,7 @@ export default function VariantSelector({ options, variants, basePriceCents, onV
   return (
     <div className="space-y-4">
       <div className="flex items-baseline gap-3">
-        <span className="text-3xl font-bold text-surface-900">${(displayPrice / 100).toFixed(2)}</span>
+        <span className="text-3xl font-bold text-surface-900">Rs. {(displayPrice / 100).toFixed(2)}</span>
         {showOutOfStock && <span className="badge-red">Out of Stock</span>}
       </div>
 

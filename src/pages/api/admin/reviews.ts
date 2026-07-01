@@ -4,6 +4,7 @@ import { jsonError } from "../../../lib/validation"
 import { getDb } from "../../../lib/db"
 import { reviews, products, customers } from "../../../db/schema"
 import { eq, desc } from "drizzle-orm"
+import { hasPermission, jsonForbidden } from "../../../lib/admin-auth"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env

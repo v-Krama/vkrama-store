@@ -1,6 +1,8 @@
 import type { APIRoute } from "astro"
 import { getAuthUser } from "../../../lib/auth"
 import { jsonError } from "../../../lib/validation"
+import { hasPermission, jsonForbidden } from "../../../lib/admin-auth"
+import { logAudit } from "../../../lib/audit"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -20,6 +22,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!env?.DB) return jsonError(500, "Server error")
   const user = await getAuthUser(request, env.DB, "admin")
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "settings:write")) return jsonForbidden()
   try {
     const body = await request.json() as Record<string, string>
     for (const [key, value] of Object.entries(body)) {
@@ -28,6 +31,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       ).bind(String(value), key).run()
     }
     await env.CACHE.delete("settings:all").catch(() => {})
+    await logAudit(env.DB, { actorType: "admin", actorId: user.id, action: "settings.update", resourceType: "settings", metadata: { keys: Object.keys(body) }, ipAddress: request.headers.get("CF-Connecting-IP"), userAgent: request.headers.get("User-Agent") })
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } })
   } catch { return jsonError(400, "Failed to update settings") }
 }

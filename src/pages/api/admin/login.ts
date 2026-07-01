@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { verifyPassword, createToken, generateId, getAdminSessionExpiry, validateEmail } from '../../../lib/auth'
+import { verifyPassword, createToken, generateId, getAdminSessionExpiry, validateEmail, checkAccountLockout, recordFailedAttempt, clearAccountLockout } from '../../../lib/auth'
 import { rateLimitMiddleware } from '../../../lib/rate-limit'
 import { jsonError, jsonOk, sanitizeString } from '../../../lib/validation'
 
@@ -20,14 +20,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!email || !password) return jsonError(400, 'Email and password required')
     if (!validateEmail(email)) return jsonError(400, 'Invalid email format')
 
+    const lockout = await checkAccountLockout(env, `admin-login:${email}`)
+    if (lockout?.locked) return jsonError(429, `Too many attempts. Try again in ${lockout.remainingMinutes} minutes.`)
+
     const admin = await env.DB.prepare(
       'SELECT id, email, name, password_hash, role FROM admins WHERE email = ?'
     ).bind(email).first() as any
 
-    if (!admin) return jsonError(401, 'Invalid credentials')
+    if (!admin) {
+      await recordFailedAttempt(env, `admin-login:${email}`)
+      return jsonError(401, 'Invalid credentials')
+    }
 
     const valid = await verifyPassword(password, admin.password_hash)
-    if (!valid) return jsonError(401, 'Invalid credentials')
+    if (!valid) {
+      await recordFailedAttempt(env, `admin-login:${email}`)
+      return jsonError(401, 'Invalid credentials')
+    }
+
+    await clearAccountLockout(env, `admin-login:${email}`)
 
     const sessionId = generateId('sess')
     const token = await createToken({ userId: admin.id, userType: 'admin', sessionId }, 12)

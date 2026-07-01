@@ -10,17 +10,18 @@ function getCsp(env: Record<string, unknown> | undefined) {
     "script-src 'self' 'unsafe-inline' https://js.stripe.com https://m.stripe.network https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "frame-src 'self' https://js.stripe.com https://m.stripe.network",
-    `img-src 'self' data: blob: https:${r2Domain ? ` ${r2Domain}` : ""}`,
+    `img-src 'self' data: blob: https:${r2Domain ? ` ${r2Domain}` : ""}`.trimEnd(),
     "font-src 'self' https://fonts.gstatic.com",
     "connect-src 'self' https://api.stripe.com https://m.stripe.network https://api.resend.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    "frame-ancestors 'none'",
   ].join("; ")
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  if (context.url.pathname.startsWith('/api/') && !context.url.pathname.startsWith('/api/auth/')) {
+  if (context.url.pathname.startsWith('/api/') && !context.url.pathname.startsWith('/api/auth/') && !context.url.pathname.startsWith('/api/admin/')) {
     const csrfResult = csrfProtection(context.request)
     if (csrfResult) return csrfResult
   }
@@ -33,13 +34,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'X-XSS-Protection': '1; mode=block',
   }
 
   if (!context.url.pathname.startsWith('/api/')) {
     securityHeaders['Content-Security-Policy'] = getCsp(env)
   } else {
-    securityHeaders['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'none'"
+    securityHeaders['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
   }
   securityHeaders['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
 

@@ -52,16 +52,22 @@ export function validateInteger(input: unknown, field: string, min = 0, max = 1_
   return null
 }
 
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+}
+
 export function jsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...SECURITY_HEADERS },
   })
 }
 
 export function jsonOk(data: Record<string, unknown>): Response {
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...SECURITY_HEADERS },
   })
 }
 

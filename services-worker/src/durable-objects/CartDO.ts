@@ -134,7 +134,7 @@ export class CartDO extends DurableObject<Env, CartState> {
     for (const sessionItem of sessionItems) {
       const existing = this.items.find((i) => i.variantId === sessionItem.variantId)
       if (existing) {
-        existing.quantity = Math.max(existing.quantity, sessionItem.quantity)
+        existing.quantity += sessionItem.quantity
       } else {
         this.items.push(sessionItem)
       }

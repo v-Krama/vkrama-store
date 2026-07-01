@@ -1,25 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 
-interface CartItem {
-  variantId: string
-  productId: string
-  name: string
-  variantName: string | null
-  imageUrl: string | null
-  priceCents: number
-  quantity: number
-  maxQuantity: number | null
-  sku: string | null
-}
-
-interface CartState {
-  items: CartItem[]
-  customerId: string | null
-  sessionId: string
-  couponCode: string | null
-  updatedAt: number
-}
-
 function getAuthToken(): string | null {
   return localStorage.getItem("vkrama_token")
 }
@@ -48,19 +28,31 @@ async function api(path: string, options?: RequestInit): Promise<any> {
   return res.json()
 }
 
+interface LocalCartItem {
+  key: string
+  productId: string
+  variantId?: string
+  name: string
+  slug?: string
+  image?: string
+  price: number
+  quantity: number
+  variantName?: string
+}
+
 export default function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false)
-  const [cart, setCart] = useState<CartState | null>(null)
+  const [items, setItems] = useState<LocalCartItem[]>([])
   const [animating, setAnimating] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const mounted = useRef(true)
 
-  const loadCart = useCallback(async () => {
+  const loadCart = useCallback(() => {
     setLoading(true)
     try {
-      const data = await api("/api/cart")
-      setCart(data)
+      const cart: LocalCartItem[] = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
+      setItems(cart)
     } catch {
     } finally {
       setLoading(false)
@@ -79,7 +71,7 @@ export default function CartDrawer() {
     const loginHandler = async () => {
       const token = getAuthToken()
       if (token) {
-        const local = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
+        const local: LocalCartItem[] = JSON.parse(localStorage.getItem("vkrama_cart") || "[]")
         if (local.length > 0) {
           try {
             await api("/api/cart/merge", {
@@ -102,6 +94,12 @@ export default function CartDrawer() {
     }
   }, [loadCart])
 
+  function saveCart(newItems: LocalCartItem[]) {
+    localStorage.setItem("vkrama_cart", JSON.stringify(newItems))
+    setItems(newItems)
+    window.dispatchEvent(new Event("cart-updated"))
+  }
+
   function close() {
     setAnimating(true)
     setTimeout(() => {
@@ -112,41 +110,27 @@ export default function CartDrawer() {
     }, 200)
   }
 
-  async function updateQty(variantId: string, delta: number) {
+  function updateQty(key: string, delta: number) {
     setError("")
-    setLoading(true)
-    try {
-      const action = delta > 0 ? "increment" : "decrement"
-      const data = await api("/api/cart/update", {
-        method: "POST",
-        body: JSON.stringify({ variantId, action }),
-      })
-      setCart(data)
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
+    const cart = JSON.parse(localStorage.getItem("vkrama_cart") || "[]") as LocalCartItem[]
+    const item = cart.find((i) => i.key === key)
+    if (!item) return
+    item.quantity += delta
+    if (item.quantity <= 0) {
+      const idx = cart.indexOf(item)
+      cart.splice(idx, 1)
     }
+    saveCart(cart)
   }
 
-  async function removeItem(variantId: string) {
+  function removeItem(key: string) {
     setError("")
-    setLoading(true)
-    try {
-      const data = await api("/api/cart/update", {
-        method: "POST",
-        body: JSON.stringify({ variantId, action: "remove" }),
-      })
-      setCart(data)
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+    let cart = JSON.parse(localStorage.getItem("vkrama_cart") || "[]") as LocalCartItem[]
+    cart = cart.filter((i) => i.key !== key)
+    saveCart(cart)
   }
 
-  const items = cart?.items || []
-  const total = items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0)
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   if (!isOpen && !animating) return null
@@ -189,10 +173,10 @@ export default function CartDrawer() {
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.variantId} className="flex gap-3 p-3 rounded-xl bg-surface-50 animate-fade-in">
+              <div key={item.key} className="flex gap-3 p-3 rounded-xl bg-surface-50 animate-fade-in">
                 <div className="w-20 h-20 bg-surface-100 rounded-lg overflow-hidden shrink-0">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                  {item.image ? (
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-surface-300">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,11 +191,11 @@ export default function CartDrawer() {
                     <p className="text-xs text-surface-500">{item.variantName}</p>
                   )}
                   <p className="text-sm font-semibold text-surface-900 mt-1">
-                    Rs. {(item.priceCents / 100).toFixed(2)}
+                    Rs. {(item.price / 100).toFixed(2)}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={() => updateQty(item.variantId, -1)}
+                      onClick={() => updateQty(item.key, -1)}
                       disabled={loading}
                       className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm disabled:opacity-50"
                     >
@@ -219,14 +203,14 @@ export default function CartDrawer() {
                     </button>
                     <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
                     <button
-                      onClick={() => updateQty(item.variantId, 1)}
-                      disabled={loading || (item.maxQuantity != null && item.quantity >= item.maxQuantity)}
+                      onClick={() => updateQty(item.key, 1)}
+                      disabled={loading}
                       className="w-7 h-7 flex items-center justify-center rounded-md border border-surface-300 text-surface-600 hover:bg-surface-100 text-sm disabled:opacity-50"
                     >
                       +
                     </button>
                     <button
-                      onClick={() => removeItem(item.variantId)}
+                      onClick={() => removeItem(item.key)}
                       className="ml-auto text-xs text-red-500 hover:text-red-600 font-medium"
                     >
                       Remove
@@ -244,11 +228,6 @@ export default function CartDrawer() {
               <span className="text-sm text-surface-600">Subtotal</span>
               <span className="text-lg font-bold text-surface-900">Rs. {(total / 100).toFixed(2)}</span>
             </div>
-            {cart?.couponCode && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-green-600">Coupon: {cart.couponCode}</span>
-              </div>
-            )}
             <p className="text-xs text-surface-400">Shipping & taxes calculated at checkout</p>
             <a href="/checkout" className="btn-primary w-full btn-lg" onClick={close}>
               Checkout &rarr;

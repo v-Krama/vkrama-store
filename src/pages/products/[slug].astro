@@ -87,10 +87,11 @@ const defaultPriceCents = primaryVariant.priceCents || 0
 const defaultCompareAtPrice = primaryVariant.compareAtPriceCents
 const defaultStock = primaryVariant.stock ?? 0
 
-const images = [
-  primaryVariant.imageUrl,
-  ...(product.variants || []).slice(1).map((v: any) => v.imageUrl).filter(Boolean)
-].filter(Boolean)
+const getVariantImages = (v: any): string[] => {
+  if (v.imageUrls) { try { const p = JSON.parse(v.imageUrls); if (Array.isArray(p)) return p.filter(Boolean) } catch {} }
+  return v.imageUrl ? [v.imageUrl] : []
+}
+const images = (product.variants || []).flatMap(getVariantImages).filter(Boolean)
 
 const seoTitle = product.seoTitle || product.name
 const seoDesc = product.seoDescription || product.description?.slice(0, 160) || `Shop ${product.name} at vkrama`
@@ -183,7 +184,7 @@ const productSchema = {
 
         <!-- Price -->
         <div class="flex items-baseline gap-3 mt-5">
-          <span class="text-3xl md:text-4xl font-bold text-surface-900 tracking-tight">Rs. {(defaultPriceCents / 100).toFixed(2)}</span>
+          <span class="product-price-display text-3xl md:text-4xl font-bold text-surface-900 tracking-tight">Rs. {(defaultPriceCents / 100).toFixed(2)}</span>
           {hasDiscount && (
             <>
               <span class="text-xl text-surface-400 line-through">Rs. {(defaultCompareAtPrice / 100).toFixed(2)}</span>
@@ -201,7 +202,7 @@ const productSchema = {
             client:load
             options={product.variantOptions || []}
             variants={product.variants || []}
-            basePriceCents={product.priceCents}
+            basePriceCents={defaultPriceCents}
           />
         </div>
 
@@ -214,7 +215,7 @@ const productSchema = {
         <div class="flex items-center gap-4 mt-5 text-sm">
           <span class="flex items-center gap-1.5">
             <span class={`w-2 h-2 rounded-full ${defaultStock > 0 && !isPrebooking ? 'bg-emerald-500' : isPrebooking ? 'bg-purple-500' : 'bg-red-500'}`}></span>
-            <span class="text-surface-600">{isPrebooking ? 'Pre-order now — Ships on release date' : defaultStock > 0 ? `In Stock (${defaultStock} available)` : 'Out of Stock'}</span>
+            <span class="product-stock-display text-surface-600" data-default-stock={defaultStock}>{isPrebooking ? 'Pre-order now — Ships on release date' : defaultStock > 0 ? `In Stock (${defaultStock} available)` : 'Out of Stock'}</span>
           </span>
           {hasDiscount && !isPrebooking && (
             <span class="text-surface-400">Was <span class="line-through">Rs. {(defaultCompareAtPrice / 100).toFixed(2)}</span></span>
@@ -234,9 +235,10 @@ const productSchema = {
           </div>
           <button
             id="add-to-cart"
+            data-product-id={product.id}
             data-slug={product.slug}
             data-name={product.name}
-            data-price={product.priceCents}
+            data-price={defaultPriceCents}
             data-image={primaryImage}
             class="flex-1 inline-flex items-center justify-center gap-2 bg-brand-600 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-brand-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 text-sm"
           >
@@ -347,3 +349,169 @@ const productSchema = {
     )}
   </div>
 </Base>
+
+<script>
+  const qtyMinus = document.getElementById('qty-minus')
+  const qtyPlus = document.getElementById('qty-plus')
+  const qtyDisplay = document.getElementById('qty-display')
+  let qty = 1
+
+  qtyMinus?.addEventListener('click', () => {
+    if (qty > 1) { qty--; qtyDisplay.textContent = qty; qtyMinus.disabled = qty <= 1 }
+  })
+  qtyPlus?.addEventListener('click', () => {
+    qty++; qtyDisplay.textContent = qty; qtyMinus.disabled = qty <= 1
+  })
+
+  const tabBtns = document.querySelectorAll('.tab-btn')
+  const tabContents = document.querySelectorAll('.tab-content')
+  let reviewsLoaded = false
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab
+      tabBtns.forEach(b => {
+        b.classList.remove('text-brand-600', 'border-brand-600')
+        b.classList.add('text-surface-400', 'border-transparent')
+      })
+      btn.classList.remove('text-surface-400', 'border-transparent')
+      btn.classList.add('text-brand-600', 'border-brand-600')
+      tabContents.forEach(c => c.classList.add('hidden'))
+      const content = document.getElementById('tab-' + tab)
+      if (content) content.classList.remove('hidden')
+      if (tab === 'reviews' && !reviewsLoaded) loadReviews()
+    })
+  })
+
+  async function loadReviews() {
+    const productId = document.getElementById('add-to-cart')?.getAttribute('data-product-id')
+    if (!productId) return
+    const container = document.getElementById('reviews-container')
+    if (!container) return
+    container.innerHTML =
+      '<div class="text-center py-8 text-surface-400"><div class="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div><p class="text-sm">Loading reviews...</p></div>'
+    try {
+      const res = await fetch('/api/reviews?productId=' + encodeURIComponent(productId))
+      const data = await res.json()
+      reviewsLoaded = true
+      if (data.reviews && data.reviews.length > 0) {
+        container.innerHTML = data.reviews.map(r => {
+          const stars = Array.from({length: 5}, (_, i) =>
+            '<svg class="w-4 h-4 ' + (i < r.rating ? 'text-amber-400' : 'text-surface-200') + '" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>'
+          ).join('')
+          const name = String(r.customerName || 'Anonymous').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          const dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''
+          return '<div class="py-5 border-b border-surface-100 last:border-0"><div class="flex items-center gap-2 mb-1"><div class="flex">' + stars +
+            '</div><span class="text-xs text-surface-400">' + dt + '</span></div><p class="font-semibold text-sm text-surface-900">' +
+            (r.title ? String(r.title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '') + '</p><p class="text-sm text-surface-600 mt-1">' +
+            (r.body ? String(r.body).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '') + '</p><p class="text-xs text-surface-400 mt-1">— ' +
+            name + (r.isVerifiedPurchase ? ' <span class="text-emerald-600 font-medium">Verified Purchase</span>' : '') + '</p></div>'
+        }).join('')
+      } else {
+        container.innerHTML = '<div class="text-center py-12 text-surface-400"><svg class="w-10 h-10 mx-auto mb-3 text-surface-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg><p class="text-sm">No reviews yet. Be the first to review this product.</p></div>'
+      }
+      const tabBtn = document.querySelector('[data-tab="reviews"]')
+      if (tabBtn && data.stats) tabBtn.textContent = 'Reviews (' + data.stats.count + ')'
+    } catch {
+      container.innerHTML = '<div class="text-center py-12 text-surface-400"><p class="text-sm">Failed to load reviews. Please try again.</p></div>'
+    }
+  }
+
+  function updatePriceDisplay() {
+    const vd = document.getElementById('variant-data')
+    const priceEl = document.querySelector('.product-price-display')
+    const compareEl = document.querySelector('.product-compare-display')
+    const discountEl = document.querySelector('.product-discount-display')
+    if (!priceEl) return
+    let price, comparePrice, stock
+    if (vd?.dataset.variantPrice) {
+      price = parseInt(vd.dataset.variantPrice)
+      stock = parseInt(vd.dataset.variantStock || '0')
+    } else {
+      price = parseInt(document.getElementById('add-to-cart')?.getAttribute('data-price') || '0')
+      stock = parseInt(document.querySelector('[data-default-stock]')?.getAttribute('data-default-stock') || '0')
+    }
+    priceEl.textContent = 'Rs. ' + (price / 100).toFixed(2)
+    const stockEl = document.querySelector('.product-stock-display')
+    if (stockEl) {
+      stockEl.textContent = stock > 0 ? 'In Stock (' + stock + ' available)' : 'Out of Stock'
+      const dot = stockEl.previousElementSibling
+      if (dot) {
+        dot.className = 'w-2 h-2 rounded-full ' + (stock > 0 ? 'bg-emerald-500' : 'bg-red-500')
+      }
+    }
+  }
+
+  const variantData = document.getElementById('variant-data')
+  if (variantData) {
+    new MutationObserver(() => updatePriceDisplay()).observe(variantData, { attributes: true })
+  }
+  updatePriceDisplay()
+
+  document.getElementById('add-to-cart')?.addEventListener('click', function () {
+    const btn = this
+    const productId = btn.getAttribute('data-product-id')
+    const name = btn.getAttribute('data-name')
+    const image = btn.getAttribute('data-image')
+    const slug = btn.getAttribute('data-slug')
+    const vd = document.getElementById('variant-data')
+    let price, variantId, variantName
+    if (vd?.dataset.variantPrice) {
+      price = parseInt(vd.dataset.variantPrice)
+      variantId = vd.dataset.variantId || undefined
+      variantName = vd.dataset.variantName || undefined
+    } else {
+      price = parseInt(btn.getAttribute('data-price'))
+    }
+    if (!productId || !price) return
+    const cart = JSON.parse(localStorage.getItem('vkrama_cart') || '[]')
+    const key = productId + (variantId ? '-' + variantId : '')
+    const existing = cart.find(i => i.key === key)
+    if (existing) {
+      existing.quantity += qty
+    } else {
+      cart.push({ key, productId, variantId, name, slug, image, price, quantity: qty, variantName })
+    }
+    localStorage.setItem('vkrama_cart', JSON.stringify(cart))
+    window.dispatchEvent(new CustomEvent('cart-updated'))
+    btn.innerHTML =
+      '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Added!'
+    btn.classList.remove('bg-brand-600', 'hover:bg-brand-700')
+    btn.classList.add('bg-emerald-600')
+    setTimeout(() => {
+      btn.innerHTML =
+        '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Add to Cart'
+      btn.classList.remove('bg-emerald-600')
+      btn.classList.add('bg-brand-600', 'hover:bg-brand-700')
+    }, 1500)
+  })
+
+  const wishlistBtn = document.getElementById('wishlist-btn')
+  const wishlistSvg = wishlistBtn?.querySelector('svg')
+  function updateWishlist() {
+    const pid = wishlistBtn?.getAttribute('data-product-id')
+    if (!pid) return
+    const wl = JSON.parse(localStorage.getItem('vkrama_wishlist') || '[]')
+    const inWl = wl.includes(pid)
+    if (inWl) {
+      wishlistSvg?.setAttribute('fill', 'currentColor')
+      wishlistSvg?.classList.remove('text-surface-400', 'group-hover:text-red-500')
+      wishlistSvg?.classList.add('text-red-500')
+    } else {
+      wishlistSvg?.setAttribute('fill', 'none')
+      wishlistSvg?.classList.remove('text-red-500')
+      wishlistSvg?.classList.add('text-surface-400', 'group-hover:text-red-500')
+    }
+  }
+  updateWishlist()
+  wishlistBtn?.addEventListener('click', () => {
+    const pid = wishlistBtn.getAttribute('data-product-id')
+    if (!pid) return
+    const wl = JSON.parse(localStorage.getItem('vkrama_wishlist') || '[]')
+    const idx = wl.indexOf(pid)
+    if (idx > -1) wl.splice(idx, 1)
+    else wl.push(pid)
+    localStorage.setItem('vkrama_wishlist', JSON.stringify(wl))
+    updateWishlist()
+  })
+</script>

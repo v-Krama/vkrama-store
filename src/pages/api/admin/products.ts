@@ -6,6 +6,7 @@ import { generateId } from "../../../lib/auth"
 import { jsonError, sanitizeString } from "../../../lib/validation"
 import { invalidateProductCache } from "../../../services/cache"
 import { getAdminUser, hasPermission, jsonForbidden } from "../../../lib/admin-auth"
+import { logAudit } from "../../../lib/audit"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -118,9 +119,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (b.variants && Array.isArray(b.variants) && b.variants.length > 0) {
       for (const v of b.variants) {
         const variantId = generateId("var")
+        const imgUrls = (v.imageUrls || []).filter(Boolean)
         await env.DB.prepare(
-          `INSERT INTO product_variants (id, product_id, name, sku, barcode, price_cents, compare_at_price_cents, cost_cents, stock, weight, image_url, is_active, sort_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO product_variants (id, product_id, name, sku, barcode, price_cents, compare_at_price_cents, cost_cents, stock, weight, image_url, image_urls, is_active, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
           .bind(
             variantId,
@@ -133,7 +135,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
             v.costCents || null,
             Math.min(Math.max(0, Number(v.stock) || stock), 999999),
             v.weight || null,
-            sanitizeString(v.imageUrl, 500) || null,
+            imgUrls[0] || null,
+            JSON.stringify(imgUrls),
             v.isActive !== false ? 1 : 0,
             Math.max(0, Number(v.sortOrder) || 0),
           )
@@ -141,9 +144,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     } else {
       const variantId = generateId("var")
+      const imgUrls = (b.imageUrls || []).filter(Boolean)
       await env.DB.prepare(
-        `INSERT INTO product_variants (id, product_id, name, sku, price_cents, compare_at_price_cents, cost_cents, stock, image_url, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO product_variants (id, product_id, name, sku, price_cents, compare_at_price_cents, cost_cents, stock, image_url, image_urls, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
         .bind(
           variantId,
@@ -154,11 +158,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
           b.compareAtPriceCents || null,
           b.costCents || null,
           stock,
-          sanitizeString(b.imageUrl, 500) || null,
+          imgUrls[0] || null,
+          JSON.stringify(imgUrls),
           1,
         )
         .run()
     }
+
+    await logAudit(env.DB, { actorType: "admin", actorId: user.id, action: "product.create", resourceType: "product", resourceId: id, ipAddress: request.headers.get("CF-Connecting-IP"), userAgent: request.headers.get("User-Agent") })
 
     if (b.variantOptions && Array.isArray(b.variantOptions)) {
       for (let i = 0; i < b.variantOptions.length; i++) {
@@ -171,11 +178,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
+    if (b.categoryIds && Array.isArray(b.categoryIds) && b.categoryIds.length > 0) {
+      const stmt = env.DB.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)")
+      for (const catId of b.categoryIds) {
+        await stmt.bind(id, catId).run()
+      }
+    }
+
     return new Response(JSON.stringify({ id, slug }), {
       headers: { "Content-Type": "application/json" },
     })
   } catch (err: any) {
     console.error("Product create error:", err)
-    return jsonError(400, err.message || "Failed to create product")
+    return jsonError(400, "Failed to create product")
   }
 }

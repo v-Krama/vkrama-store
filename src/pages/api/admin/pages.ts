@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro"
 import { getAuthUser } from "../../../lib/auth"
 import { jsonError } from "../../../lib/validation"
+import { hasPermission, jsonForbidden } from "../../../lib/admin-auth"
 import { nanoid } from "nanoid"
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -19,6 +20,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!env?.DB) return jsonError(500, "Server error")
   const user = await getAuthUser(request, env.DB, "admin")
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "products:write")) return jsonForbidden()
   try {
     const b = await request.json() as any
     const id = "page_" + nanoid(24)

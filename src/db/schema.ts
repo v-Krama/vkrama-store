@@ -58,6 +58,7 @@ export const productVariants = sqliteTable("product_variants", {
   weight: real("weight"),
   weightUnit: text("weight_unit").default("kg"),
   imageUrl: text("image_url"),
+  imageUrls: text("image_urls"),
   isActive: bool("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at"),
@@ -259,6 +260,9 @@ export const orders = sqliteTable("orders", {
   status: text("status", {
     enum: [
       "pending",
+      "awaiting_payment",
+      "payment_requested",
+      "paid",
       "confirmed",
       "processing",
       "shipped",

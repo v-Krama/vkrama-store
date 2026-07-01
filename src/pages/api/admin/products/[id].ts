@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm"
 import { jsonError, sanitizeString } from "../../../../lib/validation"
 import { invalidateProductCache } from "../../../../services/cache"
 import { getAdminUser, hasPermission, jsonForbidden } from "../../../../lib/admin-auth"
+import { logAudit } from "../../../../lib/audit"
+import { generateId } from "../../../../lib/auth"
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -25,7 +27,10 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       .orderBy(productVariants.sortOrder)
       .all()
 
-    return new Response(JSON.stringify({ ...product, variants }), {
+    const cats = await env.DB.prepare("SELECT category_id FROM product_categories WHERE product_id = ?").bind(product.id).all() as any
+    const categoryIds = (cats.results || []).map((r: any) => r.category_id)
+
+    return new Response(JSON.stringify({ ...product, variants, categoryIds }), {
       headers: { "Content-Type": "application/json" },
     })
   } catch {
@@ -78,10 +83,80 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       )
       .run()
 
+    if (b.variants && Array.isArray(b.variants)) {
+      const existing = await env.DB.prepare(
+        "SELECT id FROM product_variants WHERE product_id = ?"
+      ).bind(productId).all() as any
+      const existingIds = new Set((existing.results || []).map((r: any) => r.id))
+      const incomingIds = new Set(b.variants.map((v: any) => v.id).filter(Boolean))
+
+      for (const v of b.variants) {
+        const name = sanitizeString(v.name, 200) || "Default"
+        const priceCents = v.priceCents || (b.priceCents ? Number(b.priceCents) : 0) || (b.price ? Math.round(Number(b.price) * 100) : 0)
+        const stock = Math.min(Math.max(0, Number(v.stock) || 0), 999999)
+
+        const imgUrls = (v.imageUrls || []).filter(Boolean)
+        if (v.id && existingIds.has(v.id)) {
+          await env.DB.prepare(
+            `UPDATE product_variants SET name = ?, sku = ?, barcode = ?, price_cents = ?, compare_at_price_cents = ?, cost_cents = ?, stock = ?, weight = ?, image_url = ?, image_urls = ?, is_active = ?, sort_order = ? WHERE id = ?`
+          ).bind(
+            name,
+            sanitizeString(v.sku, 100) || null,
+            sanitizeString(v.barcode, 100) || null,
+            v.priceCents || priceCents,
+            v.compareAtPriceCents || null,
+            v.costCents || null,
+            stock,
+            v.weight || null,
+            imgUrls[0] || null,
+            JSON.stringify(imgUrls),
+            v.isActive !== false ? 1 : 0,
+            Math.max(0, Number(v.sortOrder) || 0),
+            v.id,
+          ).run()
+        } else {
+          const variantId = generateId("var")
+          await env.DB.prepare(
+            `INSERT INTO product_variants (id, product_id, name, sku, barcode, price_cents, compare_at_price_cents, cost_cents, stock, weight, image_url, image_urls, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            variantId, productId, name,
+            sanitizeString(v.sku, 100) || null,
+            sanitizeString(v.barcode, 100) || null,
+            v.priceCents || priceCents,
+            v.compareAtPriceCents || null,
+            v.costCents || null,
+            stock,
+            v.weight || null,
+            imgUrls[0] || null,
+            JSON.stringify(imgUrls),
+            v.isActive !== false ? 1 : 0,
+            Math.max(0, Number(v.sortOrder) || 0),
+          ).run()
+        }
+      }
+
+      for (const oldId of existingIds) {
+        if (!incomingIds.has(oldId)) {
+          await env.DB.prepare("DELETE FROM variant_option_links WHERE variant_id = ?").bind(oldId).run()
+          await env.DB.prepare("DELETE FROM product_variants WHERE id = ?").bind(oldId).run()
+        }
+      }
+    }
+
+    await env.DB.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(productId).run()
+    if (b.categoryIds && Array.isArray(b.categoryIds) && b.categoryIds.length > 0) {
+      const stmt = env.DB.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)")
+      for (const catId of b.categoryIds) {
+        await stmt.bind(productId, catId).run()
+      }
+    }
+
     const product = await getDb(env.DB).select().from(products).where(eq(products.id, productId)).get()
     if (product) {
       await invalidateProductCache(env.CACHE, product.slug)
     }
+
+    await logAudit(env.DB, { actorType: "admin", actorId: user.id, action: "product.update", resourceType: "product", resourceId: productId, ipAddress: request.headers.get("CF-Connecting-IP"), userAgent: request.headers.get("User-Agent") })
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
@@ -110,6 +185,8 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     await env.DB.prepare("DELETE FROM collection_products WHERE product_id = ?").bind(params.id!).run()
     await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(params.id!).run()
     await invalidateProductCache(env.CACHE, product.slug)
+
+    await logAudit(env.DB, { actorType: "admin", actorId: user.id, action: "product.delete", resourceType: "product", resourceId: params.id!, ipAddress: request.headers.get("CF-Connecting-IP"), userAgent: request.headers.get("User-Agent") })
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },

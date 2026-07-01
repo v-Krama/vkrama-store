@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const email = sanitizeString((body as any).email).toLowerCase().trim()
     const password = (body as any).password || ''
 
-    if (!email || !password) return jsonError(400, 'Name, email, and password required')
+    if (!name || !email || !password) return jsonError(400, 'Name, email, and password required')
     if (!validateEmail(email)) return jsonError(400, 'Invalid email format')
 
     const pwError = validatePassword(password)

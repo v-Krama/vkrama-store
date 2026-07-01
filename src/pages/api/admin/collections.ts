@@ -5,6 +5,7 @@ import { getDb } from "../../../lib/db"
 import { collections, collectionProducts } from "../../../db/schema"
 import { eq, desc, sql } from "drizzle-orm"
 import { nanoid } from "nanoid"
+import { hasPermission, jsonForbidden } from "../../../lib/admin-auth"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -30,6 +31,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!env?.DB) return jsonError(500, "Server error")
   const user = await getAuthUser(request, env.DB, "admin")
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "products:write")) return jsonForbidden()
   try {
     const b = await request.json() as any
     const id = "coll_" + nanoid(24)

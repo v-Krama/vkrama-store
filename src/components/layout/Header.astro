@@ -1,6 +1,9 @@
 ---
 const { pathname } = Astro.url
-const isHome = pathname === '/'
+export interface Props {
+  categories?: Array<{ id: string; name: string; slug: string }>
+}
+const { categories = [] } = Astro.props
 ---
 
 <header id="site-header" class="sticky top-0 z-50 transition-all duration-500">
@@ -22,9 +25,9 @@ const isHome = pathname === '/'
                 <svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
               </button>
               <div class="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-white shadow-2xl border border-surface-100 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-y-2 group-hover:translate-y-0">
-                <a href="/products?category=electronics" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-all">Electronics</a>
-                <a href="/products?category=clothing" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-all">Clothing</a>
-                <a href="/products?category=home-living" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-all">Home &amp; Living</a>
+                {categories.map((cat) => (
+                  <a href={`/products?category=${cat.slug}`} class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-all">{cat.name}</a>
+                ))}
               </div>
             </div>
           </nav>
@@ -67,9 +70,9 @@ const isHome = pathname === '/'
         <a href="/" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50 transition-all">Home</a>
         <a href="/products" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50 transition-all">Products</a>
         <div class="pl-3 ml-3 border-l-2 border-surface-100 space-y-1">
-          <a href="/products?category=electronics" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 transition-all">Electronics</a>
-          <a href="/products?category=clothing" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 transition-all">Clothing</a>
-          <a href="/products?category=home-living" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 transition-all">Home &amp; Living</a>
+          {categories.map((cat) => (
+            <a href={`/products?category=${cat.slug}`} class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 transition-all">{cat.name}</a>
+          ))}
         </div>
         <hr class="my-3 border-surface-100" />
         <a id="mobile-account-link" href="/account/orders" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50 transition-all">

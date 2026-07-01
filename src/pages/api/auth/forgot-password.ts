@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ).bind(generateId('vrf'), email, resetToken, 'password_reset', expiresAt).run()
 
     const siteUrl = env.SITE_URL || 'https://vkrama.com.np'
-    const resetUrl = `${siteUrl}/account/reset-password?token=${resetToken}`
+    const resetUrl = `${siteUrl}/auth/reset-password?token=${resetToken}`
 
     await env.EMAIL_QUEUE.send({
       type: 'password_reset',

@@ -5,6 +5,8 @@ import { getDb } from "../../../lib/db"
 import { coupons } from "../../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { nanoid } from "nanoid"
+import { hasPermission, jsonForbidden } from "../../../lib/admin-auth"
+import { logAudit } from "../../../lib/audit"
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env
@@ -23,6 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!env?.DB) return jsonError(500, "Server error")
   const user = await getAuthUser(request, env.DB, "admin")
   if (!user) return jsonError(401, "Unauthorized")
+  if (!hasPermission(user.role, "coupons:write")) return jsonForbidden()
   try {
     const body = await request.json(); const b = body as any
     const id = "coup_" + nanoid(24)
@@ -30,6 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       `INSERT INTO coupons (id, code, type, value_cents, value_percent, min_order_cents, max_discount_cents, usage_limit, per_customer_limit, is_active, starts_at, ends_at, description)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(id, b.code, b.type, b.valueCents || null, b.valuePercent || null, b.minOrderCents || null, b.maxDiscountCents || null, b.usageLimit || null, b.perCustomerLimit || 1, b.isActive ? 1 : 0, b.startsAt || null, b.endsAt || null, b.description || null).run()
+    await logAudit(env.DB, { actorType: "admin", actorId: user.id, action: "coupon.create", resourceType: "coupon", resourceId: id, ipAddress: request.headers.get("CF-Connecting-IP"), userAgent: request.headers.get("User-Agent") })
     return new Response(JSON.stringify({ id }), { headers: { "Content-Type": "application/json" } })
   } catch { return jsonError(400, "Failed to create coupon") }
 }
