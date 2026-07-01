@@ -12,6 +12,7 @@ function isTrustedOrigin(origin: string): boolean {
     const url = new URL(origin)
     const hostname = url.hostname
     if (TRUSTED_ORIGINS.some(o => url.origin === new URL(o).origin)) return true
+    if (hostname.endsWith(".pages.dev") || hostname === "localhost" || hostname === "127.0.0.1") return true
     return false
   } catch {
     return false
